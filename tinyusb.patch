@@ -1,0 +1,205 @@
+diff --git a/src/portable/espressif/esp32sx/dcd_esp32sx.c b/src/portable/espressif/esp32sx/dcd_esp32sx.c
+index 41240f737..6516403e4 100644
+--- a/src/portable/espressif/esp32sx/dcd_esp32sx.c
++++ b/src/portable/espressif/esp32sx/dcd_esp32sx.c
+@@ -31,6 +31,8 @@
+ #if (((CFG_TUSB_MCU == OPT_MCU_ESP32S2) ||  (CFG_TUSB_MCU == OPT_MCU_ESP32S3)) && CFG_TUD_ENABLED)
+ 
+ // Espressif
++#include <freertos/FreeRTOS.h>
++#include <freertos/task.h>
+ #include "freertos/xtensa_api.h"
+ #include "esp_intr_alloc.h"
+ #include "esp_log.h"
+diff --git a/src/portable/raspberrypi/rp2040/dcd_rp2040.c b/src/portable/raspberrypi/rp2040/dcd_rp2040.c
+index b5fa90c92..c522b09b5 100644
+--- a/src/portable/raspberrypi/rp2040/dcd_rp2040.c
++++ b/src/portable/raspberrypi/rp2040/dcd_rp2040.c
+@@ -188,7 +188,7 @@ static void hw_endpoint_xfer(uint8_t ep_addr, uint8_t *buffer, uint16_t total_by
+ static void __tusb_irq_path_func(hw_handle_buff_status)(void)
+ {
+     uint32_t remaining_buffers = usb_hw->buf_status;
+-    pico_trace("buf_status = 0x%08x\n", remaining_buffers);
++    pico_trace("buf_status = 0x%08x\n", (unsigned)remaining_buffers);
+     uint bit = 1u;
+     for (uint8_t i = 0; remaining_buffers && i < USB_MAX_ENDPOINTS * 2; i++)
+     {
+diff --git a/src/portable/raspberrypi/rp2040/hcd_rp2040.c b/src/portable/raspberrypi/rp2040/hcd_rp2040.c
+index 28abd7939..015bbca20 100644
+--- a/src/portable/raspberrypi/rp2040/hcd_rp2040.c
++++ b/src/portable/raspberrypi/rp2040/hcd_rp2040.c
+@@ -113,7 +113,7 @@ static void __tusb_irq_path_func(_handle_buff_status_bit)(uint bit, struct hw_en
+ static void __tusb_irq_path_func(hw_handle_buff_status)(void)
+ {
+   uint32_t remaining_buffers = usb_hw->buf_status;
+-  pico_trace("buf_status 0x%08x\n", remaining_buffers);
++  pico_trace("buf_status 0x%08x\r\n", (unsigned)remaining_buffers);
+ 
+   // Check EPX first
+   uint bit = 0b1;
+@@ -160,7 +160,7 @@ static void __tusb_irq_path_func(hw_handle_buff_status)(void)
+ 
+   if ( remaining_buffers )
+   {
+-    panic("Unhandled buffer %d\n", remaining_buffers);
++    panic("Unhandled buffer %d\r\n", remaining_buffers);
+   }
+ }
+ 
+@@ -168,7 +168,7 @@ static void __tusb_irq_path_func(hw_trans_complete)(void)
+ {
+   if (usb_hw->sie_ctrl & USB_SIE_CTRL_SEND_SETUP_BITS)
+   {
+-    pico_trace("Sent setup packet\n");
++    pico_trace("Sent setup packet\r\n");
+     struct hw_endpoint *ep = &epx;
+     assert(ep->active);
+     // Set transferred length to 8 for a setup packet
+@@ -210,7 +210,7 @@ static void __tusb_irq_path_func(hcd_rp2040_irq)(void)
+     // NOTE THIS SHOULD HAVE PRIORITY OVER BUFF_STATUS
+     // AND TRANS_COMPLETE as the stall is an alternative response
+     // to one of those events
+-    pico_trace("Stall REC\n");
++    pico_trace("Stall REC\r\n");
+     handled |= USB_INTS_STALL_BITS;
+     usb_hw_clear->sie_status = USB_SIE_STATUS_STALL_REC_BITS;
+     hw_xfer_complete(&epx, XFER_RESULT_STALLED);
+@@ -219,7 +219,7 @@ static void __tusb_irq_path_func(hcd_rp2040_irq)(void)
+   if ( status & USB_INTS_BUFF_STATUS_BITS )
+   {
+     handled |= USB_INTS_BUFF_STATUS_BITS;
+-    TU_LOG(2, "Buffer complete\n");
++    TU_LOG(2, "Buffer complete\r\n");
+     hw_handle_buff_status();
+   }
+ 
+@@ -227,7 +227,7 @@ static void __tusb_irq_path_func(hcd_rp2040_irq)(void)
+   {
+     handled |= USB_INTS_TRANS_COMPLETE_BITS;
+     usb_hw_clear->sie_status = USB_SIE_STATUS_TRANS_COMPLETE_BITS;
+-    TU_LOG(2, "Transfer complete\n");
++    TU_LOG(2, "Transfer complete\r\n");
+     hw_trans_complete();
+   }
+ 
+@@ -243,12 +243,12 @@ static void __tusb_irq_path_func(hcd_rp2040_irq)(void)
+     TU_LOG(3, "  Seq Error: [0] = 0x%04u  [1] = 0x%04x\r\n",
+            tu_u32_low16(*epx.buffer_control),
+            tu_u32_high16(*epx.buffer_control));
+-    panic("Data Seq Error \n");
++    panic("Data Seq Error \r\n");
+   }
+ 
+   if ( status ^ handled )
+   {
+-    panic("Unhandled IRQ 0x%x\n", (uint) (status ^ handled));
++    panic("Unhandled IRQ 0x%x\r\n", (uint) (status ^ handled));
+   }
+ }
+ 
+@@ -283,7 +283,7 @@ static struct hw_endpoint *_hw_endpoint_allocate(uint8_t transfer_type)
+     // Note: even though datasheet name these "Interrupt" endpoints. These are actually
+     // "Asynchronous" endpoints and can be used for other type such as: Bulk  (ISO need confirmation)
+     ep = _next_free_interrupt_ep();
+-    pico_info("Allocate %s ep %d\n", tu_edpt_type_str(transfer_type), ep->interrupt_num);
++    pico_info("Allocate %s ep %d\r\n", tu_edpt_type_str(transfer_type), ep->interrupt_num);
+     assert(ep);
+     ep->buffer_control = &usbh_dpram->int_ep_buffer_ctrl[ep->interrupt_num].ctrl;
+     ep->endpoint_control = &usbh_dpram->int_ep_ctrl[ep->interrupt_num].ctrl;
+@@ -325,9 +325,9 @@ static void _hw_endpoint_init(struct hw_endpoint *ep, uint8_t dev_addr, uint8_t
+   ep->wMaxPacketSize = wMaxPacketSize;
+   ep->transfer_type = transfer_type;
+ 
+-  pico_trace("hw_endpoint_init dev %d ep %d %s xfer %d\n", ep->dev_addr, tu_edpt_number(ep->ep_addr),
++  pico_trace("hw_endpoint_init dev %d ep %d %s xfer %d\r\n", ep->dev_addr, tu_edpt_number(ep->ep_addr),
+              ep_dir_string[tu_edpt_dir(ep->ep_addr)], ep->transfer_type);
+-  pico_trace("dev %d ep %d %s setup buffer @ 0x%p\n", ep->dev_addr, tu_edpt_number(ep->ep_addr),
++  pico_trace("dev %d ep %d %s setup buffer @ 0x%p\r\n", ep->dev_addr, tu_edpt_number(ep->ep_addr),
+              ep_dir_string[tu_edpt_dir(ep->ep_addr)], ep->hw_data_buf);
+   uint dpram_offset = hw_data_offset(ep->hw_data_buf);
+   // Bits 0-5 should be 0
+@@ -343,7 +343,7 @@ static void _hw_endpoint_init(struct hw_endpoint *ep, uint8_t dev_addr, uint8_t
+     ep_reg |= (uint32_t) ((bmInterval - 1) << EP_CTRL_HOST_INTERRUPT_INTERVAL_LSB);
+   }
+   *ep->endpoint_control = ep_reg;
+-  pico_trace("endpoint control (0x%p) <- 0x%x\n", ep->endpoint_control, ep_reg);
++  pico_trace("endpoint control (0x%p) <- 0x%x\r\n", ep->endpoint_control, (unsigned)ep_reg);
+   ep->configured = true;
+ 
+   if ( ep != &epx )
+@@ -380,7 +380,7 @@ static void _hw_endpoint_init(struct hw_endpoint *ep, uint8_t dev_addr, uint8_t
+ bool hcd_init(uint8_t rhport)
+ {
+   (void) rhport;
+-  pico_trace("hcd_init %d\n", rhport);
++  pico_trace("hcd_init %d\r\n", rhport);
+   assert(rhport == 0);
+ 
+   // Reset any previous state
+@@ -414,7 +414,7 @@ bool hcd_init(uint8_t rhport)
+ void hcd_port_reset(uint8_t rhport)
+ {
+   (void) rhport;
+-  pico_trace("hcd_port_reset\n");
++  pico_trace("hcd_port_reset\r\n");
+   assert(rhport == 0);
+   // TODO: Nothing to do here yet. Perhaps need to reset some state?
+ }
+@@ -427,7 +427,7 @@ void hcd_port_reset_end(uint8_t rhport)
+ bool hcd_port_connect_status(uint8_t rhport)
+ {
+   (void) rhport;
+-  pico_trace("hcd_port_connect_status\n");
++  pico_trace("hcd_port_connect_status\r\n");
+   assert(rhport == 0);
+   return usb_hw->sie_status & USB_SIE_STATUS_SPEED_BITS;
+ }
+@@ -445,7 +445,7 @@ tusb_speed_t hcd_port_speed_get(uint8_t rhport)
+     case 2:
+       return TUSB_SPEED_FULL;
+     default:
+-      panic("Invalid speed\n");
++      panic("Invalid speed\r\n");
+       return TUSB_SPEED_INVALID;
+   }
+ }
+@@ -453,7 +453,7 @@ tusb_speed_t hcd_port_speed_get(uint8_t rhport)
+ // Close all opened endpoint belong to this device
+ void hcd_device_close(uint8_t rhport, uint8_t dev_addr)
+ {
+-  pico_trace("hcd_device_close %d\n", dev_addr);
++  pico_trace("hcd_device_close %d\r\n", dev_addr);
+   (void) rhport;
+ 
+   if (dev_addr == 0) return;
+@@ -506,7 +506,7 @@ bool hcd_edpt_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_endpoint_t const
+ {
+   (void) rhport;
+ 
+-  pico_trace("hcd_edpt_open dev_addr %d, ep_addr %d\n", dev_addr, ep_desc->bEndpointAddress);
++  pico_trace("hcd_edpt_open dev_addr %d, ep_addr %d\r\n", dev_addr, ep_desc->bEndpointAddress);
+ 
+   // Allocated differently based on if it's an interrupt endpoint or not
+   struct hw_endpoint *ep = _hw_endpoint_allocate(ep_desc->bmAttributes.xfer);
+@@ -526,7 +526,7 @@ bool hcd_edpt_xfer(uint8_t rhport, uint8_t dev_addr, uint8_t ep_addr, uint8_t *
+ {
+   (void) rhport;
+ 
+-  pico_trace("hcd_edpt_xfer dev_addr %d, ep_addr 0x%x, len %d\n", dev_addr, ep_addr, buflen);
++  pico_trace("hcd_edpt_xfer dev_addr %d, ep_addr 0x%x, len %d\r\n", dev_addr, ep_addr, buflen);
+ 
+   uint8_t const ep_num = tu_edpt_number(ep_addr);
+   tusb_dir_t const ep_dir = tu_edpt_dir(ep_addr);
+diff --git a/src/portable/raspberrypi/rp2040/rp2040_usb.c b/src/portable/raspberrypi/rp2040/rp2040_usb.c
+index df05697fe..caa2f22e0 100644
+--- a/src/portable/raspberrypi/rp2040/rp2040_usb.c
++++ b/src/portable/raspberrypi/rp2040/rp2040_usb.c
+@@ -415,7 +415,7 @@ static bool __tusb_irq_path_func(e15_is_critical_frame_period) (struct hw_endpoi
+   if (delta < 800 || delta > 998) {
+     return false;
+   }
+-  TU_LOG(3, "Avoiding sof %u now %lu last %lu\n", (usb_hw->sof_rd + 1) & USB_SOF_RD_BITS, time_us_32(), e15_last_sof);
++  TU_LOG(3, "Avoiding sof %u now %lu last %lu\n", (unsigned)(usb_hw->sof_rd + 1) & USB_SOF_RD_BITS, time_us_32(), e15_last_sof);
+   return true;
+ }
+ 
