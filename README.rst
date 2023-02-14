@@ -10,8 +10,8 @@ TinyUSB currently offers good support for devices, with more limited Host suppor
 At present, there is no host support for Esp32 (only Rp2040).
 
 
-Device Structure
-----------------
+Device stack
+------------
 
 The TinyUSB example applications generally consist of these three things:
 
@@ -42,6 +42,12 @@ Finally, the user code would be written as C++ class implementations, with the l
 taking care of the callback implementations.
 
 
+Host stack
+----------
+
+Supported classes must be declared 
+
+
 Notes
 -----
 
@@ -49,6 +55,4 @@ TinyUSB requires various global callback functions to be implemented.
 TinyUSB defines optional ones as WEAK to avoid calling them when not implemented.
 
 However, if an application implements them then they must be 'undefined' first.
-This library will probably end up handling all these low-level callbacks and provide
-a more robust C++ interface to the application.
-
+This should be handled by the library.
