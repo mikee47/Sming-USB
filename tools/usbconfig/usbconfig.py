@@ -11,6 +11,26 @@ import string
 import math
 from common import *
 
+TUSB_DESC_STRING = 3
+
+STRING_FIELDS = {
+    "device": ['manufacturer', 'product', 'serial']
+}
+
+DEVICE_CLASSES = {
+    'misc': 'TUSB_CLASS_MISC',
+}
+
+DEVICE_SUBCLASSES = {
+    'none': 0,
+    'common': 'MISC_SUBCLASS_COMMON',
+}
+
+DEVICE_PROTOCOLS = {
+    'none': 0,
+    'iad': 'MISC_PROTOCOL_IAD',
+}
+
 
 def openOutput(path):
     if path == '-':
@@ -39,13 +59,7 @@ def main():
     output = None
     config = json_load(args.input)
 
-    # print(to_json(config))
-
     strings = set()
-
-    STRING_FIELDS = {
-        "device": ['manufacturer', 'product', 'serial']
-    }
 
     # DEVICE
 
@@ -53,26 +67,12 @@ def main():
         for f in STRING_FIELDS['device']:
             strings.add(dev[f])
 
-    # Sort all strings
+    # Sort all strings into a list
     strings = sorted(strings)
-    for i, s in enumerate(strings):
-        print(f"{i}: {s}")
-
-    DEVICE_CLASSES = {
-        'misc': 'TUSB_CLASS_MISC',
-    }
-    DEVICE_SUBCLASSES = {
-        'none': 0,
-        'common': 'MISC_SUBCLASS_COMMON',
-    }
-    DEVICE_PROTOCOLS = {
-        'none': 0,
-        'iad': 'MISC_PROTOCOL_IAD',
-    }
 
     for tag, dev in config['devices'].items():
-        print(tag)
         vars = dict([(key, value) for key, value in dev.items() if not isinstance(value, dict)])
+        vars['device_tag'] = tag
         vars['class_id'] = DEVICE_CLASSES[dev['class']]
         vars['subclass_id'] = DEVICE_SUBCLASSES[dev['subclass']]
         vars['protocol_id'] = DEVICE_PROTOCOLS[dev['protocol']]
@@ -81,8 +81,6 @@ def main():
         vars['version_bcd'] = f"0x{ver:04}"
         for f in STRING_FIELDS['device']:
             vars[f'{f}_id'] = strings.index(dev[f]) + 1
-        print(vars)
-
 
     def readTemplate(name, vars):
         pathname = os.path.join(os.path.dirname(os.path.abspath(__file__)), f'templates/{name}')
@@ -93,14 +91,22 @@ def main():
     s = readTemplate('usb.c', vars)
     print(s)
 
-    max_string_len = len(max(strings, key=len))
+    max_string_len = 0
+    string_data = []
+    for i, s in enumerate(strings):
+        s_encoded = s.encode('utf-16le')
+        max_string_len = max(max_string_len, len(s_encoded))
+        desc_array = bytes([2 + len(s_encoded), TUSB_DESC_STRING]) + s_encoded
+        string_data.append("".join(f"\\x{c:02x}" for c in desc_array))
+
     vars = {
-        'strings': "".join(f'  "\\x{len(s):02x}{s}",\n' for s in strings),
-        'max_string_len': max(2, max_string_len),
+        'max_string_len': max_string_len,
+        'string_data': ",\n".join(f'  // {i}: "{s}"\n'
+                                  f'  "{d}"' for ((i, s), d) in zip(enumerate(strings), string_data)),
     }
+
     s = readTemplate('string.c', vars)
     print(s)
-
 
     # output = globals()['handle_' + args.command](args, config, part)
 

@@ -2,24 +2,19 @@
 // String Descriptors
 //--------------------------------------------------------------------+
 
-// array of pointer to string descriptors, first element is the string length
-static const char* string_desc_arr [] =
+// array of pointer to string descriptors
+static const char* string_desc_arr[] =
 {
-  "\x01\x09\x04", // 0: is supported language is English (0x0409)
-${strings}};
+  // 0: supported language is English (0x0409)
+  "\x04\x03\x09\x04",
+${string_data}
+};
 
 // Invoked when received GET STRING DESCRIPTOR request
 // Application return pointer to descriptor, whose contents must exist long enough for transfer to complete
 const uint16_t* tud_descriptor_string_cb(uint8_t index, uint16_t langid)
 {
   (void)langid;
-
-  struct StringBuffer {
-    uint8_t size; // Total size including header
-    uint8_t type; // String type
-    uint16_t str[${max_string_len}];
-  };
-  StringBuffer buf;
 
   // Note: the 0xEE index string is a Microsoft OS 1.0 Descriptors.
   // https://docs.microsoft.com/en-us/windows-hardware/drivers/usbcon/microsoft-defined-usb-descriptors
@@ -28,20 +23,5 @@ const uint16_t* tud_descriptor_string_cb(uint8_t index, uint16_t langid)
     return NULL;
   }
 
-  const char* str = string_desc_arr[index];
-  uint8_t chr_count = *str++;
-  if (index == 0)
-  {
-    memcpy(buf.str, str, 2);
-  } else {
-    // Convert ASCII string into UTF-16
-    for(unsigned i=0; i<chr_count; ++i) {
-      buf.str[i] = str[i];
-    }
-  }
-
-  buf.size = 2 + (chr_count * 2);
-  buf.type = TUSB_DESC_STRING;
-
-  return (const uint16_t*)&buf;
+  return (const uint16_t*)string_desc_arr[index];
 }

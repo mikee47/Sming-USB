@@ -22,7 +22,7 @@
 //--------------------------------------------------------------------+
 // Device Descriptors
 //--------------------------------------------------------------------+
-static const tusb_desc_device_t desc_{device_tag} =
+static const tusb_desc_device_t desc_${device_tag} =
 {
     .bLength            = sizeof(tusb_desc_device_t),
     .bDescriptorType    = TUSB_DESC_DEVICE,
@@ -47,5 +47,5 @@ static const tusb_desc_device_t desc_{device_tag} =
 // Application return pointer to descriptor
 const uint8_t* tud_descriptor_device_cb(void)
 {
-  return (const uint8_t*)&desc_{device_tag};
+  return (const uint8_t*)&desc_${device_tag};
 }
