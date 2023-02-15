@@ -33,7 +33,9 @@ DEVICE_PROTOCOLS = {
 
 CONFIG_ATTRIBUTES = {
     'remote-wakeup': 'TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP',
+    'self-powered': 'TUSB_DESC_CONFIG_ATT_SELF_POWERED',
 }
+
 
 def openOutput(path):
     if path == '-':
@@ -46,6 +48,13 @@ def openOutput(path):
     output_dir = os.path.abspath(os.path.dirname(path))
     os.makedirs(output_dir, exist_ok=True)
     return open(path, 'wb')
+
+
+def readTemplate(name, vars):
+    pathname = os.path.join(os.path.dirname(os.path.abspath(__file__)), f'templates/{name}')
+    with open(pathname) as f:
+        tmpl = string.Template(f.read())
+    return tmpl.substitute(vars)
 
 
 def main():
@@ -62,16 +71,26 @@ def main():
     output = None
     config = json_load(args.input)
 
+    # Build sorted string list
     strings = set()
 
-    # DEVICE
+    def add_string(s):
+        if s:
+            strings.add(s)
 
-    for tag, dev in config['devices'].items():
+    def get_string_idx(s):
+        return strings.index(s) + 1 if s else 0
+
+    for dev in config['devices'].values():
         for f in STRING_FIELDS['device']:
             strings.add(dev[f])
-
-    # Sort all strings into a list
+        for cfg in dev['configs'].values():
+            add_string(cfg.get('description'))
+            for itf in cfg['interfaces'].values():
+                add_string(itf.get('description'))
     strings = sorted(strings)
+
+    # Device descriptors
 
     for tag, dev in config['devices'].items():
         vars = dict([(key, value) for key, value in dev.items() if not isinstance(value, dict)])
@@ -83,16 +102,50 @@ def main():
         ver = round(float(dev['version']) * 100)
         vars['version_bcd'] = f"0x{ver:04}"
         for f in STRING_FIELDS['device']:
-            vars[f'{f}_idx'] = strings.index(dev[f]) + 1
+            vars[f'{f}_idx'] = get_string_idx(dev[f])
+        vars['config_count'] = len(dev['configs'])
+        s = readTemplate('usb.c', vars)
+        print(s)
 
-    def readTemplate(name, vars):
-        pathname = os.path.join(os.path.dirname(os.path.abspath(__file__)), f'templates/{name}')
-        with open(pathname) as f:
-            tmpl = string.Template(f.read())
-        return tmpl.substitute(vars)
+    # Configuration descriptors
 
-    s = readTemplate('usb.c', vars)
-    print(s)
+    for dev in config['devices'].values():
+        cfg_num = 1
+        for cfg_tag, cfg in dev['configs'].items():
+            config_data = []
+            itf_num_total = len(cfg['interfaces'])
+            desc_idx = get_string_idx(cfg.get('description'))
+            config_total_len = 'TUD_CONFIG_DESC_LEN' + \
+                "".join(f" + TUD_{itf['class'].upper()}_DESC_LEN" for itf in cfg['interfaces'].values())
+            if 'attributes' in cfg:
+                attr = " | ".join([CONFIG_ATTRIBUTES[a] for a in cfg['attributes']])
+            else:
+                attr = 0
+            power = cfg['power']
+            config_data.append('// Config number, interface count, string index, total length, attribute, power in mA')
+            config_data.append(
+                f"TUD_CONFIG_DESCRIPTOR({cfg_num}, {itf_num_total}, {desc_idx}, {config_total_len}, {attr}, {power}),")
+            itf_num = 1
+            # for itf_tag, itf in cfg['interfaces'].items():
+            #     config_data.append(build_itf_desc(itf_num, itf_tag, itf))
+
+            cfg_num += 1
+
+            vars = {
+                'config_desc': "\n".join(f"  {c}" for c in config_data)
+            }
+            s = readTemplate('interface.c', vars)
+            print(s)
+
+
+#   // Interface number, string index, protocol, report descriptor len, EP In address, size & polling interval
+#   TUD_HID_DESCRIPTOR(ITF_NUM_HID, 0, HID_ITF_PROTOCOL_NONE, sizeof(desc_hid_report), EPNUM_HID, CFG_TUD_HID_EP_BUFSIZE, 5)
+
+#   // Interface number, string index, EP notification address and size, EP data address (out, in) and size.
+#   TUD_CDC_DESCRIPTOR(ITF_NUM_CDC, 4, EPNUM_CDC_NOTIF, 8, EPNUM_CDC_OUT, EPNUM_CDC_IN, 64),
+
+#   // Interface number, string index, EP Out & EP In address, EP size
+#   TUD_MSC_DESCRIPTOR(ITF_NUM_MSC, 5, EPNUM_MSC_OUT, EPNUM_MSC_IN, 64),
 
     max_string_len = 0
     string_data = []

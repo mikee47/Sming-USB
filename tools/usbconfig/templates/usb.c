@@ -40,7 +40,7 @@ static const tusb_desc_device_t desc_${device_tag} =
     .iProduct           = ${product_idx}, // "${product}"
     .iSerialNumber      = ${serial_idx}, // "${serial}"
 
-    .bNumConfigurations = 1,
+    .bNumConfigurations = ${config_count},
 };
 
 // Invoked when received GET DEVICE DESCRIPTOR

@@ -11,6 +11,7 @@ enum
 static const uint8_t desc_configuration[] =
 {
 ${config_desc}
+};
 
 #if TUD_OPT_HIGH_SPEED
 // Per USB specs: high speed capable device must report device_qualifier and other_speed_configuration
