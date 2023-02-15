@@ -31,6 +31,9 @@ DEVICE_PROTOCOLS = {
     'iad': 'MISC_PROTOCOL_IAD',
 }
 
+CONFIG_ATTRIBUTES = {
+    'remote-wakeup': 'TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP',
+}
 
 def openOutput(path):
     if path == '-':
@@ -80,7 +83,7 @@ def main():
         ver = round(float(dev['version']) * 100)
         vars['version_bcd'] = f"0x{ver:04}"
         for f in STRING_FIELDS['device']:
-            vars[f'{f}_id'] = strings.index(dev[f]) + 1
+            vars[f'{f}_idx'] = strings.index(dev[f]) + 1
 
     def readTemplate(name, vars):
         pathname = os.path.join(os.path.dirname(os.path.abspath(__file__)), f'templates/{name}')
@@ -101,7 +104,7 @@ def main():
 
     vars = {
         'max_string_len': max_string_len,
-        'string_data': ",\n".join(f'  // {i}: "{s}"\n'
+        'string_data': ",\n".join(f'  // {i+1}: "{s}"\n'
                                   f'  "{d}"' for ((i, s), d) in zip(enumerate(strings), string_data)),
     }
 
