@@ -6,7 +6,7 @@
             "protocol": "iad",
             "vendor": "0xcafe",
             "product": "auto", // Unique for any class type combination
-            "release": "1.0",
+            "version": "1.0",
             "manufacturer": "TinyUSB",
             "product": "TinyUSB Device",
             "serial": "123456", // Allow this to be auto-generated at runtime, e.g. from chip ID

@@ -28,11 +28,11 @@ endif
 USBCONFIG_TOOL := $(PYTHON) $(COMPONENT_PATH)/tools/usbconfig/usbconfig.py
 
 USB_OUTPUT_DIR := $(CMP_App_BUILD_BASE)/USB
-USB_OUTPUT_FILES := $(addprefix $(USB_OUTPUT_DIR),tusb_config.h usb_descriptors.c)
+USB_OUTPUT_FILES := $(addprefix $(USB_OUTPUT_DIR),tusb_config.h usb_descriptors.h usb_descriptors.c)
 
 COMPONENT_PREREQUISITES := $(USB_OUTPUT_FILES)
 
-$(USB_OUTPUT_FILES):
+$(USB_OUTPUT_FILES): $(USB_CONFIG)
 	$(USBCONFIG_TOOL) $(USB_CONFIG) $(USB_OUTPUT_DIR)
 
 GLOBAL_CFLAGS += -DCFG_TUSB_MCU=$(CFG_TUSB_MCU)

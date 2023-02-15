@@ -7,6 +7,7 @@ import common
 import argparse
 import os
 import json
+import string
 from common import *
 
 
@@ -37,7 +38,47 @@ def main():
     output = None
     config = json_load(args.input)
 
-    print(to_json(config))
+    # print(to_json(config))
+
+    strings = set([''])
+
+    string_fields = ['manufacturer', 'product', 'serial']
+
+    for tag, dev in config['devices'].items():
+        for f in string_fields:
+            strings.add(dev[f])
+    strings = sorted(strings)
+    for i, s in enumerate(strings):
+        print(f"{i}: {s}")
+
+    DEVICE_CLASSES = {
+        'misc': 'TUSB_CLASS_MISC',
+    }
+    DEVICE_SUBCLASSES = {
+        'none': 0,
+        'common': 'MISC_SUBCLASS_COMMON',
+    }
+    DEVICE_PROTOCOLS = {
+        'none': 0,
+        'iad': 'MISC_PROTOCOL_IAD',
+    }
+
+    for tag, dev in config['devices'].items():
+        print(tag)
+        dev['class_id'] = DEVICE_CLASSES[dev['class']]
+        dev['subclass_id'] = DEVICE_SUBCLASSES[dev['subclass']]
+        dev['protocol_id'] = DEVICE_PROTOCOLS[dev['protocol']]
+        device_vars = dict([(f"device_{key}", value) for key, value in dev.items() if not isinstance(value, dict)])
+        for f in string_fields:
+            device_vars[f'device_{f}_id'] = strings.index(dev[f])
+        print(device_vars)
+
+
+    pathname = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates/usb_descriptors.c')
+    print(pathname)
+    with open(pathname) as f:
+        tmpl = string.Template(f.read())
+    print(tmpl.substitute(device_vars))
 
     # output = globals()['handle_' + args.command](args, config, part)
 
