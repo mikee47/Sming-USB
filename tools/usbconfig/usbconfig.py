@@ -40,13 +40,19 @@ def main():
 
     # print(to_json(config))
 
-    strings = set([''])
+    strings = set()
 
-    string_fields = ['manufacturer', 'product', 'serial']
+    STRING_FIELDS = {
+        "device": ['manufacturer', 'product', 'serial']
+    }
+
+    # DEVICE
 
     for tag, dev in config['devices'].items():
-        for f in string_fields:
+        for f in STRING_FIELDS['device']:
             strings.add(dev[f])
+
+    # Sort all strings
     strings = sorted(strings)
     for i, s in enumerate(strings):
         print(f"{i}: {s}")
@@ -68,17 +74,30 @@ def main():
         dev['class_id'] = DEVICE_CLASSES[dev['class']]
         dev['subclass_id'] = DEVICE_SUBCLASSES[dev['subclass']]
         dev['protocol_id'] = DEVICE_PROTOCOLS[dev['protocol']]
-        device_vars = dict([(f"device_{key}", value) for key, value in dev.items() if not isinstance(value, dict)])
-        for f in string_fields:
-            device_vars[f'device_{f}_id'] = strings.index(dev[f])
-        print(device_vars)
+        vars = dict([(key, value) for key, value in dev.items() if not isinstance(value, dict)])
+        vars['vendor_id'] = dev['vendor']
+        for f in STRING_FIELDS['device']:
+            vars[f'{f}_id'] = strings.index(dev[f]) + 1
+        print(vars)
 
 
-    pathname = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates/usb_descriptors.c')
-    print(pathname)
-    with open(pathname) as f:
-        tmpl = string.Template(f.read())
-    print(tmpl.substitute(device_vars))
+    def readTemplate(name, vars):
+        pathname = os.path.join(os.path.dirname(os.path.abspath(__file__)), f'templates/{name}')
+        with open(pathname) as f:
+            tmpl = string.Template(f.read())
+        return tmpl.substitute(vars)
+
+    s = readTemplate('usb.c', vars)
+    print(s)
+
+    max_string_len = len(max(strings, key=len))
+    vars = {
+        'strings': "".join(f'  "\\x{len(s):02x}{s}",\n' for s in strings),
+        'max_string_len': max(2, max_string_len),
+    }
+    s = readTemplate('string.c', vars)
+    print(s)
+
 
     # output = globals()['handle_' + args.command](args, config, part)
 
