@@ -8,6 +8,7 @@ import argparse
 import os
 import json
 import string
+import math
 from common import *
 
 
@@ -71,11 +72,13 @@ def main():
 
     for tag, dev in config['devices'].items():
         print(tag)
-        dev['class_id'] = DEVICE_CLASSES[dev['class']]
-        dev['subclass_id'] = DEVICE_SUBCLASSES[dev['subclass']]
-        dev['protocol_id'] = DEVICE_PROTOCOLS[dev['protocol']]
         vars = dict([(key, value) for key, value in dev.items() if not isinstance(value, dict)])
+        vars['class_id'] = DEVICE_CLASSES[dev['class']]
+        vars['subclass_id'] = DEVICE_SUBCLASSES[dev['subclass']]
+        vars['protocol_id'] = DEVICE_PROTOCOLS[dev['protocol']]
         vars['vendor_id'] = dev['vendor']
+        ver = round(float(dev['version']) * 100)
+        vars['version_bcd'] = f"0x{ver:04}"
         for f in STRING_FIELDS['device']:
             vars[f'{f}_id'] = strings.index(dev[f]) + 1
         print(vars)

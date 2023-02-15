@@ -2,7 +2,7 @@
 // String Descriptors
 //--------------------------------------------------------------------+
 
-// array of pointer to string descriptors
+// array of pointer to string descriptors, first element is the string length
 static const char* string_desc_arr [] =
 {
   "\x02\x09\x04", // 0: is supported language is English (0x0409)
@@ -26,8 +26,7 @@ const uint16_t* tud_descriptor_string_cb(uint8_t index, uint16_t langid)
   {
     memcpy(buf.str, string_desc_arr[0], 2);
     chr_count = 1;
-  }else
-  {
+  } else {
     // Note: the 0xEE index string is a Microsoft OS 1.0 Descriptors.
     // https://docs.microsoft.com/en-us/windows-hardware/drivers/usbcon/microsoft-defined-usb-descriptors
 

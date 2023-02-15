@@ -34,7 +34,7 @@ static const tusb_desc_device_t desc_{device_tag} =
 
     .idVendor           = USB_VID,
     .idProduct          = USB_PID,
-    .bcdDevice          = ${version},
+    .bcdDevice          = ${version_bcd},
 
     .iManufacturer      = ${manufacturer_id}, // "${manufacturer}"
     .iProduct           = ${product_id}, // "${product}"
