@@ -10,4 +10,5 @@
 enum {
   REPORT_ID_INVALID = 0,
 ${hid_report_ids}
+  REPORT_ID_COUNT
 };

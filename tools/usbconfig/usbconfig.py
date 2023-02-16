@@ -74,17 +74,12 @@ HID_REPORTS = ['keyboard', 'mouse', 'consumer', 'system-control', 'gamepad', 'fi
 HID_DEFAULT_EP_BUFSIZE = 64
 
 
-def openOutput(path):
-    if path == '-':
-        try:
-            stdout_binary = sys.stdout.buffer  # Python 3
-        except AttributeError:
-            stdout_binary = sys.stdout
-        return stdout_binary
-    status("Writing to '%s'" % path)
-    output_dir = os.path.abspath(os.path.dirname(path))
-    os.makedirs(output_dir, exist_ok=True)
-    return open(path, 'wb')
+def write_file(dirname, filename, content):
+    path = os.path.join(dirname, filename)
+    status(f'Creating "{path}"')
+    os.makedirs(dirname, exist_ok=True)
+    with open(path, 'w') as f:
+        f.write(content)
 
 
 def readTemplate(name, vars):
@@ -105,7 +100,6 @@ def main():
 
     common.quiet = args.quiet
 
-    output = None
     config = json_load(args.input)
 
     # Build sorted string list
@@ -216,7 +210,7 @@ def main():
                     protocol = f"HID_ITF_PROTOCOL_{itf['protocol'].upper()}"
                     config_desc += ['// Interface number, string index, protocol, report descriptor len, EP In address, size & polling interval']
                     config_desc += [
-                        f'TUD_HID_DESCRIPTOR(ITF_NUM_{id}, {itf_desc_idx}, {protocol}, sizeof(desc_{itf_tag}_report), EPNUM_{itf_id}, {ep_bufsize}, {poll_interval}),']
+                        f'TUD_HID_DESCRIPTOR(ITF_NUM_{itf_id}, {itf_desc_idx}, {protocol}, sizeof(desc_{itf_tag}_report), EPNUM_{itf_id}, {ep_bufsize}, {poll_interval}),']
                     ep_num += 1
                 elif itf_class == 'cdc':
                     epnum_defs += [f"EPNUM_{itf_id}_NOTIF = 0x{ep_num:02x},"]
@@ -227,14 +221,14 @@ def main():
                     config_desc += [
                         '// Interface number, string index, EP notification address and size, EP data address (out, in) and size.']
                     config_desc += [
-                        f'TUD_CDC_DESCRIPTOR(ITF_NUM_{id}, {itf_desc_idx}, EPNUM_{itf_id}_NOTIF, 8, EPNUM_{itf_id}_OUT, EPNUM_{itf_id}_IN, 64),']
+                        f'TUD_CDC_DESCRIPTOR(ITF_NUM_{itf_id}, {itf_desc_idx}, EPNUM_{itf_id}_NOTIF, 8, EPNUM_{itf_id}_OUT, EPNUM_{itf_id}_IN, 64),']
                 elif itf_class == 'msc':
                     epnum_defs += [f"EPNUM_{itf_id}_OUT = 0x{ep_num:02x},"]
                     epnum_defs += [f"EPNUM_{itf_id}_IN = 0x{ep_num | 0x80:02x},"]
                     ep_num += 1
                     config_desc += ['// Interface number, string index, EP Out & EP In address, EP size']
                     config_desc += [
-                        f'TUD_MSC_DESCRIPTOR(ITF_NUM_{id}, {itf_desc_idx}, EPNUM_{itf_id}_OUT, EPNUM_{itf_id}_IN, 64),']
+                        f'TUD_MSC_DESCRIPTOR(ITF_NUM_{itf_id}, {itf_desc_idx}, EPNUM_{itf_id}_OUT, EPNUM_{itf_id}_IN, 64),']
 
                 itf_num += 1
 
@@ -246,43 +240,41 @@ def main():
             }
             desc_c += readTemplate('interface.c', vars)
 
+        max_string_len = 0
+        string_data = []
+        for i, s in enumerate(strings):
+            s_encoded = s.encode('utf-16le')
+            max_string_len = max(max_string_len, len(s_encoded))
+            desc_array = bytes([2 + len(s_encoded), TUSB_DESC_STRING]) + s_encoded
+            string_data.append("".join(f"\\x{c:02x}" for c in desc_array))
+
+        vars = {
+            'max_string_len': max_string_len,
+            'string_data': ",\n".join(f'  // {i+1}: "{s}"\n'
+                                    f'  "{d}"' for ((i, s), d) in zip(enumerate(strings), string_data)),
+        }
+        desc_c += readTemplate('string.c', vars)
+
         # tusb_config_h
         class_counts = ""
         for itf_class, count in itf_counts.items():
-            class_counts += f"#define CFD_TUD_{make_identifier(itf_class)}\t{count}\n"
+            class_counts += f"#define CFG_TUD_{make_identifier(itf_class)}\t{count}\n"
         vars = {
             'class_counts': class_counts,
             'hid_ep_bufsize': hid_ep_bufsize,
         }
         config_h = readTemplate('config.h', vars)
-        print(config_h)
+        write_file(args.output, 'tusb_config.h', config_h)
 
         # usb_descriptors.h
         vars = {
             'hid_report_ids': indent(hid_report_ids),
         }
         desc_h = readTemplate('desc.h', vars)
-        print(desc_h)
+        write_file(args.output, 'usb_descriptors.h', desc_h)
 
         # usb_descriptors.c
-        print(desc_c)
-
-    max_string_len = 0
-    string_data = []
-    for i, s in enumerate(strings):
-        s_encoded = s.encode('utf-16le')
-        max_string_len = max(max_string_len, len(s_encoded))
-        desc_array = bytes([2 + len(s_encoded), TUSB_DESC_STRING]) + s_encoded
-        string_data.append("".join(f"\\x{c:02x}" for c in desc_array))
-
-    vars = {
-        'max_string_len': max_string_len,
-        'string_data': ",\n".join(f'  // {i+1}: "{s}"\n'
-                                  f'  "{d}"' for ((i, s), d) in zip(enumerate(strings), string_data)),
-    }
-
-    s = readTemplate('string.c', vars)
-    print(s)
+        write_file(args.output, 'usb_descriptors.c', desc_c)
 
     # output = globals()['handle_' + args.command](args, config, part)
 

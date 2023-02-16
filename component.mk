@@ -4,6 +4,7 @@ COMPONENT_SOC := \
 	esp32s3
 
 COMPONENT_SUBMODULES := tinyusb
+COMPONENT_LIBNAME :=
 
 ifeq ($(SMING_ARCH),Rp2040)
 TUSB_FAMILY_PATH := raspberrypi/rp2040
@@ -27,13 +28,16 @@ endif
 
 USBCONFIG_TOOL := $(PYTHON) $(COMPONENT_PATH)/tools/usbconfig/usbconfig.py
 
-USB_OUTPUT_DIR := $(CMP_App_BUILD_BASE)/USB
-USB_OUTPUT_FILES := $(addprefix $(USB_OUTPUT_DIR),tusb_config.h usb_descriptors.h usb_descriptors.c)
+USB_OUTPUT_DIR := $(PROJECT_DIR)/$(BUILD_BASE)/USB
+USB_OUTPUT_FILES := $(addprefix $(USB_OUTPUT_DIR)/,tusb_config.h usb_descriptors.h usb_descriptors.c)
 
 COMPONENT_PREREQUISITES := $(USB_OUTPUT_FILES)
 
 $(USB_OUTPUT_FILES): $(USB_CONFIG)
 	$(USBCONFIG_TOOL) $(USB_CONFIG) $(USB_OUTPUT_DIR)
+
+COMPONENT_APPCODE += $(USB_OUTPUT_DIR)
+COMPONENT_INCDIRS += $(USB_OUTPUT_DIR)
 
 GLOBAL_CFLAGS += -DCFG_TUSB_MCU=$(CFG_TUSB_MCU)
 
@@ -104,46 +108,14 @@ TINYUSB_SRCDIRS := \
 	class/vendor \
 	host
 
-COMPONENT_SRCDIRS := \
+COMPONENT_APPCODE += \
 	src \
 	tinyusb/src \
 	tinyusb/src/portable/$(TUSB_FAMILY_PATH) \
 	$(addprefix tinyusb/src/,$(TINYUSB_SRCDIRS))
 
-COMPONENT_INCDIRS := \
+COMPONENT_INCDIRS += \
 	src/include \
 	tinyusb/src
 
 endif
-
-
-# Various callbacks are defined using TU_ATTR_WEAK
-# Any such symbols must be 'undefined' or the linker will not find them
-USB_UNDEF_SYMBOLS := \
-	tuh_msc_mount_cb \
-	tuh_msc_umount_cb
-
-# tud_cdc_rx_cb \
-# tud_cdc_rx_wanted_cb \
-# tud_cdc_tx_complete_cb \
-# tud_cdc_line_state_cb \
-# tud_cdc_line_coding_cb \
-# tud_cdc_send_break_cb \
-# tuh_cdc_mount_cb \
-# tuh_cdc_umount_cb \
-# tuh_cdc_rx_cb \
-# tuh_cdc_tx_complete_cb \
-# tud_hid_set_protocol_cb \
-# tud_hid_set_idle_cb \
-# tud_hid_report_complete_cb \
-# tud_msc_get_maxlun_cb \
-# tud_msc_start_stop_cb \
-# tud_msc_request_sense_cb \
-# tud_msc_read10_complete_cb \
-# tud_msc_write10_complete_cb \
-# tud_msc_scsi_complete_cb \
-# tud_msc_is_writable_cb \
-
-EXTRA_LDFLAGS := $(call Undef,$(USB_UNDEF_SYMBOLS))
-
-# COMPONENT_CPPFLAGS += -Wno-address
