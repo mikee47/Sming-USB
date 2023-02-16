@@ -25,11 +25,6 @@
 
 #pragma once
 
-#ifdef CFG_TUH_HID
-#undef CFG_TUH_HID
-#define CFG_TUH_HID 4
-#endif
-
 #ifdef USB_DEVICE_CLASSES
 #define CFG_TUSB_RHPORT0_MODE (OPT_MODE_DEVICE | OPT_MODE_FULL_SPEED)
 #endif
@@ -61,6 +56,8 @@
 #define CFG_TUD_ENDPOINT0_SIZE 64
 
 //------------- CLASS -------------//
+
+${class_counts}
 
 // HID buffer size Should be sufficient to hold ID (if any) + Data
 #define CFG_TUD_HID_EP_BUFSIZE 16

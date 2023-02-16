@@ -36,6 +36,7 @@ CONFIG_ATTRIBUTES = {
     'self-powered': 'TUSB_DESC_CONFIG_ATT_SELF_POWERED',
 }
 
+# See tusb_option.h
 INTERFACE_CLASSES = {
     'audio': {
     },
@@ -45,6 +46,10 @@ INTERFACE_CLASSES = {
     },
     'dfu': {
     },
+    'dfu-runtime': {
+    },
+    'ecm-rndis': {
+    },
     'hid': {
         'protocols': ['none', 'keyboard', 'mouse'],
         'reports': ['keyboard', 'mouse', 'consumer', 'system-control', 'gamepad', 'fido-u2f', 'generic-inout']
@@ -52,6 +57,8 @@ INTERFACE_CLASSES = {
     'midi': {
     },
     'msc': {
+    },
+    'ncm': {
     },
     'net': {
     },
@@ -117,6 +124,7 @@ def main():
                 add_string(itf.get('description'))
     strings = sorted(strings)
 
+    config_c = ""
     # Device descriptors
 
     for tag, dev in config['devices'].items():
@@ -131,8 +139,7 @@ def main():
         for f in STRING_FIELDS['device']:
             vars[f'{f}_idx'] = get_string_idx(dev[f])
         vars['config_count'] = len(dev['configs'])
-        s = readTemplate('usb.c', vars)
-        print(s)
+        config_c += readTemplate('desc.c', vars)
 
     # Configuration descriptors
 
@@ -142,7 +149,6 @@ def main():
     for dev in config['devices'].values():
         cfg_num = 1
         for cfg_tag, cfg in dev['configs'].items():
-            config_data = []
             itf_num_total = len(cfg['interfaces'])
             desc_idx = get_string_idx(cfg.get('description'))
             config_total_len = 'TUD_CONFIG_DESC_LEN' + \
@@ -152,20 +158,16 @@ def main():
             else:
                 attr = 0
             power = cfg['power']
-            config_data.append('// Config number, interface count, string index, total length, attribute, power in mA')
-            config_data.append(
-                f"TUD_CONFIG_DESCRIPTOR({cfg_num}, {itf_num_total}, {desc_idx}, {config_total_len}, {attr}, {power}),")
+            config_desc = '  // Config number, interface count, string index, total length, attribute, power in mA\n'
+            config_desc += f"  TUD_CONFIG_DESCRIPTOR({cfg_num}, {itf_num_total}, {desc_idx}, {config_total_len}, {attr}, {power}),\n"
             itf_num = 1
-            itf_counts = {}
+            itf_counts = dict((c, 0) for c in INTERFACE_CLASSES)
             hid_report = ""
             hid_callback = ""
             for itf_tag, itf in cfg['interfaces'].items():
                 itf_class = itf['class']
                 info = INTERFACE_CLASSES[itf_class]
-                if itf_class in itf_counts:
-                    itf_counts[itf_class] += 1
-                else:
-                    itf_counts[itf_class] = 1
+                itf_counts[itf_class] += 1
                 itf_num = itf_counts[itf_class] - 1
                 if itf_class == 'hid':
                     hid_report += f'static const uint8_t desc_{itf_tag}_report[] = {{\n'
@@ -186,19 +188,25 @@ def main():
                     'report': hid_report,
                     'callback': hid_callback,
                 }
-                s = readTemplate('hid_report.c', vars)
-                print(s)
+                config_c += readTemplate('hid_report.c', vars)
 
+            class_counts = ""
             for itf_class, count in itf_counts.items():
-                print(f"#define CFD_TUD_{make_identifier(itf_class)}\t{count}")
+                class_counts += f"#define CFD_TUD_{make_identifier(itf_class)}\t{count}\n"
+            vars = {
+                'class_counts': class_counts,
+            }
+            config_h = readTemplate('config.h', vars)
 
             cfg_num += 1
 
             vars = {
-                'config_desc': "\n".join(f"  {c}" for c in config_data)
+                'config_desc': config_desc,
             }
-            s = readTemplate('interface.c', vars)
-            print(s)
+            config_c += readTemplate('interface.c', vars)
+
+        print(config_h)
+        print(config_c)
 
 
 #   // Interface number, string index, protocol, report descriptor len, EP In address, size & polling interval
