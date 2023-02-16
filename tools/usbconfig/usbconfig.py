@@ -73,6 +73,7 @@ HID_PROTOCOLS = ['none', 'keyboard', 'mouse']
 HID_REPORTS = ['keyboard', 'mouse', 'consumer', 'system-control', 'gamepad', 'fido-u2f', 'generic-inout']
 HID_DEFAULT_EP_BUFSIZE = 64
 
+
 def openOutput(path):
     if path == '-':
         try:
@@ -126,7 +127,7 @@ def main():
                 add_string(itf.get('description'))
     strings = sorted(strings)
 
-    config_c = ""
+    desc_c = ""
     # Device descriptors
 
     for tag, dev in config['devices'].items():
@@ -141,12 +142,15 @@ def main():
         for f in STRING_FIELDS['device']:
             vars[f'{f}_idx'] = get_string_idx(dev[f])
         vars['config_count'] = len(dev['configs'])
-        config_c += readTemplate('desc.c', vars)
+        desc_c += readTemplate('desc.c', vars)
 
     # Configuration descriptors
 
     def make_identifier(s):
         return s.replace('-', '_').upper()
+
+    def indent(defs):
+        return f"  {defs}\n" if isinstance(defs, str) else "\n".join(f"  {d}" for d in defs)
 
     for dev in config['devices'].values():
         cfg_num = 1
@@ -159,7 +163,8 @@ def main():
             # Emit HID report descriptors
             hid_inst = 0
             hid_report = ""
-            hid_callback = ""
+            hid_callback = []
+            hid_report_ids = []
             hid_ep_bufsize = 0
             for itf_tag, itf in cfg['interfaces'].items():
                 if itf['class'] != 'hid':
@@ -169,42 +174,77 @@ def main():
                 for r in itf['reports']:
                     if r in HID_REPORTS:
                         id = make_identifier(r)
-                        hid_report += f"  TUD_HID_REPORT_DESC_{id}\t(HID_REPORT_ID(REPORT_ID_{id})\t),\n"
+                        hid_report_ids += [f"REPORT_ID_{id},"]
+                        hid_report += indent(f"TUD_HID_REPORT_DESC_{id}\t(HID_REPORT_ID(REPORT_ID_{id}) ),")
                     else:
                         raise InputError(f'Unknown report "{r}"')
                 hid_report += '};\n\n'
-                hid_callback += f'    case {hid_inst}:\n'
-                hid_callback += f'      return desc_{itf_tag}_report;\n'
+                hid_callback += [f'case {hid_inst}: return desc_{itf_tag}_report;']
                 hid_inst += 1
 
             if hid_inst:
                 vars = {
                     'report': hid_report,
-                    'callback': hid_callback,
+                    'callback': indent(hid_callback),
                 }
-                config_c += readTemplate('hid_report.c', vars)
+                desc_c += readTemplate('hid_report.c', vars)
 
             # Emit Configuration descriptors
-            itf_num_total = len(cfg['interfaces'])
             desc_idx = get_string_idx(cfg.get('description'))
-            config_total_len = 'TUD_CONFIG_DESC_LEN' + \
-                "".join(f" + TUD_{itf['class'].upper()}_DESC_LEN" for itf in cfg['interfaces'].values())
             if 'attributes' in cfg:
                 attr = " | ".join([CONFIG_ATTRIBUTES[a] for a in cfg['attributes']])
             else:
                 attr = 0
             power = cfg['power']
-            config_desc = '  // Config number, interface count, string index, total length, attribute, power in mA\n'
-            config_desc += f"  TUD_CONFIG_DESCRIPTOR({cfg_num}, {itf_num_total}, {desc_idx}, {config_total_len}, {attr}, {power}),\n"
+            config_desc = ['// Config number, interface count, string index, total length, attribute, power in mA']
+            config_desc += [
+                f"TUD_CONFIG_DESCRIPTOR({cfg_num}, ITF_NUM_TOTAL, {desc_idx}, CONFIG_TOTAL_LEN, {attr}, {power}),"]
+            itf_num = 0
+            itfnum_defs = []
+            ep_num = 1
+            epnum_defs = []
             for itf_tag, itf in cfg['interfaces'].items():
                 itf_class = itf['class']
                 info = INTERFACE_CLASSES[itf_class]
-                # config_data.append(build_itf_desc(itf_num, itf_tag, itf))
+                itf_id = make_identifier(itf_tag)
+                itfnum_defs += [f"ITF_NUM_{itf_id},"]
+                itf_desc_idx = get_string_idx(itf.get('description'))
+                if itf_class == 'hid':
+                    epnum_defs += [f"EPNUM_{itf_id} = 0x{ep_num:02x},"]
+                    ep_bufsize = itf.get('bufsize', HID_DEFAULT_EP_BUFSIZE)
+                    poll_interval = itf['poll-interval']
+                    protocol = f"HID_ITF_PROTOCOL_{itf['protocol'].upper()}"
+                    config_desc += ['// Interface number, string index, protocol, report descriptor len, EP In address, size & polling interval']
+                    config_desc += [
+                        f'TUD_HID_DESCRIPTOR(ITF_NUM_{id}, {itf_desc_idx}, {protocol}, sizeof(desc_{itf_tag}_report), EPNUM_{itf_id}, {ep_bufsize}, {poll_interval}),']
+                    ep_num += 1
+                elif itf_class == 'cdc':
+                    epnum_defs += [f"EPNUM_{itf_id}_NOTIF = 0x{ep_num:02x},"]
+                    ep_num += 1
+                    epnum_defs += [f"EPNUM_{itf_id}_OUT = 0x{ep_num:02x},"]
+                    epnum_defs += [f"EPNUM_{itf_id}_IN = 0x{ep_num | 0x80:02x},"]
+                    ep_num += 1
+                    config_desc += [
+                        '// Interface number, string index, EP notification address and size, EP data address (out, in) and size.']
+                    config_desc += [
+                        f'TUD_CDC_DESCRIPTOR(ITF_NUM_{id}, {itf_desc_idx}, EPNUM_{itf_id}_NOTIF, 8, EPNUM_{itf_id}_OUT, EPNUM_{itf_id}_IN, 64),']
+                elif itf_class == 'msc':
+                    epnum_defs += [f"EPNUM_{itf_id}_OUT = 0x{ep_num:02x},"]
+                    epnum_defs += [f"EPNUM_{itf_id}_IN = 0x{ep_num | 0x80:02x},"]
+                    ep_num += 1
+                    config_desc += ['// Interface number, string index, EP Out & EP In address, EP size']
+                    config_desc += [
+                        f'TUD_MSC_DESCRIPTOR(ITF_NUM_{id}, {itf_desc_idx}, EPNUM_{itf_id}_OUT, EPNUM_{itf_id}_IN, 64),']
+
+                itf_num += 1
 
             vars = {
-                'config_desc': config_desc,
+                'itfnum_defs': indent(itfnum_defs),
+                'config_total_len': 'TUD_CONFIG_DESC_LEN' + "".join(f" + TUD_{itf['class'].upper()}_DESC_LEN" for itf in cfg['interfaces'].values()),
+                'epnum_defs': indent(epnum_defs),
+                'config_desc': indent(config_desc),
             }
-            config_c += readTemplate('interface.c', vars)
+            desc_c += readTemplate('interface.c', vars)
 
         # tusb_config_h
         class_counts = ""
@@ -218,20 +258,14 @@ def main():
         print(config_h)
 
         # usb_descriptors.h
-        # TODO
+        vars = {
+            'hid_report_ids': indent(hid_report_ids),
+        }
+        desc_h = readTemplate('desc.h', vars)
+        print(desc_h)
 
         # usb_descriptors.c
-        print(config_c)
-
-
-#   // Interface number, string index, protocol, report descriptor len, EP In address, size & polling interval
-#   TUD_HID_DESCRIPTOR(ITF_NUM_HID, 0, HID_ITF_PROTOCOL_NONE, sizeof(desc_hid_report), EPNUM_HID, CFG_TUD_HID_EP_BUFSIZE, 5)
-
-#   // Interface number, string index, EP notification address and size, EP data address (out, in) and size.
-#   TUD_CDC_DESCRIPTOR(ITF_NUM_CDC, 4, EPNUM_CDC_NOTIF, 8, EPNUM_CDC_OUT, EPNUM_CDC_IN, 64),
-
-#   // Interface number, string index, EP Out & EP In address, EP size
-#   TUD_MSC_DESCRIPTOR(ITF_NUM_MSC, 5, EPNUM_MSC_OUT, EPNUM_MSC_IN, 64),
+        print(desc_c)
 
     max_string_len = 0
     string_data = []

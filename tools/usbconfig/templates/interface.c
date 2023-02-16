@@ -5,13 +5,15 @@
 
 enum
 {
-  ITF_NUM_HID,
+${itfnum_defs}
   ITF_NUM_TOTAL
 };
 
-#define  CONFIG_TOTAL_LEN  (TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN)
+#define CONFIG_TOTAL_LEN (${config_total_len})
 
-#define EPNUM_HID   0x81
+enum {
+${epnum_defs}
+};
 
 static const uint8_t desc_configuration[] =
 {

@@ -1,4 +1,6 @@
 /*
+ * usb_descriptors.c
+ *
  * This file is auto-generated. Please do not edit!
  *
  */

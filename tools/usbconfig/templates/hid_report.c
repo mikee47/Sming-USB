@@ -11,7 +11,6 @@ const uint8_t* tud_hid_descriptor_report_cb(uint8_t instance)
 {
   switch(instance) {
 ${callback}
-    default:
-      return NULL;
+  default: return NULL;
   }
 }
