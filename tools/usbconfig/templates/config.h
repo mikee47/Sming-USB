@@ -59,8 +59,8 @@
 
 ${class_counts}
 
-// HID buffer size Should be sufficient to hold ID (if any) + Data
-#define CFG_TUD_HID_EP_BUFSIZE 16
+// HID buffer size must be sufficient to hold ID (if any) + Data
+#define CFG_TUD_HID_EP_BUFSIZE ${hid_ep_bufsize}
 
 // CDC FIFO size of TX and RX
 #define CFG_TUD_CDC_RX_BUFSIZE (TUD_OPT_HIGH_SPEED ? 512 : 64)

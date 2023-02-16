@@ -51,8 +51,6 @@ INTERFACE_CLASSES = {
     'ecm-rndis': {
     },
     'hid': {
-        'protocols': ['none', 'keyboard', 'mouse'],
-        'reports': ['keyboard', 'mouse', 'consumer', 'system-control', 'gamepad', 'fido-u2f', 'generic-inout']
     },
     'midi': {
     },
@@ -70,6 +68,10 @@ INTERFACE_CLASSES = {
     },
 }
 
+
+HID_PROTOCOLS = ['none', 'keyboard', 'mouse']
+HID_REPORTS = ['keyboard', 'mouse', 'consumer', 'system-control', 'gamepad', 'fido-u2f', 'generic-inout']
+HID_DEFAULT_EP_BUFSIZE = 64
 
 def openOutput(path):
     if path == '-':
@@ -149,6 +151,40 @@ def main():
     for dev in config['devices'].values():
         cfg_num = 1
         for cfg_tag, cfg in dev['configs'].items():
+            # Count instances of each class type
+            itf_counts = dict((c, 0) for c in INTERFACE_CLASSES)
+            for itf in cfg['interfaces'].values():
+                itf_counts[itf['class']] += 1
+
+            # Emit HID report descriptors
+            hid_inst = 0
+            hid_report = ""
+            hid_callback = ""
+            hid_ep_bufsize = 0
+            for itf_tag, itf in cfg['interfaces'].items():
+                if itf['class'] != 'hid':
+                    continue
+                hid_ep_bufsize = max(hid_ep_bufsize, itf.get('bufsize', HID_DEFAULT_EP_BUFSIZE))
+                hid_report += f'static const uint8_t desc_{itf_tag}_report[] = {{\n'
+                for r in itf['reports']:
+                    if r in HID_REPORTS:
+                        id = make_identifier(r)
+                        hid_report += f"  TUD_HID_REPORT_DESC_{id}\t(HID_REPORT_ID(REPORT_ID_{id})\t),\n"
+                    else:
+                        raise InputError(f'Unknown report "{r}"')
+                hid_report += '};\n\n'
+                hid_callback += f'    case {hid_inst}:\n'
+                hid_callback += f'      return desc_{itf_tag}_report;\n'
+                hid_inst += 1
+
+            if hid_inst:
+                vars = {
+                    'report': hid_report,
+                    'callback': hid_callback,
+                }
+                config_c += readTemplate('hid_report.c', vars)
+
+            # Emit Configuration descriptors
             itf_num_total = len(cfg['interfaces'])
             desc_idx = get_string_idx(cfg.get('description'))
             config_total_len = 'TUD_CONFIG_DESC_LEN' + \
@@ -160,52 +196,31 @@ def main():
             power = cfg['power']
             config_desc = '  // Config number, interface count, string index, total length, attribute, power in mA\n'
             config_desc += f"  TUD_CONFIG_DESCRIPTOR({cfg_num}, {itf_num_total}, {desc_idx}, {config_total_len}, {attr}, {power}),\n"
-            itf_num = 1
-            itf_counts = dict((c, 0) for c in INTERFACE_CLASSES)
-            hid_report = ""
-            hid_callback = ""
             for itf_tag, itf in cfg['interfaces'].items():
                 itf_class = itf['class']
                 info = INTERFACE_CLASSES[itf_class]
-                itf_counts[itf_class] += 1
-                itf_num = itf_counts[itf_class] - 1
-                if itf_class == 'hid':
-                    hid_report += f'static const uint8_t desc_{itf_tag}_report[] = {{\n'
-                    for r in itf['reports']:
-                        if r in info['reports']:
-                            id = make_identifier(r)
-                            hid_report += f"  TUD_HID_REPORT_DESC_{id}\t(HID_REPORT_ID(REPORT_ID_{id})\t),\n"
-                        else:
-                            raise InputError(f'Unknown report "{r}"')
-                    hid_report += '};\n\n'
-                    hid_callback += f'    case {itf_num}:\n'
-                    hid_callback += f'      return desc_{itf_tag}_report;\n'
-
                 # config_data.append(build_itf_desc(itf_num, itf_tag, itf))
-
-            if 'hid' in itf_counts:
-                vars = {
-                    'report': hid_report,
-                    'callback': hid_callback,
-                }
-                config_c += readTemplate('hid_report.c', vars)
-
-            class_counts = ""
-            for itf_class, count in itf_counts.items():
-                class_counts += f"#define CFD_TUD_{make_identifier(itf_class)}\t{count}\n"
-            vars = {
-                'class_counts': class_counts,
-            }
-            config_h = readTemplate('config.h', vars)
-
-            cfg_num += 1
 
             vars = {
                 'config_desc': config_desc,
             }
             config_c += readTemplate('interface.c', vars)
 
+        # tusb_config_h
+        class_counts = ""
+        for itf_class, count in itf_counts.items():
+            class_counts += f"#define CFD_TUD_{make_identifier(itf_class)}\t{count}\n"
+        vars = {
+            'class_counts': class_counts,
+            'hid_ep_bufsize': hid_ep_bufsize,
+        }
+        config_h = readTemplate('config.h', vars)
         print(config_h)
+
+        # usb_descriptors.h
+        # TODO
+
+        # usb_descriptors.c
         print(config_c)
 
 
