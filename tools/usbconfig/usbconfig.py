@@ -36,6 +36,33 @@ CONFIG_ATTRIBUTES = {
     'self-powered': 'TUSB_DESC_CONFIG_ATT_SELF_POWERED',
 }
 
+INTERFACE_CLASSES = {
+    'audio': {
+    },
+    'bth': {
+    },
+    'cdc': {
+    },
+    'dfu': {
+    },
+    'hid': {
+        'protocols': ['none', 'keyboard', 'mouse'],
+        'reports': ['keyboard', 'mouse', 'consumer', 'system-control', 'gamepad', 'fido-u2f', 'generic-inout']
+    },
+    'midi': {
+    },
+    'msc': {
+    },
+    'net': {
+    },
+    'usbtmc': {
+    },
+    'vendor': {
+    },
+    'video': {
+    },
+}
+
 
 def openOutput(path):
     if path == '-':
@@ -109,6 +136,9 @@ def main():
 
     # Configuration descriptors
 
+    def make_identifier(s):
+        return s.replace('-', '_').upper()
+
     for dev in config['devices'].values():
         cfg_num = 1
         for cfg_tag, cfg in dev['configs'].items():
@@ -126,8 +156,41 @@ def main():
             config_data.append(
                 f"TUD_CONFIG_DESCRIPTOR({cfg_num}, {itf_num_total}, {desc_idx}, {config_total_len}, {attr}, {power}),")
             itf_num = 1
-            # for itf_tag, itf in cfg['interfaces'].items():
-            #     config_data.append(build_itf_desc(itf_num, itf_tag, itf))
+            itf_counts = {}
+            hid_report = ""
+            hid_callback = ""
+            for itf_tag, itf in cfg['interfaces'].items():
+                itf_class = itf['class']
+                info = INTERFACE_CLASSES[itf_class]
+                if itf_class in itf_counts:
+                    itf_counts[itf_class] += 1
+                else:
+                    itf_counts[itf_class] = 1
+                itf_num = itf_counts[itf_class] - 1
+                if itf_class == 'hid':
+                    hid_report += f'static const uint8_t desc_{itf_tag}_report[] = {{\n'
+                    for r in itf['reports']:
+                        if r in info['reports']:
+                            id = make_identifier(r)
+                            hid_report += f"  TUD_HID_REPORT_DESC_{id}\t(HID_REPORT_ID(REPORT_ID_{id})\t),\n"
+                        else:
+                            raise InputError(f'Unknown report "{r}"')
+                    hid_report += '};\n\n'
+                    hid_callback += f'    case {itf_num}:\n'
+                    hid_callback += f'      return desc_{itf_tag}_report;\n'
+
+                # config_data.append(build_itf_desc(itf_num, itf_tag, itf))
+
+            if 'hid' in itf_counts:
+                vars = {
+                    'report': hid_report,
+                    'callback': hid_callback,
+                }
+                s = readTemplate('hid_report.c', vars)
+                print(s)
+
+            for itf_class, count in itf_counts.items():
+                print(f"#define CFD_TUD_{make_identifier(itf_class)}\t{count}")
 
             cfg_num += 1
 

@@ -19,11 +19,20 @@
                     "power": 100,
                     "interfaces": {
                         "hid0": {
-                            "description": "hid interface", // optional
+                            "description": "HID interface", // optional
                             "class": "hid",
-                            "subclass": "none",
                             "protocol": "none",
-                            "bufsize": 16 // Don't require 64 bytes for EP
+                            "bufsize": 16, // Don't require 64 bytes for EP
+                            "poll-interval": 5,
+                            "reports": ["keyboard", "mouse", "consumer", "gamepad"]
+                        },
+                        "hid1": {
+                            "description": "HID interface #2",
+                            "class": "hid",
+                            "protocol": "none",
+                            "bufsize": 16,
+                            "poll-interval": 5,
+                            "reports": ["system-control"]
                         },
                         "cdc0": {
                             "description": "TinyUSB CDC",
