@@ -201,10 +201,10 @@ def main():
                 itf_class = itf['class']
                 info = INTERFACE_CLASSES[itf_class]
                 itf_id = make_identifier(itf_tag)
-                itfnum_defs += [f"ITF_NUM_{itf_id},"]
+                itfnum_defs += [f"ITF_NUM_{itf_id} = {itf_num},"]
                 itf_desc_idx = get_string_idx(itf.get('description'))
                 if itf_class == 'hid':
-                    epnum_defs += [f"EPNUM_{itf_id} = 0x{ep_num:02x},"]
+                    epnum_defs += [f"EPNUM_{itf_id} = 0x{ep_num | 0x80:02x},"]
                     ep_bufsize = itf.get('bufsize', HID_DEFAULT_EP_BUFSIZE)
                     poll_interval = itf['poll-interval']
                     protocol = f"HID_ITF_PROTOCOL_{itf['protocol'].upper()}"
@@ -213,7 +213,7 @@ def main():
                         f'TUD_HID_DESCRIPTOR(ITF_NUM_{itf_id}, {itf_desc_idx}, {protocol}, sizeof(desc_{itf_tag}_report), EPNUM_{itf_id}, {ep_bufsize}, {poll_interval}),']
                     ep_num += 1
                 elif itf_class == 'cdc':
-                    epnum_defs += [f"EPNUM_{itf_id}_NOTIF = 0x{ep_num:02x},"]
+                    epnum_defs += [f"EPNUM_{itf_id}_NOTIF = 0x{ep_num | 0x80:02x},"]
                     ep_num += 1
                     epnum_defs += [f"EPNUM_{itf_id}_OUT = 0x{ep_num:02x},"]
                     epnum_defs += [f"EPNUM_{itf_id}_IN = 0x{ep_num | 0x80:02x},"]
@@ -222,6 +222,7 @@ def main():
                         '// Interface number, string index, EP notification address and size, EP data address (out, in) and size.']
                     config_desc += [
                         f'TUD_CDC_DESCRIPTOR(ITF_NUM_{itf_id}, {itf_desc_idx}, EPNUM_{itf_id}_NOTIF, 8, EPNUM_{itf_id}_OUT, EPNUM_{itf_id}_IN, 64),']
+                    itf_num += 1  # IAD specifies 2 interfaces
                 elif itf_class == 'msc':
                     epnum_defs += [f"EPNUM_{itf_id}_OUT = 0x{ep_num:02x},"]
                     epnum_defs += [f"EPNUM_{itf_id}_IN = 0x{ep_num | 0x80:02x},"]
@@ -232,6 +233,7 @@ def main():
 
                 itf_num += 1
 
+            itfnum_defs += [f"ITF_NUM_TOTAL = {itf_num},"]
             vars = {
                 'itfnum_defs': indent(itfnum_defs),
                 'config_total_len': 'TUD_CONFIG_DESC_LEN' + "".join(f" + TUD_{itf['class'].upper()}_DESC_LEN" for itf in cfg['interfaces'].values()),
@@ -251,7 +253,7 @@ def main():
         vars = {
             'max_string_len': max_string_len,
             'string_data': ",\n".join(f'  // {i+1}: "{s}"\n'
-                                    f'  "{d}"' for ((i, s), d) in zip(enumerate(strings), string_data)),
+                                      f'  "{d}"' for ((i, s), d) in zip(enumerate(strings), string_data)),
         }
         desc_c += readTemplate('string.c', vars)
 

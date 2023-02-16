@@ -6,7 +6,6 @@
 enum
 {
 ${itfnum_defs}
-  ITF_NUM_TOTAL
 };
 
 #define CONFIG_TOTAL_LEN (${config_total_len})
