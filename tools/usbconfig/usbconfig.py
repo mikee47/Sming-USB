@@ -257,7 +257,6 @@ def main():
         }
         desc_c += readTemplate('string.c', vars)
 
-        # tusb_config_h
         class_counts = ""
         for itf_class, count in itf_counts.items():
             class_counts += f"#define CFG_TUD_{make_identifier(itf_class)}\t{count}\n"
@@ -266,17 +265,18 @@ def main():
             'hid_ep_bufsize': hid_ep_bufsize,
         }
         config_h = readTemplate('config.h', vars)
-        write_file(args.output, 'tusb_config.h', config_h)
 
-        # usb_descriptors.h
         vars = {
             'hid_report_ids': indent(hid_report_ids),
         }
         desc_h = readTemplate('desc.h', vars)
-        write_file(args.output, 'usb_descriptors.h', desc_h)
 
-        # usb_descriptors.c
+        if ep_num > 16:
+            raise InputError(f'Too many endpoints ({ep_num})')
+
+        write_file(args.output, 'tusb_config.h', config_h)
         write_file(args.output, 'usb_descriptors.c', desc_c)
+        write_file(args.output, 'usb_descriptors.h', desc_h)
 
     # output = globals()['handle_' + args.command](args, config, part)
 
