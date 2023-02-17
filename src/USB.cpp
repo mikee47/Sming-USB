@@ -52,11 +52,11 @@ void initHardware()
 void poll()
 {
 #if CFG_TUD_ENABLED
-	tud_task();
+	tud_task_ext(0, false);
 #endif
 
 #if CFG_TUH_ENABLED
-	tuh_task();
+	tuh_task_ext(0, false);
 #endif
 
 	System.queueCallback(poll);
