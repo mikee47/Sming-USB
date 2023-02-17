@@ -211,7 +211,8 @@ def main():
                     config_desc += ['// Interface number, string index, protocol, report descriptor len, EP In address, size & polling interval']
                     config_desc += [
                         f'TUD_HID_DESCRIPTOR(ITF_NUM_{itf_id}, {itf_desc_idx}, {protocol}, sizeof(desc_{itf_tag}_report), EPNUM_{itf_id}, {ep_bufsize}, {poll_interval}),']
-                    ep_num += 1
+                    ep_num += 1  # IAD
+
                 elif itf_class == 'cdc':
                     epnum_defs += [f"EPNUM_{itf_id}_NOTIF = 0x{ep_num | 0x80:02x},"]
                     ep_num += 1
@@ -223,6 +224,7 @@ def main():
                     config_desc += [
                         f'TUD_CDC_DESCRIPTOR(ITF_NUM_{itf_id}, {itf_desc_idx}, EPNUM_{itf_id}_NOTIF, 8, EPNUM_{itf_id}_OUT, EPNUM_{itf_id}_IN, 64),']
                     itf_num += 1  # IAD specifies 2 interfaces
+
                 elif itf_class == 'msc':
                     epnum_defs += [f"EPNUM_{itf_id}_OUT = 0x{ep_num:02x},"]
                     epnum_defs += [f"EPNUM_{itf_id}_IN = 0x{ep_num | 0x80:02x},"]

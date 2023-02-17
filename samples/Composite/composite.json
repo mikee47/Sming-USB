@@ -8,7 +8,7 @@
             "product": "auto", // Unique for any class type combination
             "version": "1.0",
             "manufacturer": "TinyUSB",
-            "product": "TinyUSB Device",
+            "product": "Удобное устройство",
             "serial": "123456", // Allow this to be auto-generated at runtime, e.g. from chip ID
             "configs": {
                 "config0": {
@@ -47,22 +47,6 @@
                         },
                         "cdc1": {
                             "description": "CDC1",
-                            "class": "cdc"
-                        },
-                        "cdc2": {
-                            "description": "CDC2",
-                            "class": "cdc"
-                        },
-                        "cdc3": {
-                            "description": "CDC3",
-                            "class": "cdc"
-                        },
-                        "cdc4": {
-                            "description": "CDC4",
-                            "class": "cdc"
-                        },
-                        "cdc5": {
-                            "description": "CDC5",
                             "class": "cdc"
                         },
                         "msc0": {

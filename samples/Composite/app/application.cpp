@@ -25,6 +25,7 @@
 
 #include <SmingCore.h>
 #include <USB.h>
+#include <Storage/SpiFlash.h>
 
 #define FUNC() debug_i("%s", __FUNCTION__);
 
@@ -123,8 +124,8 @@ void tud_msc_capacity_cb(uint8_t lun, uint32_t* block_count, uint16_t* block_siz
 	FUNC()
 	(void)lun;
 
-	*block_count = 32;
-	*block_size = 512;
+	*block_size = Storage::spiFlash->getSectorSize();
+	*block_count = Storage::spiFlash->getSectorCount();
 }
 
 // Invoked when received Test Unit Ready command.
@@ -134,18 +135,20 @@ bool tud_msc_test_unit_ready_cb(uint8_t lun)
 	FUNC()
 	(void)lun;
 
-	return true;
+	return (lun == 0);
 }
 
 // Callback invoked when received READ10 command.
 // Copy disk's data to buffer (up to bufsize) and return number of copied bytes.
 int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset, void* buffer, uint32_t bufsize)
 {
-	FUNC()
-	(void)lun;
+	if(lun != 0) {
+		return -1;
+	}
 
-	memset(buffer, 0, bufsize);
-	return bufsize;
+	auto blockSize = Storage::spiFlash->getSectorSize();
+	offset += blockSize * lba;
+	return Storage::spiFlash->read(offset, buffer, bufsize) ? bufsize : -1;
 }
 
 bool tud_msc_is_writable_cb(uint8_t lun)
