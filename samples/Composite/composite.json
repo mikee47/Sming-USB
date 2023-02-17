@@ -24,7 +24,12 @@
                             "protocol": "none",
                             "bufsize": 16, // Don't require 64 bytes for EP
                             "poll-interval": 5,
-                            "reports": ["keyboard", "mouse", "consumer", "gamepad"]
+                            "reports": [
+                                "keyboard",
+                                "mouse",
+                                "consumer",
+                                "gamepad"
+                            ]
                         },
                         "hid1": {
                             "description": "HID interface #2",
@@ -32,10 +37,32 @@
                             "protocol": "none",
                             "bufsize": 16,
                             "poll-interval": 5,
-                            "reports": ["system-control"]
+                            "reports": [
+                                "system-control"
+                            ]
                         },
                         "cdc0": {
-                            "description": "TinyUSB CDC",
+                            "description": "CDC0",
+                            "class": "cdc"
+                        },
+                        "cdc1": {
+                            "description": "CDC1",
+                            "class": "cdc"
+                        },
+                        "cdc2": {
+                            "description": "CDC2",
+                            "class": "cdc"
+                        },
+                        "cdc3": {
+                            "description": "CDC3",
+                            "class": "cdc"
+                        },
+                        "cdc4": {
+                            "description": "CDC4",
+                            "class": "cdc"
+                        },
+                        "cdc5": {
+                            "description": "CDC5",
                             "class": "cdc"
                         },
                         "msc0": {

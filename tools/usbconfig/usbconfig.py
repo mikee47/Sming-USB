@@ -278,11 +278,6 @@ def main():
         write_file(args.output, 'usb_descriptors.c', desc_c)
         write_file(args.output, 'usb_descriptors.h', desc_h)
 
-    # output = globals()['handle_' + args.command](args, config, part)
-
-    # if output is not None:
-    #     openOutput(args.output).write(output)
-
 
 if __name__ == '__main__':
     try:
