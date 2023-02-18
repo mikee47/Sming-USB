@@ -5,7 +5,6 @@
 // Application fill vendor id, product id and revision with string up to 8, 16, 4 characters respectively
 void tud_msc_inquiry_cb(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16], uint8_t product_rev[4])
 {
-	FUNC()
 	(void)lun;
 
 	const char vid[] = "TinyUSB";
@@ -15,6 +14,8 @@ void tud_msc_inquiry_cb(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16
 	memcpy(vendor_id, vid, strlen(vid));
 	memcpy(product_id, pid, strlen(pid));
 	memcpy(product_rev, rev, strlen(rev));
+
+	debug_i("%s(%u, \"%s\", \"%s\", \"%s\")", __FUNCTION__, lun, vid, pid, rev);
 }
 
 // Callback invoked when received an SCSI command not in built-in list below
@@ -22,7 +23,7 @@ void tud_msc_inquiry_cb(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16
 // - READ10 and WRITE10 has their own callbacks
 int32_t tud_msc_scsi_cb(uint8_t lun, uint8_t const scsi_cmd[16], void* buffer, uint16_t bufsize)
 {
-	FUNC()
+	debug_i("%s(%u, %u)", __FUNCTION__, lun, bufsize);
 	return -1;
 }
 
@@ -30,18 +31,17 @@ int32_t tud_msc_scsi_cb(uint8_t lun, uint8_t const scsi_cmd[16], void* buffer, u
 // Application update block count and block size
 void tud_msc_capacity_cb(uint8_t lun, uint32_t* block_count, uint16_t* block_size)
 {
-	FUNC()
-	(void)lun;
-
 	*block_size = Storage::spiFlash->getSectorSize();
 	*block_count = Storage::spiFlash->getSectorCount();
+
+	debug_i("%s(%u, %u, %u)", __FUNCTION__, lun, *block_count, *block_size);
 }
 
 // Invoked when received Test Unit Ready command.
 // return true allowing host to read/write this LUN e.g SD card inserted
 bool tud_msc_test_unit_ready_cb(uint8_t lun)
 {
-	FUNC()
+	debug_i("%s(%u)", __FUNCTION__, lun);
 	(void)lun;
 
 	return (lun == 0);
@@ -62,7 +62,7 @@ int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset, void* buff
 
 bool tud_msc_is_writable_cb(uint8_t lun)
 {
-	FUNC()
+	debug_i("%s(%u, %u)", __FUNCTION__, lun);
 	(void)lun;
 
 	return false;
@@ -72,7 +72,6 @@ bool tud_msc_is_writable_cb(uint8_t lun)
 // Process data in buffer to disk's storage and return number of written bytes
 int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t* buffer, uint32_t bufsize)
 {
-	FUNC()
 	(void)lun;
 
 	return -1;

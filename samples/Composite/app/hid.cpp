@@ -4,7 +4,7 @@
 // protocol is either HID_PROTOCOL_BOOT (0) or HID_PROTOCOL_REPORT (1)
 void tud_hid_set_protocol_cb(uint8_t instance, uint8_t protocol)
 {
-	FUNC()
+	debug_i("%s(%u, %u)", __FUNCTION__, instance, protocol);
 	(void)instance;
 	(void)protocol;
 
@@ -17,7 +17,7 @@ void tud_hid_set_protocol_cb(uint8_t instance, uint8_t protocol)
 // Note: For composite reports, report[0] is report ID
 void tud_hid_report_complete_cb(uint8_t instance, uint8_t const* report, uint16_t len)
 {
-	FUNC()
+	debug_i("%s(%u, %u)", __FUNCTION__, instance, len);
 	(void)instance;
 	(void)report;
 	(void)len;
@@ -29,7 +29,7 @@ void tud_hid_report_complete_cb(uint8_t instance, uint8_t const* report, uint16_
 uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t* buffer,
 							   uint16_t reqlen)
 {
-	FUNC()
+	debug_i("%s(%u, %u, %u)", __FUNCTION__, instance, report_id, reqlen);
 	// TODO not Implemented
 	(void)instance;
 	(void)report_id;
@@ -45,6 +45,6 @@ uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_t
 void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer,
 						   uint16_t bufsize)
 {
-	FUNC()
+	debug_i("%s(%u, %u, %u, %u)", __FUNCTION__, instance, report_id, report_type, bufsize);
 	(void)report_id;
 }
