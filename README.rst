@@ -41,6 +41,9 @@ USB structures, handling byte-ordering and other such detail.
 Finally, the user code would be written as C++ class implementations, with the library
 taking care of the callback implementations.
 
+This extended behaviour is enabled only when the application sets :envvar:`USB_CONFIG`.
+If not set, then the application can continue to use raw tinyusb code.
+
 
 Host stack
 ----------
@@ -54,5 +57,5 @@ Notes
 TinyUSB requires various global callback functions to be implemented.
 TinyUSB defines optional ones as WEAK to avoid calling them when not implemented.
 
-However, if an application implements them then they must be 'undefined' first.
-This should be handled by the library.
+This, together with the large number of configuration variables, means it is more appropriate
+to have tinyusb built with the application rather than a separate library.

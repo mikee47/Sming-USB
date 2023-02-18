@@ -71,11 +71,11 @@ bool begin()
 	bool res{true};
 
 #if CFG_TUD_ENABLED
-	res &= tud_init(TUD_OPT_RHPORT);
+	res &= tud_init(BOARD_TUD_RHPORT);
 #endif
 
 #if CFG_TUH_ENABLED
-	res &= tuh_init(TUH_OPT_RHPORT);
+	res &= tuh_init(BOARD_TUH_RHPORT);
 #endif
 
 	if(res) {
