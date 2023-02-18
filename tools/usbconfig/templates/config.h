@@ -7,13 +7,10 @@
 
 #pragma once
 
-#define CFG_TUD_ENABLED       1
-// RHPort number used for device can be defined by board.mk, default to port 0
 #ifndef BOARD_TUD_RHPORT
 #define BOARD_TUD_RHPORT      0
 #endif
 
-// RHPort max operational speed can defined by board.mk
 #ifndef BOARD_TUD_MAX_SPEED
 #define BOARD_TUD_MAX_SPEED   OPT_MODE_DEFAULT_SPEED
 #endif
@@ -40,7 +37,9 @@
 
 //------------- CLASS -------------//
 
-${class_counts}
+#define CFG_TUD_ENABLED       ${device_enabled}
+
+${device_classes}
 
 // HID buffer size must be sufficient to hold ID (if any) + Data
 #define CFG_TUD_HID_EP_BUFSIZE ${hid_ep_bufsize}
@@ -64,6 +63,14 @@ ${class_counts}
 //--------------------------------------------------------------------
 // HOST CONFIGURATION
 //--------------------------------------------------------------------
+
+#ifndef BOARD_TUH_RHPORT
+#define BOARD_TUH_RHPORT      0
+#endif
+
+#define CFG_TUH_ENABLED ${host_enabled}
+
+${host_classes}
 
 // Size of buffer to hold descriptors and other data used for enumeration
 #define CFG_TUH_ENUMERATION_BUFSIZE 256

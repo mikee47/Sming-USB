@@ -8,7 +8,6 @@ import argparse
 import os
 import json
 import string
-import math
 from common import *
 
 TUSB_DESC_STRING = 3
@@ -69,6 +68,22 @@ INTERFACE_CLASSES = {
 }
 
 
+HOST_CLASSES = {
+    'hub': {
+    },
+    'cdc': {
+    },
+    'hid': {
+    },
+    'midi': {
+    },
+    'msc': {
+    },
+    'vendor': {
+    },
+}
+
+
 HID_PROTOCOLS = ['none', 'keyboard', 'mouse']
 HID_REPORTS = ['keyboard', 'mouse', 'consumer', 'system-control', 'gamepad', 'fido-u2f', 'generic-inout']
 HID_DEFAULT_EP_BUFSIZE = 64
@@ -89,18 +104,22 @@ def readTemplate(name, vars):
     return tmpl.substitute(vars)
 
 
-def main():
-    parser = argparse.ArgumentParser(description='Sming USB configuration utility')
+def make_identifier(s):
+    return s.replace('-', '_').upper()
 
-    parser.add_argument('--quiet', '-q', help="Don't print non-critical status messages to stderr", action='store_true')
-    parser.add_argument('input', help='Path to configuration file')
-    parser.add_argument('output', help='Output directory')
 
-    args = parser.parse_args()
+def indent(defs):
+    return f"  {defs}\n" if isinstance(defs, str) else "\n".join(f"  {d}" for d in defs)
 
-    common.quiet = args.quiet
 
-    config = json_load(args.input)
+def parse_devices(config, cfg_vars, output_dir):
+    if 'devices' not in config:
+        cfg_vars['device_enabled'] = 0
+        cfg_vars['device_classes'] = ''
+        cfg_vars['hid_ep_bufsize'] = 0
+        return
+
+    cfg_vars['device_enabled'] = 1
 
     # Build sorted string list
     strings = set()
@@ -108,9 +127,6 @@ def main():
     def add_string(s):
         if s:
             strings.add(s)
-
-    def get_string_idx(s):
-        return strings.index(s) + 1 if s else 0
 
     for dev in config['devices'].values():
         for f in STRING_FIELDS['device']:
@@ -120,6 +136,9 @@ def main():
             for itf in cfg['interfaces'].values():
                 add_string(itf.get('description'))
     strings = sorted(strings)
+
+    def get_string_idx(s):
+        return strings.index(s) + 1 if s else 0
 
     desc_c = ""
     # Device descriptors
@@ -139,12 +158,6 @@ def main():
         desc_c += readTemplate('desc.c', vars)
 
     # Configuration descriptors
-
-    def make_identifier(s):
-        return s.replace('-', '_').upper()
-
-    def indent(defs):
-        return f"  {defs}\n" if isinstance(defs, str) else "\n".join(f"  {d}" for d in defs)
 
     for dev in config['devices'].values():
         cfg_num = 1
@@ -233,6 +246,9 @@ def main():
                     config_desc += [
                         f'TUD_MSC_DESCRIPTOR(ITF_NUM_{itf_id}, {itf_desc_idx}, EPNUM_{itf_id}_OUT, EPNUM_{itf_id}_IN, 64),']
 
+                else:
+                    raise InputError(f'Unsupported class "{itf_class}"')
+
                 itf_num += 1
 
             itfnum_defs += [f"ITF_NUM_TOTAL = {itf_num},"]
@@ -259,14 +275,11 @@ def main():
         }
         desc_c += readTemplate('string.c', vars)
 
-        class_counts = ""
-        for itf_class, count in itf_counts.items():
-            class_counts += f"#define CFG_TUD_{make_identifier(itf_class)}\t{count}\n"
-        vars = {
-            'class_counts': class_counts,
-            'hid_ep_bufsize': hid_ep_bufsize,
-        }
-        config_h = readTemplate('config.h', vars)
+        classes = ""
+        for c, n in itf_counts.items():
+            classes += f"#define CFG_TUD_{make_identifier(c)}\t{n}\n"
+        cfg_vars['device_classes'] = classes
+        cfg_vars['hid_ep_bufsize'] = hid_ep_bufsize
 
         vars = {
             'hid_report_ids': indent(hid_report_ids),
@@ -276,9 +289,45 @@ def main():
         if ep_num > 16:
             raise InputError(f'Too many endpoints ({ep_num})')
 
-        write_file(args.output, 'tusb_config.h', config_h)
-        write_file(args.output, 'usb_descriptors.c', desc_c)
-        write_file(args.output, 'usb_descriptors.h', desc_h)
+        write_file(output_dir, 'usb_descriptors.c', desc_c)
+        write_file(output_dir, 'usb_descriptors.h', desc_h)
+
+
+def parse_host(config, cfg_vars):
+    host_enabled = 0
+    classes = ""
+
+    if 'host' in config:
+        class_counts = dict((c, 0) for c in HOST_CLASSES)
+        for dev in config['host'].values():
+            class_counts[dev['class']] += 1
+            host_enabled = 1
+        for c, n in class_counts.items():
+            classes += f"#define CFG_TUH_{make_identifier(c)}\t{n}\n"
+
+    cfg_vars['host_enabled'] = host_enabled
+    cfg_vars['host_classes'] = classes
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Sming USB configuration utility')
+
+    parser.add_argument('--quiet', '-q', help="Don't print non-critical status messages to stderr", action='store_true')
+    parser.add_argument('input', help='Path to configuration file')
+    parser.add_argument('output', help='Output directory')
+
+    args = parser.parse_args()
+
+    common.quiet = args.quiet
+
+    config = json_load(args.input)
+
+    cfg_vars = {}
+    parse_devices(config, cfg_vars, args.output)
+    parse_host(config, cfg_vars)
+
+    config_h = readTemplate('config.h', cfg_vars)
+    write_file(args.output, 'tusb_config.h', config_h)
 
 
 if __name__ == '__main__':
