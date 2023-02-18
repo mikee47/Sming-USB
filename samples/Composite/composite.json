@@ -38,6 +38,7 @@
                             "bufsize": 16,
                             "poll-interval": 5,
                             "reports": [
+                                "keyboard",
                                 "system-control"
                             ]
                         },

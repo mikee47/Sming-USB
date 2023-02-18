@@ -158,7 +158,7 @@ def main():
             hid_inst = 0
             hid_report = ""
             hid_callback = []
-            hid_report_ids = []
+            hid_report_ids = set()
             hid_ep_bufsize = 0
             for itf_tag, itf in cfg['interfaces'].items():
                 if itf['class'] != 'hid':
@@ -168,7 +168,7 @@ def main():
                 for r in itf['reports']:
                     if r in HID_REPORTS:
                         id = make_identifier(r)
-                        hid_report_ids += [f"REPORT_ID_{id},"]
+                        hid_report_ids.add(f"REPORT_ID_{id},")
                         hid_report += indent(f"TUD_HID_REPORT_DESC_{id}\t(HID_REPORT_ID(REPORT_ID_{id}) ),")
                     else:
                         raise InputError(f'Unknown report "{r}"')
