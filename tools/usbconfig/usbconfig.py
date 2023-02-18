@@ -203,60 +203,97 @@ def parse_devices(config, cfg_vars, output_dir):
             else:
                 attr = 0
             power = cfg['power']
-            config_desc = ['// Config number, interface count, string index, total length, attribute, power in mA']
-            config_desc += [
-                f"TUD_CONFIG_DESCRIPTOR({cfg_num}, ITF_NUM_TOTAL, {desc_idx}, CONFIG_TOTAL_LEN, {attr}, {power}),"]
+            desc_fields = [
+                ('Config number', cfg_num),
+                ('interface count', 'ITF_NUM_TOTAL'),
+                ('string index', desc_idx),
+                ('total length', 'CONFIG_TOTAL_LEN'),
+                ('attribute', attr),
+                ('Power in mA', power)
+            ]
+            descriptors = [('TUD_CONFIG_DESCRIPTOR', desc_fields)]
             itf_num = 0
             itfnum_defs = []
             ep_num = 1
             epnum_defs = []
+
+            def EP_OUT(name, value):
+                return (f"EPNUM_{name}_OUT", value)
+
+            def EP_IN(name, value):
+                return (f"EPNUM_{name}_IN", value | 0x80)
+
             for itf_tag, itf in cfg['interfaces'].items():
                 itf_class = itf['class']
                 info = INTERFACE_CLASSES[itf_class]
                 itf_id = make_identifier(itf_tag)
-                itfnum_defs += [f"ITF_NUM_{itf_id} = {itf_num},"]
+                itfnum_defs += [(itf_id, itf_num)]
                 itf_desc_idx = get_string_idx(itf.get('description'))
+                desc_fields = [
+                    ('Interface number', f"ITF_NUM_{itf_id}"),
+                    ('String index', itf_desc_idx),
+                ]
                 if itf_class == 'hid':
-                    epnum_defs += [f"EPNUM_{itf_id} = 0x{ep_num | 0x80:02x},"]
+                    ep1 = EP_IN(itf_id, ep_num)
+                    ep_num += 1
+                    epnum_defs += [ep1]
                     ep_bufsize = itf.get('bufsize', HID_DEFAULT_EP_BUFSIZE)
                     poll_interval = itf['poll-interval']
                     protocol = f"HID_ITF_PROTOCOL_{itf['protocol'].upper()}"
-                    config_desc += ['// Interface number, string index, protocol, report descriptor len, EP In address, size & polling interval']
-                    config_desc += [
-                        f'TUD_HID_DESCRIPTOR(ITF_NUM_{itf_id}, {itf_desc_idx}, {protocol}, sizeof(desc_{itf_tag}_report), EPNUM_{itf_id}, {ep_bufsize}, {poll_interval}),']
-                    ep_num += 1  # IAD
+                    desc_fields += [
+                        ('Protocol', protocol),
+                        ('Report descriptor len', f"sizeof(desc_{itf_tag}_report)"),
+                        ('EP IN Address', ep1[0]),
+                        ('Size', ep_bufsize),
+                        ('Polling interval', poll_interval),
+                    ]
+                    descriptors += [('TUD_HID_DESCRIPTOR', desc_fields)]
 
                 elif itf_class == 'cdc':
-                    epnum_defs += [f"EPNUM_{itf_id}_NOTIF = 0x{ep_num | 0x80:02x},"]
+                    ep1 = EP_IN(f'{itf_id}_NOTIF', ep_num)
                     ep_num += 1
-                    epnum_defs += [f"EPNUM_{itf_id}_OUT = 0x{ep_num:02x},"]
-                    epnum_defs += [f"EPNUM_{itf_id}_IN = 0x{ep_num | 0x80:02x},"]
+                    ep2 = EP_OUT(itf_id, ep_num)
+                    ep3 = EP_IN(itf_id, ep_num)
                     ep_num += 1
-                    config_desc += [
-                        '// Interface number, string index, EP notification address and size, EP data address (out, in) and size.']
-                    config_desc += [
-                        f'TUD_CDC_DESCRIPTOR(ITF_NUM_{itf_id}, {itf_desc_idx}, EPNUM_{itf_id}_NOTIF, 8, EPNUM_{itf_id}_OUT, EPNUM_{itf_id}_IN, 64),']
+                    epnum_defs += [ep1, ep2, ep3]
+                    desc_fields += [
+                        ('EP notify address', ep1[0]),
+                        ('EP notify size', 8),
+                        ('EP data OUT', ep2[0]),
+                        ('EP data IN', ep3[0]),
+                        ('EP data size', 64),
+                    ]
                     itf_num += 1  # IAD specifies 2 interfaces
+                    descriptors += [('TUD_CDC_DESCRIPTOR', desc_fields)]
 
                 elif itf_class == 'msc':
-                    epnum_defs += [f"EPNUM_{itf_id}_OUT = 0x{ep_num:02x},"]
-                    epnum_defs += [f"EPNUM_{itf_id}_IN = 0x{ep_num | 0x80:02x},"]
+                    ep1 = EP_OUT(itf_id, ep_num)
+                    ep2 = EP_IN(itf_id, ep_num)
                     ep_num += 1
-                    config_desc += ['// Interface number, string index, EP Out & EP In address, EP size']
-                    config_desc += [
-                        f'TUD_MSC_DESCRIPTOR(ITF_NUM_{itf_id}, {itf_desc_idx}, EPNUM_{itf_id}_OUT, EPNUM_{itf_id}_IN, 64),']
+                    epnum_defs += [ep1, ep2]
+                    desc_fields += [
+                        ('EP OUT', ep1[0]),
+                        ('EP IN', ep2[0]),
+                        ('EP Size', 64),
+                    ]
+                    descriptors += [('TUD_MSC_DESCRIPTOR', desc_fields)]
 
                 else:
                     raise InputError(f'Unsupported class "{itf_class}"')
 
                 itf_num += 1
 
-            itfnum_defs += [f"ITF_NUM_TOTAL = {itf_num},"]
+            itfnum_defs += [("TOTAL", itf_num)]
+
+            config_desc = ""
+            for name, df in descriptors:
+                config_desc += '  // ' + ", ".join(name for (name, value) in df) + '\n'
+                config_desc += f'  {name}(' + ", ".join(str(value) for (name, value) in df) + '),\n'
             vars = {
-                'itfnum_defs': indent(itfnum_defs),
+                'itfnum_defs': "\n".join(f"  ITF_NUM_{name} = {value}," for (name, value) in itfnum_defs),
                 'config_total_len': 'TUD_CONFIG_DESC_LEN' + "".join(f" + TUD_{itf['class'].upper()}_DESC_LEN" for itf in cfg['interfaces'].values()),
-                'epnum_defs': indent(epnum_defs),
-                'config_desc': indent(config_desc),
+                'epnum_defs': "\n".join(f"  {name} = 0x{value:02x}," for (name, value) in epnum_defs),
+                'config_desc': config_desc,
             }
             desc_c += readTemplate('interface.c', vars)
 
