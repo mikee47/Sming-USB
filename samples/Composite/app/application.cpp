@@ -1,5 +1,6 @@
 #include <SmingCore.h>
 #include <USB.h>
+#include <Storage/SpiFlash.h>
 
 static SimpleTimer timer;
 
@@ -26,8 +27,8 @@ void init()
 	bool res = USB::begin();
 	debug_i("USB::begin(): %u", res);
 
+	USB::MSC::registerDevice(Storage::spiFlash, true);
+
 	timer.initializeMs<3000>(InterruptCallback([]() { debug_i("Alive"); }));
 	timer.start();
-
-	//   cdc_app_task();
 }
