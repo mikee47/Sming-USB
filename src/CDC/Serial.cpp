@@ -92,89 +92,68 @@ void tud_cdc_send_break_cb(uint8_t itf, uint16_t duration_ms)
 
 namespace USB::CDC
 {
-bool Serial::begin(uint32_t baud, SerialFormat format, SerialMode mode, uint8_t txPin, uint8_t rxPin)
+bool Serial::begin()
 {
-	end();
+	// .uart_nr = (uint8_t)uartNr,
+	// .options = options,
+	// .rx_size = rxSize,
+	// .tx_size = txSize,
 
-	if(uartNr < 0) {
-		return false;
-	}
-
-	smg_uart_config_t cfg = {
-		.uart_nr = (uint8_t)uartNr,
-		.tx_pin = txPin,
-		.rx_pin = rxPin,
-		.mode = smg_uart_mode_t(mode),
-		.options = options,
-		.baudrate = baud,
-		.format = smg_uart_format_t(format),
-		.rx_size = rxSize,
-		.tx_size = txSize,
-	};
-	uart = smg_uart_init_ex(cfg);
 	updateUartCallback();
 
-	return uart != nullptr;
+	return true;
 }
 
 void Serial::end()
 {
-	if(uart == nullptr) {
-		return;
-	}
-
-	smg_uart_uninit(uart);
-	uart = nullptr;
 }
 
 size_t Serial::setRxBufferSize(size_t size)
 {
-	if(uart) {
-		rxSize = smg_uart_resize_rx_buffer(uart, size);
-	} else {
-		rxSize = size;
-	}
+	// if(uart) {
+	// 	rxSize = smg_uart_resize_rx_buffer(uart, size);
+	// } else {
+	// 	rxSize = size;
+	// }
 	return rxSize;
 }
 
 size_t Serial::setTxBufferSize(size_t size)
 {
-	if(uart) {
-		txSize = smg_uart_resize_tx_buffer(uart, size);
-	} else {
-		txSize = size;
-	}
+	// if(uart) {
+	// 	txSize = smg_uart_resize_tx_buffer(uart, size);
+	// } else {
+	// 	txSize = size;
+	// }
 	return txSize;
 }
 
 void Serial::systemDebugOutput(bool enabled)
 {
-	if(!uart) {
-		return;
-	}
+	// if(!uart) {
+	// 	return;
+	// }
 
-	if(enabled) {
-		if(smg_uart_tx_enabled(uart)) {
-			smg_uart_set_debug(uartNr);
-			m_setPuts(std::bind(&smg_uart_write, uart, _1, _2));
-		} else {
-			smg_uart_set_debug(UART_NO);
-		}
-	} else if(smg_uart_get_debug() == uartNr) {
-		// Disable system debug messages on this interface
-		smg_uart_set_debug(UART_NO);
-		// and don't print debugf() data at all
-		m_setPuts(nullptr);
-	}
+	// if(enabled) {
+	// 	if(smg_uart_tx_enabled(uart)) {
+	// 		smg_uart_set_debug(uartNr);
+	// 		m_setPuts(std::bind(&smg_uart_write, uart, _1, _2));
+	// 	} else {
+	// 		smg_uart_set_debug(UART_NO);
+	// 	}
+	// } else if(smg_uart_get_debug() == uartNr) {
+	// 	// Disable system debug messages on this interface
+	// 	smg_uart_set_debug(UART_NO);
+	// 	// and don't print debugf() data at all
+	// 	m_setPuts(nullptr);
+	// }
 }
 
 void Serial::invokeCallbacks()
 {
-	(void)smg_uart_disable_interrupts();
 	auto status = callbackStatus;
 	callbackStatus = 0;
 	callbackQueued = false;
-	smg_uart_restore_interrupts();
 
 	// Transmit complete ?
 	if((status & UART_STATUS_TXFIFO_EMPTY) != 0 && transmitComplete) {

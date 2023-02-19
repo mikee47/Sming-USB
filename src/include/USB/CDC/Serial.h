@@ -56,58 +56,8 @@ public:
 		return uartNr;
 	}
 
-	/** @brief  Initialise the serial port
-     *  @param  baud BAUD rate of the serial port (Default: 9600)
-	 *  @retval bool true on success
-     */
-	bool begin(uint32_t baud = 9600)
-	{
-		return begin(baud, SERIAL_8N1, SERIAL_FULL, SERIAL_PIN_DEFAULT);
-	}
+	bool begin();
 
-	/**
-	 * @brief Initialise and set its configuration.
-	 * @param baud Baud rate to use
-	 * @param format can be 5, 6, 7, 8 data bits, odd (O),
-	 * 				 even (E), and no (N) parity, and 1 or 2 stop bits.
-	 * 		  		 To set the desired mode, call  Serial.begin(baudrate, SERIAL_8N1),
-	 * 		  		 Serial.begin(baudrate, SERIAL_6E2), etc.
-	 * @retval bool true on success
-	 */
-	bool begin(uint32_t baud, SerialFormat format)
-	{
-		return begin(baud, format, SERIAL_FULL, SERIAL_PIN_DEFAULT);
-	}
-
-	/**
-	 * @brief Initialise, set its configuration and mode.
-	 * @param baud Baud rate to use
-	 * @param format can be 5, 6, 7, 8 data bits, odd (O),
-	 * 				 even (E), and no (N) parity, and 1 or 2 stop bits.
-	 * 		  		 To set the desired mode, call  Serial.begin(baudrate, SERIAL_8N1),
-	 * 		  		 Serial.begin(baudrate, SERIAL_6E2), etc.
-	 * @param mode specifies if the UART supports receiving (RX), transmitting (TX) or both (FULL) operations
-	 * @retval bool true on success
-	 */
-	bool begin(uint32_t baud, SerialFormat format, SerialMode mode)
-	{
-		return begin(baud, format, mode, 1);
-	}
-
-	/**
-	 * @brief Initialise, set its configuration and mode.
-	 * @param baud Baud rate to use
-	 * @param format
-	 * @param mode
-	 * @param txPin Can specify alternate pin for TX
-	 * @param rxPin
-	 * @retval bool true on success
-	 */
-	bool begin(uint32_t baud, SerialFormat format, SerialMode mode, uint8_t txPin, uint8_t rxPin = SERIAL_PIN_DEFAULT);
-
-	/**
-	 * @brief De-inits the current UART if it is already used
-	 */
 	void end();
 
 	/**
@@ -134,50 +84,6 @@ public:
 	{
 		bitWrite(options, UART_OPT_TXWAIT, wait);
 		smg_uart_set_options(uart, options);
-	}
-
-	/**
-	 * @brief Toggle between use of GPIO13/GPIO15 or GPIO3/GPIO(1/2) as RX and TX
-	 * @note UART0 uses pins GPIO1 (TX) and GPIO3 (RX). It may be swapped to GPIO15 (TX) and GPIO13 (RX) by calling .swap() after .begin. C
-	 * @note Calling swap again maps UART0 back to GPIO1 and GPIO3.
-	 */
-	void swap()
-	{
-		swap(1);
-	}
-
-	/**
-	 * @brief Toggle between use of GPIO13/GPIO15 or GPIO3/GPIO(1/2) as RX and TX
-	 * @param tx_pin Pin number.
-	 */
-	void swap(uint8_t tx_pin)
-	{
-		smg_uart_swap(uart, tx_pin);
-	}
-
-	/**
-	 * @brief Toggle between use of GPIO1 and GPIO2 as TX on UART 0.
-	 * @param tx_pin
-	 * @note: UART 1 can't be used if GPIO2 is used with UART 0!
-	 * @note: If UART1 is not used and UART0 is not swapped - TX for UART0 can be mapped to GPIO2 by calling .setTx(2) after
-	 * 		  .begin or directly with .begin(baud, config, mode, 2).
-	 *
-	 */
-	void setTx(uint8_t tx_pin)
-	{
-		smg_uart_set_tx(uart, tx_pin);
-	}
-
-	/**
-	 * @brief Sets the transmission and receiving PINS
-	 * @param tx Transmission pin number
-	 * @param rx Receiving pin number
-	 * @note UART 0 possible options are (1, 3), (2, 3) or (15, 13)
-	 * @note UART 1 allows only TX on 2 if UART 0 is not (2, 3)
-	 */
-	void pins(uint8_t tx, uint8_t rx)
-	{
-		smg_uart_set_pins(uart, tx, rx);
 	}
 
 	/** @brief  Get quantity characters available from serial input
@@ -291,54 +197,6 @@ public:
 	}
 
 	/**
-	 * @brief  Set callback ISR for received data
-	 * @param  callback Function to handle received data
-	 * @param  param Set as return value for `uart_get_callback_param()`
-	 * @note callback is invoked directly from serial ISR and bypasses any registered delegates
-	 */
-	__forceinline void setUartCallback(smg_uart_callback_t callback, void* param = nullptr)
-	{
-		smg_uart_set_callback(uart, callback, param);
-	}
-
-	/**
-	 * @brief  Checks if the current UART can transmit(print) information
-	 * @retval bool true if transmitting is allowed
-	 */
-	bool isTxEnabled()
-	{
-		return smg_uart_tx_enabled(uart);
-	}
-
-	/**
-	 * @brief  Checks if the current UART can receive information
-	 * @retval bool true if receiving is allowed
-	 */
-	bool isRxEnabled()
-	{
-		return smg_uart_rx_enabled(uart);
-	}
-
-	/**
-	 * @brief Get the current baud rate
-	 * @retval uint32_t baud rate
-	 */
-	uint32_t baudRate()
-	{
-		return smg_uart_get_baudrate(uart);
-	}
-
-	/**
-	 * @brief Attempt to set the requested baud rate
-	 * @retval uint32_t the actual baud rate in force
-	 * @note Return value may differ from requested baud rate due to clock division errors
-	 */
-	uint32_t setBaudRate(uint32_t baudrate)
-	{
-		return smg_uart_set_baudrate(uart, baudrate);
-	}
-
-	/**
 	 * @brief Operator that returns true if the uart structure is set
 	 */
 	operator bool() const
@@ -357,15 +215,6 @@ public:
 	}
 
 	/**
-	 * @brief Returns a pointer to the internal uart object. Use with care.
-	 * @retval pointer to uart_t
-	 */
-	smg_uart_t* getUart()
-	{
-		return uart;
-	}
-
-	/**
 	 * @brief Get status error flags and clear them
 	 * @retval unsigned Status flags, combination of SerialStatus bits
 	 * @see SerialStatus
@@ -377,7 +226,6 @@ private:
 	TransmitCompleteDelegate transmitComplete = nullptr; ///< Callback for transmit completion
 	StreamDataReceivedDelegate HWSDelegate = nullptr;	///< Callback for received data
 	CommandExecutor* commandExecutor = nullptr;			 ///< Callback for command execution (received data)
-	smg_uart_t* uart = nullptr;
 	uart_options_t options = _BV(UART_OPT_TXWAIT);
 	size_t txSize = DEFAULT_TX_BUFFER_SIZE;
 	size_t rxSize = DEFAULT_RX_BUFFER_SIZE;
@@ -385,11 +233,6 @@ private:
 	volatile uint16_t callbackStatus = 0; ///< Persistent uart status flags for callback
 	volatile bool callbackQueued = false;
 
-	/**
-	 * @brief Serial interrupt handler, called by serial driver
-	 * @param uart pointer to UART object
-	 * @param status UART status flags indicating cause(s) of interrupt
-	 */
 	static void IRAM_ATTR staticCallbackHandler(smg_uart_t* uart, uint32_t status);
 	static void staticOnStatusChange(void* param);
 	void invokeCallbacks();
