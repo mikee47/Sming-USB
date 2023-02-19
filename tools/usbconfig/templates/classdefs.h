@@ -8,5 +8,5 @@
 #pragma once
 
 namespace USB {
-${devices}
+${classdefs}
 }

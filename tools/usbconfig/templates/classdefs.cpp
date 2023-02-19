@@ -8,5 +8,5 @@
 #include <USB.h>
 
 namespace USB {
-${devices}
+${classdefs}
 }

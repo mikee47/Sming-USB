@@ -112,7 +112,7 @@ def indent(defs):
     return f"  {defs}\n" if isinstance(defs, str) else "\n".join(f"  {d}" for d in defs)
 
 
-def parse_devices(config, cfg_vars, output_dir):
+def parse_devices(config, cfg_vars, classdefs, output_dir):
     if 'devices' not in config:
         cfg_vars['device_enabled'] = 0
         cfg_vars['device_classes'] = ''
@@ -330,47 +330,18 @@ def parse_devices(config, cfg_vars, output_dir):
         write_file(output_dir, 'usb_descriptors.h', desc_h)
 
 
-def parse_host(config, cfg_vars, output_dir):
+def parse_host(config, cfg_vars, classdefs, output_dir):
     host_enabled = 0
     classes = ""
 
     if 'host' in config:
         host_enabled = 1
         class_counts = dict((c, 0) for c in HOST_CLASSES)
-        devices = dict((c, []) for c in HOST_CLASSES)
         for tag, dev in config['host'].items():
             class_counts[dev['class']] += 1
-            devices[dev['class']].append(tag)
+            classdefs[dev['class']].append(('HostDevice', tag))
         for c, n in class_counts.items():
             classes += f"#define CFG_TUH_{make_identifier(c)}\t{n}\n"
-        dev_txt = ""
-        for dev_class, tags in devices.items():
-            if not tags:
-                continue
-            dev_txt += f'namespace {dev_class.upper()} {{\n'
-            for tag in tags:
-                dev_txt += f'extern HostDevice {tag};\n'
-            dev_txt += '}\n\n'
-        vars = {
-            'devices': dev_txt
-        }
-        hostdefs_h = readTemplate('host/defs.h', vars)
-        write_file(output_dir, 'usb_hostdefs.h', hostdefs_h)
-
-        dev_txt = ""
-        for dev_class, tags in devices.items():
-            if not tags:
-                continue
-            dev_txt += f'namespace {dev_class.upper()} {{\n'
-            for tag in tags:
-                dev_txt += f'HostDevice {tag}("{tag}");\n'
-            dev_txt += 'HostDevice* devices[] {' + '\n'.join(f'&{tag}' for tag in tags) + '};\n'
-            dev_txt += '}\n'
-        vars = {
-            'devices': dev_txt
-        }
-        hostdefs_cpp = readTemplate('host/defs.cpp', vars)
-        write_file(output_dir, 'usb_hostdefs.cpp', hostdefs_cpp)
 
     cfg_vars['host_enabled'] = host_enabled
     cfg_vars['host_classes'] = classes
@@ -390,8 +361,38 @@ def main():
     config = json_load(args.input)
 
     cfg_vars = {}
-    parse_devices(config, cfg_vars, args.output)
-    parse_host(config, cfg_vars, args.output)
+    classdefs = dict((c, []) for c in INTERFACE_CLASSES | HOST_CLASSES)
+    parse_devices(config, cfg_vars, classdefs, args.output)
+    parse_host(config, cfg_vars, classdefs, args.output)
+
+    txt = ""
+    for dev_class, devs in classdefs.items():
+        if not devs:
+            continue
+        txt += f'namespace {dev_class.upper()} {{\n'
+        for clsname, tag in devs:
+            txt += f'extern {clsname} {tag};\n'
+        txt += '}\n\n'
+    vars = {
+        'classdefs': txt
+    }
+    classdefs_h = readTemplate('classdefs.h', vars)
+    write_file(args.output, 'usb_classdefs.h', classdefs_h)
+
+    txt = ""
+    for dev_class, devs in classdefs.items():
+        if not devs:
+            continue
+        txt += f'namespace {dev_class.upper()} {{\n'
+        for clsname, tag in devs:
+            txt += f'{clsname} {tag}("{tag}");\n'
+        txt += 'void* devices[] {' + '\n'.join(f'&{tag}' for _, tag in devs) + '};\n'
+        txt += '}\n'
+    vars = {
+        'classdefs': txt
+    }
+    classdefs_cpp = readTemplate('classdefs.cpp', vars)
+    write_file(args.output, 'usb_classdefs.cpp', classdefs_cpp)
 
     config_h = readTemplate('config.h', cfg_vars)
     write_file(args.output, 'tusb_config.h', config_h)

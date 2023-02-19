@@ -65,6 +65,7 @@ TINYUSB_SRCDIRS := \
 
 COMPONENT_APPCODE += \
 	src \
+	src/CDC \
 	src/MSC \
 	tinyusb/src \
 	tinyusb/src/portable/$(TUSB_FAMILY_PATH) \
