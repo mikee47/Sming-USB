@@ -7,4 +7,6 @@
 
 #pragma once
 
+namespace USB {
 ${devices}
+}

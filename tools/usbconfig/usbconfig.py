@@ -336,25 +336,38 @@ def parse_host(config, cfg_vars, output_dir):
 
     if 'host' in config:
         host_enabled = 1
-        devices = []
         class_counts = dict((c, 0) for c in HOST_CLASSES)
-        for dev in config['host'].values():
+        devices = dict((c, []) for c in HOST_CLASSES)
+        for tag, dev in config['host'].items():
             class_counts[dev['class']] += 1
+            devices[dev['class']].append(tag)
         for c, n in class_counts.items():
             classes += f"#define CFG_TUH_{make_identifier(c)}\t{n}\n"
-        for tag, dev in config['host'].items():
-            devices += [(dev['class'], tag)]
+        dev_txt = ""
+        for dev_class, tags in devices.items():
+            if not tags:
+                continue
+            dev_txt += f'namespace {dev_class.upper()} {{\n'
+            for tag in tags:
+                dev_txt += f'extern HostDevice {tag};\n'
+            dev_txt += '}\n\n'
         vars = {
-            'devices': "".join(
-                f'namespace USB::{dev_class.upper()} {{ extern HostDevice {tag}; }}\n'
-                for (dev_class, tag) in devices)
+            'devices': dev_txt
         }
         hostdefs_h = readTemplate('host/defs.h', vars)
         write_file(output_dir, 'usb_hostdefs.h', hostdefs_h)
+
+        dev_txt = ""
+        for dev_class, tags in devices.items():
+            if not tags:
+                continue
+            dev_txt += f'namespace {dev_class.upper()} {{\n'
+            for tag in tags:
+                dev_txt += f'HostDevice {tag}("{tag}");\n'
+            dev_txt += 'HostDevice* devices[] {' + '\n'.join(f'&{tag}' for tag in tags) + '};\n'
+            dev_txt += '}\n'
         vars = {
-            'devices': "".join(
-                f'namespace USB::{dev_class.upper()} {{ HostDevice {tag}("{tag}"); }}\n'
-                for (dev_class, tag) in devices)
+            'devices': dev_txt
         }
         hostdefs_cpp = readTemplate('host/defs.cpp', vars)
         write_file(output_dir, 'usb_hostdefs.cpp', hostdefs_cpp)
