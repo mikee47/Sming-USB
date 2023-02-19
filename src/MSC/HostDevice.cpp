@@ -1,6 +1,6 @@
 #include <USB.h>
 
-#ifdef CFG_TUH_MSC
+#if defined(ENABLE_USB_CLASSES) && CFG_TUH_MSC
 
 #include <Storage/Disk.h>
 #include <debug_progmem.h>

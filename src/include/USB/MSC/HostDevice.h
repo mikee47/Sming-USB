@@ -84,4 +84,6 @@ private:
 	State state{};
 };
 
+HostDevice* getDevice(uint8_t dev_addr);
+
 } // namespace USB::MSC

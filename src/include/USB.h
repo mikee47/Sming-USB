@@ -2,7 +2,7 @@
 
 #include <tusb.h>
 
-#if CFG_TUH_ENABLED
+#ifdef ENABLE_USB_CLASSES
 
 #if CFG_TUH_MSC
 #include "USB/MSC/HostDevice.h"

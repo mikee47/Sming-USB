@@ -7,6 +7,8 @@
 
 #pragma once
 
+#define ENABLE_USB_CLASSES 1
+
 #ifndef BOARD_TUD_RHPORT
 #define BOARD_TUD_RHPORT      0
 #endif
@@ -37,7 +39,7 @@
 
 //------------- CLASS -------------//
 
-#define CFG_TUD_ENABLED       ${device_enabled}
+#define CFG_TUD_ENABLED ${device_enabled}
 
 ${device_classes}
 
