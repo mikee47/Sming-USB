@@ -27,11 +27,11 @@ ifdef USB_CONFIG
 USBCONFIG_TOOL := $(PYTHON) $(COMPONENT_PATH)/tools/usbconfig/usbconfig.py
 
 USB_OUTPUT_DIR := $(PROJECT_DIR)/$(BUILD_BASE)/USB
-USB_OUTPUT_FILES := $(addprefix $(USB_OUTPUT_DIR)/,tusb_config.h usb_descriptors.h usb_descriptors.c)
+USB_CONFIG_H := $(USB_OUTPUT_DIR)/tusb_config.h
 
-COMPONENT_PREREQUISITES := $(USB_OUTPUT_FILES)
+COMPONENT_PREREQUISITES := $(USB_CONFIG_H)
 
-$(USB_OUTPUT_FILES): $(USB_CONFIG)
+$(USB_CONFIG_H): $(USB_CONFIG)
 	$(USBCONFIG_TOOL) $(USB_CONFIG) $(USB_OUTPUT_DIR)
 
 endif # USB_CONFIG
@@ -67,6 +67,7 @@ TINYUSB_SRCDIRS := \
 
 COMPONENT_APPCODE += \
 	src \
+	src/MSC \
 	tinyusb/src \
 	tinyusb/src/portable/$(TUSB_FAMILY_PATH) \
 	$(addprefix tinyusb/src/,$(TINYUSB_SRCDIRS))

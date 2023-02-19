@@ -155,7 +155,7 @@ def parse_devices(config, cfg_vars, output_dir):
         for f in STRING_FIELDS['device']:
             vars[f'{f}_idx'] = get_string_idx(dev[f])
         vars['config_count'] = len(dev['configs'])
-        desc_c += readTemplate('desc.c', vars)
+        desc_c += readTemplate('device/desc.c', vars)
 
     # Configuration descriptors
 
@@ -194,7 +194,7 @@ def parse_devices(config, cfg_vars, output_dir):
                     'report': hid_report,
                     'callback': indent(hid_callback),
                 }
-                desc_c += readTemplate('hid_report.c', vars)
+                desc_c += readTemplate('device/hid_report.c', vars)
 
             # Emit Configuration descriptors
             desc_idx = get_string_idx(cfg.get('description'))
@@ -295,7 +295,7 @@ def parse_devices(config, cfg_vars, output_dir):
                 'epnum_defs': "\n".join(f"  {name} = 0x{value:02x}," for (name, value) in epnum_defs),
                 'config_desc': config_desc,
             }
-            desc_c += readTemplate('interface.c', vars)
+            desc_c += readTemplate('device/interface.c', vars)
 
         max_string_len = 0
         string_data = []
@@ -310,7 +310,7 @@ def parse_devices(config, cfg_vars, output_dir):
             'string_data': ",\n".join(f'  // {i+1}: "{s}"\n'
                                       f'  "{d}"' for ((i, s), d) in zip(enumerate(strings), string_data)),
         }
-        desc_c += readTemplate('string.c', vars)
+        desc_c += readTemplate('device/string.c', vars)
 
         classes = ""
         for c, n in itf_counts.items():
@@ -321,7 +321,7 @@ def parse_devices(config, cfg_vars, output_dir):
         vars = {
             'hid_report_ids': indent(hid_report_ids),
         }
-        desc_h = readTemplate('desc.h', vars)
+        desc_h = readTemplate('device/desc.h', vars)
 
         if ep_num > 16:
             raise InputError(f'Too many endpoints ({ep_num})')
@@ -330,17 +330,34 @@ def parse_devices(config, cfg_vars, output_dir):
         write_file(output_dir, 'usb_descriptors.h', desc_h)
 
 
-def parse_host(config, cfg_vars):
+def parse_host(config, cfg_vars, output_dir):
     host_enabled = 0
     classes = ""
 
     if 'host' in config:
+        host_enabled = 1
+        devices = []
         class_counts = dict((c, 0) for c in HOST_CLASSES)
         for dev in config['host'].values():
             class_counts[dev['class']] += 1
-            host_enabled = 1
         for c, n in class_counts.items():
             classes += f"#define CFG_TUH_{make_identifier(c)}\t{n}\n"
+        for tag, dev in config['host'].items():
+            devices += [(dev['class'], tag)]
+        vars = {
+            'devices': "".join(
+                f'namespace USB::{dev_class.upper()} {{ extern HostDevice {tag}; }}\n'
+                for (dev_class, tag) in devices)
+        }
+        hostdefs_h = readTemplate('host/defs.h', vars)
+        write_file(output_dir, 'usb_hostdefs.h', hostdefs_h)
+        vars = {
+            'devices': "".join(
+                f'namespace USB::{dev_class.upper()} {{ HostDevice {tag}("{tag}"); }}\n'
+                for (dev_class, tag) in devices)
+        }
+        hostdefs_cpp = readTemplate('host/defs.cpp', vars)
+        write_file(output_dir, 'usb_hostdefs.cpp', hostdefs_cpp)
 
     cfg_vars['host_enabled'] = host_enabled
     cfg_vars['host_classes'] = classes
@@ -361,7 +378,7 @@ def main():
 
     cfg_vars = {}
     parse_devices(config, cfg_vars, args.output)
-    parse_host(config, cfg_vars)
+    parse_host(config, cfg_vars, args.output)
 
     config_h = readTemplate('config.h', cfg_vars)
     write_file(args.output, 'tusb_config.h', config_h)
