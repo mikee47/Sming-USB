@@ -12,6 +12,7 @@
 
 #include <HardwareSerial.h>
 #include <SimpleTimer.h>
+#include <Data/BitSet.h>
 #include <memory>
 
 namespace USB::CDC
@@ -180,9 +181,11 @@ public:
 		rx_data,
 		tx_done,
 	};
-	void handleEvent(Event event);
+	void queueEvent(Event event);
 
 private:
+	void processEvents();
+
 	uint8_t inst;
 	StreamDataReceivedDelegate receiveCallback;
 	TransmitComplete transmitCompleteCallback;
@@ -190,6 +193,7 @@ private:
 	SimpleTimer flushTimer;
 	nputs_callback_t oldPuts{};
 	uart_options_t options{_BV(UART_OPT_TXWAIT)};
+	BitSet<uint8_t, Event> eventMask;
 };
 
 } // namespace USB::CDC

@@ -29,20 +29,20 @@ void init()
 
 	// USB::cdc0.systemDebugOutput(true);
 	USB::cdc0.onDataReceived([](Stream& stream, char arrivedChar, unsigned short availableCharsCount) {
-		debug_e("arrivedchar: %c, avail = %d", arrivedChar, availableCharsCount);
 		char buf[availableCharsCount];
 		auto n = stream.readBytes(buf, availableCharsCount);
-		debug_i("read %u of %u", n, availableCharsCount);
 		Serial.write(buf, n);
-		Serial << endl;
 	});
 	Serial.onDataReceived([](Stream& stream, char arrivedChar, unsigned short availableCharsCount) {
+		System.queueCallback([](uint32_t param) { Serial.write(char(param)); }, arrivedChar);
+		return;
 		for(;;) {
 			char buf[512];
 			auto n = stream.readBytes(buf, sizeof(buf));
 			if(n == 0) {
 				break;
 			}
+			Serial.write(buf, n);
 			// USB::cdc0.write(buf, n);
 		}
 	});

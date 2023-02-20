@@ -25,7 +25,7 @@ void tud_cdc_rx_cb(uint8_t inst)
 {
 	auto dev = getDevice(inst);
 	if(dev) {
-		dev->handleEvent(Device::Event::rx_data);
+		dev->queueEvent(Device::Event::rx_data);
 	}
 }
 
@@ -40,7 +40,7 @@ void tud_cdc_tx_complete_cb(uint8_t inst)
 {
 	auto dev = getDevice(inst);
 	if(dev) {
-		dev->handleEvent(Device::Event::tx_done);
+		dev->queueEvent(Device::Event::tx_done);
 	}
 }
 
@@ -98,8 +98,8 @@ size_t Device::write(const uint8_t* buffer, size_t size)
 		if(!bitRead(options, UART_OPT_TXWAIT)) {
 			break;
 		}
-		m_putc('.');
-		tud_task();
+		// m_putc('.');
+		tud_task_ext(0, true);
 	}
 
 	flushTimer.startOnce();
@@ -107,10 +107,25 @@ size_t Device::write(const uint8_t* buffer, size_t size)
 	return written;
 }
 
-void Device::handleEvent(Event event)
+void Device::queueEvent(Event event)
 {
-	switch(event) {
-	case Event::rx_data:
+	if(!eventMask) {
+		System.queueCallback(
+			[](void* param) {
+				auto self = static_cast<Device*>(param);
+				self->processEvents();
+			},
+			this);
+	}
+
+	eventMask += event;
+}
+
+void Device::processEvents()
+{
+	auto evt = eventMask;
+	eventMask = 0;
+	if(evt[Event::rx_data]) {
 		if(receiveCallback) {
 			uint8_t ch{0};
 			tud_cdc_n_peek(inst, &ch);
@@ -124,13 +139,12 @@ void Device::handleEvent(Event event)
 			}
 		}
 #endif
-		break;
+	}
 
-	case Event::tx_done:
+	if(evt[Event::tx_done]) {
 		if(transmitCompleteCallback) {
 			transmitCompleteCallback(*this);
 		}
-		break;
 	}
 }
 
