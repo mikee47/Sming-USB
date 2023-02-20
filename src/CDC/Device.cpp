@@ -81,14 +81,25 @@ Device::~Device()
 
 size_t Device::write(const uint8_t* buffer, size_t size)
 {
+	debug_i("write(%u)", size);
 	size_t written{0};
 	while(size != 0) {
-		written += tud_cdc_n_write(inst, buffer, size);
-		buffer += written;
-		size -= written;
-		if((options & _BV(UART_OPT_TXWAIT)) == 0) {
+		size_t n = tud_cdc_n_write_available(inst);
+		if(n == 0) {
+			tud_cdc_n_write_flush(inst);
+		} else {
+			n = std::min(n, size);
+			tud_cdc_n_write(inst, buffer, n);
+			debug_i("n = %u", n);
+			written += n;
+			buffer += n;
+			size -= n;
+		}
+		if(!bitRead(options, UART_OPT_TXWAIT)) {
 			break;
 		}
+		m_putc('.');
+		tud_task();
 	}
 
 	flushTimer.startOnce();

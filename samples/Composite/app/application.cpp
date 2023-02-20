@@ -33,8 +33,18 @@ void init()
 		char buf[availableCharsCount];
 		auto n = stream.readBytes(buf, availableCharsCount);
 		debug_i("read %u of %u", n, availableCharsCount);
-		Serial.write(buf, availableCharsCount);
+		Serial.write(buf, n);
 		Serial << endl;
+	});
+	Serial.onDataReceived([](Stream& stream, char arrivedChar, unsigned short availableCharsCount) {
+		for(;;) {
+			char buf[512];
+			auto n = stream.readBytes(buf, sizeof(buf));
+			if(n == 0) {
+				break;
+			}
+			// USB::cdc0.write(buf, n);
+		}
 	});
 
 	USB::msc0.add(Storage::spiFlash, true);
