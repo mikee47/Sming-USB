@@ -2,8 +2,6 @@
 #include <USB.h>
 #include <Storage/SpiFlash.h>
 
-static SimpleTimer timer;
-
 void tuh_mount_cb(uint8_t dev_addr)
 {
 	// application set-up
@@ -15,6 +13,45 @@ void tuh_umount_cb(uint8_t dev_addr)
 	// application tear-down
 	debug_i("A device with address %u is unmounted", dev_addr);
 }
+
+namespace
+{
+SimpleTimer timer;
+
+static const uint8_t conv_table[128][2] = {HID_ASCII_TO_KEYCODE};
+static const char* testText = "\x1b echo This should be harmless enough... Rrrrepeatinggggg.\n";
+static char lastChar;
+static unsigned charIndex;
+
+void sendChar()
+{
+	char c = testText[charIndex];
+	if(c == lastChar) {
+		lastChar = '\0';
+		hid_keyboard_report_t report{};
+		USB::hid0.sendReport(REPORT_ID_KEYBOARD, &report, sizeof(report), sendChar);
+		return;
+	}
+	++charIndex;
+	lastChar = c;
+	auto& entry = conv_table[unsigned(c)];
+	hid_keyboard_report_t report{
+		uint8_t(entry[0] ? KEYBOARD_MODIFIER_LEFTSHIFT : 0),
+		.reserved = 0,
+		.keycode = {entry[1]},
+	};
+
+	USB::hid0.sendReport(REPORT_ID_KEYBOARD, &report, sizeof(report), c ? sendChar : nullptr);
+}
+
+void sendText()
+{
+	charIndex = 0;
+	lastChar = '\0';
+	sendChar();
+}
+
+} // namespace
 
 void init()
 {
@@ -49,6 +86,9 @@ void init()
 
 	USB::msc0.add(Storage::spiFlash, true);
 
-	timer.initializeMs<3000>(InterruptCallback([]() { debug_i("Alive"); }));
+	timer.initializeMs<3000>(InterruptCallback([]() {
+		debug_i("Alive");
+		sendText();
+	}));
 	timer.start();
 }

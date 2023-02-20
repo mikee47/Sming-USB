@@ -20,7 +20,7 @@ uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_t
 							   uint16_t reqlen)
 {
 	auto dev = getDevice(instance);
-	return dev ? dev->getReport(report_id, report_type, buffer, reqlen) : 0;
+	return dev ? dev->get_report(report_id, report_type, buffer, reqlen) : 0;
 }
 
 // Invoked when received SET_REPORT control request or
@@ -30,7 +30,7 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_
 {
 	auto dev = getDevice(instance);
 	if(dev) {
-		dev->setReport(report_id, report_type, buffer, bufsize);
+		dev->set_report(report_id, report_type, buffer, bufsize);
 	}
 }
 
@@ -54,19 +54,44 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_
 // Invoked when sent REPORT successfully to host
 // Application can use this to send the next report
 // Note: For composite reports, report[0] is report ID
-//void tud_hid_report_complete_cb(uint8_t instance, uint8_t const* report, uint16_t len)
-// {
-// }
+void tud_hid_report_complete_cb(uint8_t instance, uint8_t const* report, uint16_t len)
+{
+	auto dev = getDevice(instance);
+	if(dev) {
+		dev->report_complete();
+	}
+}
 
 namespace USB::HID
 {
-uint16_t Device::getReport(uint8_t report_id, hid_report_type_t report_type, uint8_t* buffer, uint16_t reqlen)
+uint16_t Device::get_report(uint8_t report_id, hid_report_type_t report_type, uint8_t* buffer, uint16_t reqlen)
 {
 	return 0;
 }
 
-void Device::setReport(uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize)
+void Device::set_report(uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize)
 {
+	char buf[32];
+	m_snprintf(buf, sizeof(buf), "%s(%u, %u, %u)", __FUNCTION__, report_id, report_type, bufsize);
+	m_printHex(buf, buffer, bufsize);
+}
+
+bool Device::sendReport(uint8_t report_id, void const* report, uint16_t len, ReportComplete callback)
+{
+	if(reportCompleteCallback) {
+		return false;
+	}
+	reportCompleteCallback = callback;
+	return tud_hid_n_report(inst, report_id, report, len);
+}
+
+void Device::report_complete()
+{
+	if(reportCompleteCallback) {
+		auto callback = reportCompleteCallback;
+		reportCompleteCallback = nullptr;
+		callback();
+	}
 }
 
 } // namespace USB::HID
