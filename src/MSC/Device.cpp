@@ -4,68 +4,17 @@
 
 #include <debug_progmem.h>
 
-namespace
-{
-#define MAX_LUN 4
-struct LogicalUnit {
-	Storage::Device* device;
-	bool readOnly;
-
-	operator bool() const
-	{
-		return device != nullptr;
-	}
-
-	void getCapacity(uint32_t* block_count, uint16_t* block_size)
-	{
-		if(device == nullptr) {
-			return;
-		}
-
-		*block_size = device->getSectorSize();
-		*block_count = device->getSectorCount();
-	}
-
-	int read(uint32_t lba, uint32_t offset, void* buffer, uint32_t bufsize)
-	{
-		if(device == nullptr) {
-			return -1;
-		}
-
-		auto blockSize = device->getSectorSize();
-		offset += blockSize * lba;
-		return device->read(offset, buffer, bufsize) ? bufsize : -1;
-	}
-
-	int write(uint32_t lba, uint32_t offset, uint8_t* buffer, uint32_t bufsize)
-	{
-		if(device == nullptr) {
-			return -1;
-		}
-
-		auto blockSize = device->getSectorSize();
-		offset += blockSize * lba;
-		return device->write(offset, buffer, bufsize) ? bufsize : -1;
-	}
-};
-LogicalUnit logicalUnits[MAX_LUN];
-
-LogicalUnit getLogicalUnit(uint8_t lun)
-{
-	return (lun < 4) ? logicalUnits[lun] : LogicalUnit{};
-}
-
-} // namespace
-
 namespace USB::MSC
 {
-bool registerDevice(Storage::Device* device, bool readOnly)
+LogicalUnit Device::logicalUnits[MAX_LUN];
+
+bool Device::add(Storage::Device* device, bool readOnly)
 {
 	if(device == nullptr) {
 		return false;
 	}
 
-	unregisterDevice(device);
+	remove(device);
 	for(auto& unit : logicalUnits) {
 		if(!unit) {
 			unit = LogicalUnit{device, readOnly};
@@ -76,7 +25,7 @@ bool registerDevice(Storage::Device* device, bool readOnly)
 	return false;
 }
 
-bool unregisterDevice(Storage::Device* device)
+bool Device::remove(const Storage::Device* device)
 {
 	if(device == nullptr) {
 		return false;
@@ -92,13 +41,9 @@ bool unregisterDevice(Storage::Device* device)
 	return false;
 }
 
-} // namespace USB::MSC
-
-// Invoked when received SCSI_CMD_INQUIRY
-// Application fill vendor id, product id and revision with string up to 8, 16, 4 characters respectively
-void tud_msc_inquiry_cb(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16], uint8_t product_rev[4])
+void Device::inquiry(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16], uint8_t product_rev[4])
 {
-	auto unit = getLogicalUnit(lun);
+	auto unit = Device::getLogicalUnit(lun);
 	if(!unit) {
 		return;
 	}
@@ -114,10 +59,21 @@ void tud_msc_inquiry_cb(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16
 	debug_i("%s(%u, \"%s\", \"%s\", \"%s\")", __FUNCTION__, lun, vid, devname.c_str(), rev);
 }
 
+} // namespace USB::MSC
+
+using namespace USB::MSC;
+
+// Invoked when received SCSI_CMD_INQUIRY
+// Application fill vendor id, product id and revision with string up to 8, 16, 4 characters respectively
+void tud_msc_inquiry_cb(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16], uint8_t product_rev[4])
+{
+	return Device::inquiry(lun, vendor_id, product_id, product_rev);
+}
+
 // Invoked when received GET_MAX_LUN request, required for multiple LUNs implementation
 uint8_t tud_msc_get_maxlun_cb(void)
 {
-	return MAX_LUN;
+	return Device::MAX_LUN;
 }
 
 // Invoked when received Start Stop Unit command
@@ -145,34 +101,33 @@ int32_t tud_msc_scsi_cb(uint8_t lun, uint8_t const scsi_cmd[16], void* buffer, u
 // Application update block count and block size
 void tud_msc_capacity_cb(uint8_t lun, uint32_t* block_count, uint16_t* block_size)
 {
-	return getLogicalUnit(lun).getCapacity(block_count, block_size);
+	return Device::getCapacity(lun, block_count, block_size);
 }
 
 // Invoked when received Test Unit Ready command.
 // return true allowing host to read/write this LUN e.g SD card inserted
 bool tud_msc_test_unit_ready_cb(uint8_t lun)
 {
-	return getLogicalUnit(lun);
+	return Device::isReady(lun);
 }
 
 // Callback invoked when received READ10 command.
 // Copy disk's data to buffer (up to bufsize) and return number of copied bytes.
 int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset, void* buffer, uint32_t bufsize)
 {
-	return getLogicalUnit(lun).read(lba, offset, buffer, bufsize);
+	return Device::read(lun, lba, offset, buffer, bufsize);
 }
 
 bool tud_msc_is_writable_cb(uint8_t lun)
 {
-	auto unit = getLogicalUnit(lun);
-	return unit && !unit.readOnly;
+	return !Device::isReadOnly(lun);
 }
 
 // Callback invoked when received WRITE10 command.
 // Process data in buffer to disk's storage and return number of written bytes
 int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t* buffer, uint32_t bufsize)
 {
-	return getLogicalUnit(lun).write(lba, offset, buffer, bufsize);
+	return Device::write(lun, lba, offset, buffer, bufsize);
 }
 
 #endif

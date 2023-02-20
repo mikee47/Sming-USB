@@ -7,6 +7,8 @@
 
 #pragma once
 
+${includes}
+
 namespace USB {
 ${classdefs}
 }

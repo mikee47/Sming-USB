@@ -11,54 +11,18 @@
 #pragma once
 
 #include <HardwareSerial.h>
+#include <SimpleTimer.h>
+#include <memory>
 
 namespace USB::CDC
 {
-class Serial;
-
-/** @brief  Delegate callback type for serial data reception
- *  @param  source Reference to serial stream
- *  @param  arrivedChar Char received
- *  @param  availableCharsCount Quantity of chars available stream in receive buffer
- *  @note Delegate constructor usage: (&YourClass::method, this)
- *
- * 	This delegate is invoked when the serial receive buffer is full, or it times out. The
- * 	arrivedChar indicates the last character received, which might be a '\n' line ending
- * 	character, for example.
- *
- * 	If no receive buffer has been allocated, or it's not big enough to contain the full message,
- * 	then this value will be incorrect as data is stored in the hardware FIFO until read out.
- */
-using StreamDataReceivedDelegate = Delegate<void(Stream& source, char arrivedChar, uint16_t availableCharsCount)>;
-
-/** @brief Delegate callback type for serial data transmit completion
- *  @note Invoked when the last byte has left the hardware FIFO
- */
-using TransmitCompleteDelegate = Delegate<void(Serial& serial)>;
-
-class Serial : public ReadWriteStream
+class Device : public ReadWriteStream
 {
 public:
-	Serial(int uartPort) : uartNr(uartPort)
-	{
-	}
+	using TransmitComplete = Delegate<void(Device& device)>;
 
-	~Serial();
-
-	void setPort(int uartPort)
-	{
-		end();
-		uartNr = uartPort;
-	}
-
-	int getPort()
-	{
-		return uartNr;
-	}
-
-	bool begin();
-
-	void end();
+	Device(uint8_t instance, const char* name);
+	~Device();
 
 	/**
 	 * @brief Sets receiving buffer size
@@ -83,7 +47,7 @@ public:
 	void setTxWait(bool wait)
 	{
 		bitWrite(options, UART_OPT_TXWAIT, wait);
-		smg_uart_set_options(uart, options);
+		// smg_uart_set_options(uart, options);
 	}
 
 	/** @brief  Get quantity characters available from serial input
@@ -91,7 +55,7 @@ public:
      */
 	int available() override
 	{
-		return (int)smg_uart_rx_available(uart);
+		return tud_cdc_n_available(inst);
 	}
 
 	/** @brief  Read a character from serial port
@@ -100,7 +64,7 @@ public:
     */
 	int read() override
 	{
-		return smg_uart_read_char(uart);
+		return tud_cdc_n_read_char(inst);
 	}
 
 	/** @brief  Read a block of characters from serial port
@@ -112,7 +76,7 @@ public:
 	 */
 	uint16_t readMemoryBlock(char* buf, int max_len) override
 	{
-		return smg_uart_read(uart, buf, max_len);
+		return tud_cdc_n_read(inst, buf, max_len);
 	}
 
 	bool seek(int len) override
@@ -131,7 +95,8 @@ public:
      */
 	int peek() override
 	{
-		return smg_uart_peek_char(uart);
+		uint8_t c;
+		return tud_cdc_n_peek(inst, &c) ? c : -1;
 	}
 
 	/** @brief  Clear the serial port transmit/receive buffers
@@ -140,7 +105,12 @@ public:
 	 */
 	void clear(SerialMode mode = SERIAL_FULL)
 	{
-		smg_uart_flush(uart, smg_uart_mode_t(mode));
+		if(mode != SerialMode::TxOnly) {
+			tud_cdc_n_read_flush(inst);
+		}
+		if(mode != SerialMode::RxOnly) {
+			tud_cdc_n_write_clear(inst);
+		}
 	}
 
 	/** @brief Flush all pending data to the serial port
@@ -148,7 +118,7 @@ public:
 	 */
 	void flush() override // Stream
 	{
-		smg_uart_wait_tx_empty(uart);
+		tud_cdc_n_write_flush(inst);
 	}
 
 	using Stream::write;
@@ -158,10 +128,7 @@ public:
 	 *  @param size number of characters to write
 	 *  @retval size_t Quantity of characters written, may be less than size
 	 */
-	size_t write(const uint8_t* buffer, size_t size) override
-	{
-		return smg_uart_write(uart, buffer, size);
-	}
+	size_t write(const uint8_t* buffer, size_t size) override;
 
 	/** @brief  Configure serial port for system debug output and redirect output from debugf
 	 *  @param  enabled True to enable this port for system debug output
@@ -180,28 +147,16 @@ public:
 	 *  @param  dataReceivedDelegate Function to handle received data
 	 *  @retval bool Returns true if the callback was set correctly
 	 */
-	bool onDataReceived(StreamDataReceivedDelegate dataReceivedDelegate)
+	bool onDataReceived(StreamDataReceivedDelegate callback)
 	{
-		this->HWSDelegate = dataReceivedDelegate;
-		return updateUartCallback();
+		receiveCallback = callback;
+		return true;
 	}
 
-	/** @brief  Set handler for received data
-	 *  @param  transmitCompleteDelegate Function to handle received data
-	 *  @retval bool Returns true if the callback was set correctly
-	 */
-	bool onTransmitComplete(TransmitCompleteDelegate transmitCompleteDelegate)
+	bool onTransmitComplete(TransmitComplete callback)
 	{
-		this->transmitComplete = transmitCompleteDelegate;
-		return updateUartCallback();
-	}
-
-	/**
-	 * @brief Operator that returns true if the uart structure is set
-	 */
-	operator bool() const
-	{
-		return uart != nullptr;
+		transmitCompleteCallback = callback;
+		return true;
 	}
 
 	/**
@@ -211,7 +166,7 @@ public:
 	 */
 	int indexOf(char c) override
 	{
-		return smg_uart_rx_find(uart, c);
+		return -1;
 	}
 
 	/**
@@ -221,27 +176,20 @@ public:
 	 */
 	unsigned getStatus();
 
+	enum class Event {
+		rx_data,
+		tx_done,
+	};
+	void handleEvent(Event event);
+
 private:
-	int uartNr = UART_NO;
-	TransmitCompleteDelegate transmitComplete = nullptr; ///< Callback for transmit completion
-	StreamDataReceivedDelegate HWSDelegate = nullptr;	///< Callback for received data
-	CommandExecutor* commandExecutor = nullptr;			 ///< Callback for command execution (received data)
-	uart_options_t options = _BV(UART_OPT_TXWAIT);
-	size_t txSize = DEFAULT_TX_BUFFER_SIZE;
-	size_t rxSize = DEFAULT_RX_BUFFER_SIZE;
-	volatile uint16_t statusMask = 0;	 ///< Which serial events require a callback
-	volatile uint16_t callbackStatus = 0; ///< Persistent uart status flags for callback
-	volatile bool callbackQueued = false;
-
-	static void IRAM_ATTR staticCallbackHandler(smg_uart_t* uart, uint32_t status);
-	static void staticOnStatusChange(void* param);
-	void invokeCallbacks();
-
-	/**
-	 * @brief Called whenever one of the user callbacks change
-	 * @retval true if uart callback is active
-	 */
-	bool updateUartCallback();
+	uint8_t inst;
+	StreamDataReceivedDelegate receiveCallback;
+	TransmitComplete transmitCompleteCallback;
+	std::unique_ptr<CommandExecutor> commandExecutor;
+	SimpleTimer flushTimer;
+	nputs_callback_t oldPuts{};
+	uart_options_t options{_BV(UART_OPT_TXWAIT)};
 };
 
 } // namespace USB::CDC

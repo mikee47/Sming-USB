@@ -27,7 +27,17 @@ void init()
 	bool res = USB::begin();
 	debug_i("USB::begin(): %u", res);
 
-	USB::MSC::registerDevice(Storage::spiFlash, true);
+	// USB::cdc0.systemDebugOutput(true);
+	USB::cdc0.onDataReceived([](Stream& stream, char arrivedChar, unsigned short availableCharsCount) {
+		debug_e("arrivedchar: %c, avail = %d", arrivedChar, availableCharsCount);
+		char buf[availableCharsCount];
+		auto n = stream.readBytes(buf, availableCharsCount);
+		debug_i("read %u of %u", n, availableCharsCount);
+		Serial.write(buf, availableCharsCount);
+		Serial << endl;
+	});
+
+	USB::msc0.add(Storage::spiFlash, true);
 
 	timer.initializeMs<3000>(InterruptCallback([]() { debug_i("Alive"); }));
 	timer.start();

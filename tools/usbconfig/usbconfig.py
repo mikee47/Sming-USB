@@ -164,8 +164,9 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         for cfg_tag, cfg in dev['configs'].items():
             # Count instances of each class type
             itf_counts = dict((c, 0) for c in INTERFACE_CLASSES)
-            for itf in cfg['interfaces'].values():
+            for itf_tag, itf in cfg['interfaces'].items():
                 itf_counts[itf['class']] += 1
+                classdefs[itf['class']].append(('Device', itf_tag))
 
             # Emit HID report descriptors
             hid_inst = 0
@@ -365,15 +366,22 @@ def main():
     parse_devices(config, cfg_vars, classdefs, args.output)
     parse_host(config, cfg_vars, classdefs, args.output)
 
+    include_txt = ""
+
+    class_types = set()
+    for dev_class, devs in classdefs.items():
+        for clsname, _ in devs:
+            class_types.add(f'{dev_class.upper()}/{clsname}')
+
     txt = ""
     for dev_class, devs in classdefs.items():
         if not devs:
             continue
-        txt += f'namespace {dev_class.upper()} {{\n'
+        include_txt += f'#include <USB/{dev_class.upper()}/{clsname}'
         for clsname, tag in devs:
-            txt += f'extern {clsname} {tag};\n'
-        txt += '}\n\n'
+            txt += f'extern {dev_class.upper()}::{clsname} {tag};\n'
     vars = {
+        'includes': "\n".join(f'#include <USB/{c}.h>' for c in class_types),
         'classdefs': txt
     }
     classdefs_h = readTemplate('classdefs.h', vars)
@@ -383,10 +391,10 @@ def main():
     for dev_class, devs in classdefs.items():
         if not devs:
             continue
+        for inst, (clsname, tag) in enumerate(devs):
+            txt += f'{dev_class.upper()}::{clsname} {tag}({inst}, "{tag}");\n'
         txt += f'namespace {dev_class.upper()} {{\n'
-        for clsname, tag in devs:
-            txt += f'{clsname} {tag}("{tag}");\n'
-        txt += 'void* devices[] {' + '\n'.join(f'&{tag}' for _, tag in devs) + '};\n'
+        txt += '  void* devices[] {' + ', '.join(f'&{tag}' for _, tag in devs) + '};\n'
         txt += '}\n'
     vars = {
         'classdefs': txt

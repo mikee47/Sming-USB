@@ -14,7 +14,7 @@ public:
 	 * Whilst SD V1.XX permits misaligned and partial block reads, later versions do not
 	 * and require transfers to be aligned to, and in multiples of, 512 bytes.
 	 */
-	HostDevice(const String& name) : BlockDevice(), name(name)
+	HostDevice(uint8_t instance, const String& name) : BlockDevice(), name(name)
 	{
 	}
 
