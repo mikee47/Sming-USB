@@ -9,6 +9,7 @@ import os
 import json
 import string
 from common import *
+from dataclasses import dataclass
 
 TUSB_DESC_STRING = 3
 
@@ -89,6 +90,17 @@ HID_REPORTS = ['keyboard', 'mouse', 'consumer', 'system-control', 'gamepad', 'fi
 HID_DEFAULT_EP_BUFSIZE = 64
 
 
+@dataclass
+class ClassItem:
+    """Manages device or host interface definition"""
+    dev_class: str
+    code_class: str
+    tag: str
+
+    def namespace(self):
+        return self.dev_class.upper()
+
+
 def write_file(dirname, filename, content):
     path = os.path.join(dirname, filename)
     status(f'Creating "{path}"')
@@ -166,7 +178,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
             itf_counts = dict((c, 0) for c in INTERFACE_CLASSES)
             for itf_tag, itf in cfg['interfaces'].items():
                 itf_counts[itf['class']] += 1
-                classdefs[itf['class']].append(('Device', itf_tag))
+                classdefs.append(ClassItem(itf['class'], 'Device', itf_tag))
 
             # Emit HID report descriptors
             hid_inst = 0
@@ -340,7 +352,7 @@ def parse_host(config, cfg_vars, classdefs, output_dir):
         class_counts = dict((c, 0) for c in HOST_CLASSES)
         for tag, dev in config['host'].items():
             class_counts[dev['class']] += 1
-            classdefs[dev['class']].append(('HostDevice', tag))
+            classdefs.append(ClassItem(dev['class'], 'HostDevice', tag))
         for c, n in class_counts.items():
             classes += f"#define CFG_TUH_{make_identifier(c)}\t{n}\n"
 
@@ -362,39 +374,30 @@ def main():
     config = json_load(args.input)
 
     cfg_vars = {}
-    classdefs = dict((c, []) for c in INTERFACE_CLASSES | HOST_CLASSES)
+    classdefs = []
     parse_devices(config, cfg_vars, classdefs, args.output)
     parse_host(config, cfg_vars, classdefs, args.output)
 
-    include_txt = ""
+    print(classdefs)
 
-    class_types = set()
-    for dev_class, devs in classdefs.items():
-        for clsname, _ in devs:
-            class_types.add(f'{dev_class.upper()}/{clsname}')
-
-    txt = ""
-    for dev_class, devs in classdefs.items():
-        if not devs:
-            continue
-        include_txt += f'#include <USB/{dev_class.upper()}/{clsname}'
-        for clsname, tag in devs:
-            txt += f'extern {dev_class.upper()}::{clsname} {tag};\n'
+    code_classes = set(f'{item.namespace()}/{item.code_class}' for item in classdefs)
     vars = {
-        'includes': "\n".join(f'#include <USB/{c}.h>' for c in class_types),
-        'classdefs': txt
+        'includes': "\n".join(f'#include <USB/{c}.h>' for c in code_classes),
+        'classdefs': "".join(f'extern {item.namespace()}::{item.code_class} {item.tag};\n' for item in classdefs),
     }
     classdefs_h = readTemplate('classdefs.h', vars)
     write_file(args.output, 'usb_classdefs.h', classdefs_h)
 
+    class_types = dict((item.namespace(), []) for item in classdefs)
+    for item in classdefs:
+        class_types[item.namespace()].append(item)
+    print(class_types)
     txt = ""
-    for dev_class, devs in classdefs.items():
-        if not devs:
-            continue
-        for inst, (clsname, tag) in enumerate(devs):
-            txt += f'{dev_class.upper()}::{clsname} {tag}({inst}, "{tag}");\n'
-        txt += f'namespace {dev_class.upper()} {{\n'
-        txt += '  void* devices[] {' + ', '.join(f'&{tag}' for _, tag in devs) + '};\n'
+    for ns, items in class_types.items():
+        for inst, item in enumerate(items):
+            txt += f'{ns}::{item.code_class} {item.tag}({inst}, "{item.tag}");\n'
+        txt += f'namespace {ns} {{\n'
+        txt += '  void* devices[] {' + ', '.join(f'&{item.tag}' for item in items) + '};\n'
         txt += '}\n'
     vars = {
         'classdefs': txt
