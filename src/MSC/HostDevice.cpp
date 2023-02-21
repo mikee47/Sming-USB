@@ -6,15 +6,11 @@
 #include <debug_progmem.h>
 #include <Platform/WDT.h>
 
-namespace
-{
-constexpr uint8_t lun_default{0};
-}
-
 namespace USB::MSC
 {
 HostDevice::MountCallback HostDevice::mountCallback;
 HostDevice::UnmountCallback HostDevice::unmountCallback;
+std::unique_ptr<Inquiry> HostDevice::inquiry;
 
 HostDevice* getDevice(uint8_t dev_addr)
 {
@@ -23,31 +19,96 @@ HostDevice* getDevice(uint8_t dev_addr)
 	return (dev_addr < CFG_TUH_MSC) ? host_devices[dev_addr] : nullptr;
 }
 
+uint32_t LogicalUnit::getId() const
+{
+	return device.getAddress();
+}
+
+String LogicalUnit::getName() const
+{
+	String s;
+	s += device.getName();
+	s += '.';
+	s += lun;
+	return s;
+}
+
+size_t LogicalUnit::getBlockSize() const
+{
+	return device.getBlockSize(lun);
+}
+
+storage_size_t LogicalUnit::getSectorCount() const
+{
+	return device.getSectorCount(lun);
+}
+
+bool LogicalUnit::raw_sector_read(storage_size_t address, void* dst, size_t size)
+{
+	return device.read_sectors(lun, address, dst, size);
+}
+
+bool LogicalUnit::raw_sector_write(storage_size_t address, const void* src, size_t size)
+{
+	return device.write_sectors(lun, address, src, size);
+}
+
+bool LogicalUnit::LogicalUnit::raw_sector_erase_range(storage_size_t address, size_t size)
+{
+	return false;
+}
+
+bool LogicalUnit::raw_sync()
+{
+	return device.wait();
+}
+
 bool HostDevice::begin(uint8_t deviceAddress)
 {
-	debug_i("[MSC] Device %u (%s) mounted", deviceAddress, getName().c_str());
-	this->deviceAddress = deviceAddress;
-	block_size = tuh_msc_get_block_size(deviceAddress, lun_default);
-	block_count = tuh_msc_get_block_count(deviceAddress, lun_default);
+	address = deviceAddress;
+	state = State::ready;
+	debug_i("[MSC] Device %u (%s) mounted, max_lun %u", address, name, tuh_msc_get_maxlun(address));
+	return sendInquiry(0);
+}
 
-	static std::unique_ptr<scsi_inquiry_resp_t> inquiry_resp;
+bool HostDevice::sendInquiry(uint8_t lun)
+{
 	auto callback = [](uint8_t dev_addr, const tuh_msc_complete_data_t* cb_data) {
+		auto dev = reinterpret_cast<HostDevice*>(cb_data->user_arg);
+		auto lun = cb_data->cbw->lun;
 		if(cb_data->csw->status != 0) {
-			debug_e("Inquiry failed");
+			debug_e("[MSC] Inquiry failed (addr %u, lun %u)", dev_addr, lun);
 		} else {
-			auto dev = reinterpret_cast<HostDevice*>(cb_data->user_arg);
-			dev->state = State::ready;
-			Storage::Disk::scanPartitions(*dev);
-			if(mountCallback) {
-				mountCallback(*dev, *inquiry_resp);
+			debug_hex(DBG, "INQUIRY", inquiry.get(), sizeof(*inquiry));
+			auto block_count = tuh_msc_get_block_count(dev_addr, lun);
+			debug_d("[MSC] Block count %u, size %u", block_count, tuh_msc_get_block_size(dev_addr, lun));
+			// Ignore any un-populated units
+			if(block_count != 0) {
+				auto& unit = dev->units[lun];
+				if(!unit) {
+					unit.reset(new LogicalUnit(*dev, lun));
+				}
+				Storage::Disk::scanPartitions(*unit);
+				if(mountCallback) {
+					mountCallback(*unit, *inquiry);
+				}
 			}
 		}
-		inquiry_resp.reset();
+
+		++lun;
+		if(lun < MAX_LUN && lun < tuh_msc_get_maxlun(dev_addr)) {
+			return dev->sendInquiry(lun);
+		}
+
+		inquiry.reset();
 		return true;
 	};
 
-	inquiry_resp.reset(new scsi_inquiry_resp_t);
-	if(!tuh_msc_inquiry(deviceAddress, lun_default, inquiry_resp.get(), callback, reinterpret_cast<uintptr_t>(this))) {
+	if(!inquiry) {
+		inquiry.reset(new Inquiry{});
+	}
+
+	if(!tuh_msc_inquiry(address, lun, &inquiry->resp, callback, reinterpret_cast<uintptr_t>(this))) {
 		debug_e("tuh_msc_inquiry failed");
 		end();
 		return false;
@@ -63,11 +124,10 @@ void HostDevice::end()
 	}
 	wait();
 	state = State::idle;
+	inquiry.reset();
 	if(unmountCallback) {
 		unmountCallback(*this);
 	}
-	deviceAddress = 0;
-	block_count = 0;
 }
 
 bool HostDevice::wait()
@@ -79,7 +139,7 @@ bool HostDevice::wait()
 	return state == State::ready;
 }
 
-bool HostDevice::raw_sector_read(storage_size_t address, void* dst, size_t size)
+bool HostDevice::read_sectors(uint8_t lun, uint32_t lba, void* dst, size_t size)
 {
 	if(state < State::ready) {
 		return false;
@@ -91,7 +151,7 @@ bool HostDevice::raw_sector_read(storage_size_t address, void* dst, size_t size)
 		return true;
 	};
 
-	if(!tuh_msc_read10(deviceAddress, lun_default, dst, address, size, callback, reinterpret_cast<uintptr_t>(this))) {
+	if(!tuh_msc_read10(address, lun, dst, lba, size, callback, reinterpret_cast<uintptr_t>(this))) {
 		return false;
 	}
 
@@ -99,7 +159,7 @@ bool HostDevice::raw_sector_read(storage_size_t address, void* dst, size_t size)
 	return wait();
 }
 
-bool HostDevice::raw_sector_write(storage_size_t address, const void* src, size_t size)
+bool HostDevice::write_sectors(uint8_t lun, uint32_t lba, const void* src, size_t size)
 {
 	if(!wait()) {
 		return false;
@@ -111,22 +171,12 @@ bool HostDevice::raw_sector_write(storage_size_t address, const void* src, size_
 		return true;
 	};
 
-	if(!tuh_msc_write10(deviceAddress, lun_default, src, address, size, callback, reinterpret_cast<uintptr_t>(this))) {
+	if(!tuh_msc_write10(address, lun, src, lba, size, callback, reinterpret_cast<uintptr_t>(this))) {
 		return false;
 	}
 
 	state = State::busy;
 	return true;
-}
-
-bool HostDevice::raw_sector_erase_range(storage_size_t address, size_t size)
-{
-	return false;
-}
-
-bool HostDevice::raw_sync()
-{
-	return wait();
 }
 
 } // namespace USB::MSC

@@ -4,17 +4,48 @@
 
 namespace USB::MSC
 {
-class HostDevice : public Storage::Disk::BlockDevice
+class HostDevice;
+class LogicalUnit : public Storage::Disk::BlockDevice
 {
 public:
-	using MountCallback = Delegate<void(HostDevice& dev, const scsi_inquiry_resp_t& inquiry)>;
+	LogicalUnit(HostDevice& device, uint8_t lun) : device(device), lun(lun)
+	{
+	}
+
+	/* Storage Device methods */
+
+	Type getType() const override
+	{
+		return Type::disk;
+	}
+
+	String getName() const override;
+	uint32_t getId() const override;
+	size_t getBlockSize() const override;
+	storage_size_t getSectorCount() const override;
+
+protected:
+	bool raw_sector_read(storage_size_t address, void* dst, size_t size) override;
+	bool raw_sector_write(storage_size_t address, const void* src, size_t size) override;
+	bool raw_sector_erase_range(storage_size_t address, size_t size) override;
+	bool raw_sync() override;
+
+private:
+	HostDevice& device;
+	uint8_t lun;
+};
+
+struct Inquiry {
+	scsi_inquiry_resp_t resp;
+};
+
+class HostDevice
+{
+public:
+	using MountCallback = Delegate<void(LogicalUnit& unit, const Inquiry& inquiry)>;
 	using UnmountCallback = Delegate<void(HostDevice& dev)>;
 
-	/*
-	 * Whilst SD V1.XX permits misaligned and partial block reads, later versions do not
-	 * and require transfers to be aligned to, and in multiples of, 512 bytes.
-	 */
-	HostDevice(uint8_t instance, const String& name) : BlockDevice(), name(name)
+	HostDevice(uint8_t instance, const char* name) : name(name)
 	{
 	}
 
@@ -27,26 +58,14 @@ public:
 
 	void end();
 
-	/* Storage Device methods */
-
-	String getName() const override
+	const char* getName() const
 	{
-		return name.c_str();
+		return name;
 	}
 
-	uint32_t getId() const override
+	uint8_t getAddress() const
 	{
-		return deviceAddress;
-	}
-
-	Type getType() const override
-	{
-		return Type::disk;
-	}
-
-	size_t getBlockSize() const override
-	{
-		return block_size;
+		return address;
 	}
 
 	static void onMount(MountCallback callback)
@@ -59,11 +78,27 @@ public:
 		unmountCallback = callback;
 	}
 
-protected:
-	bool raw_sector_read(storage_size_t address, void* dst, size_t size) override;
-	bool raw_sector_write(storage_size_t address, const void* src, size_t size) override;
-	bool raw_sector_erase_range(storage_size_t address, size_t size) override;
-	bool raw_sync() override;
+	LogicalUnit* operator[](unsigned lun) const
+	{
+		return (lun < MAX_LUN) ? units[lun].get() : nullptr;
+	}
+
+	size_t getBlockSize(uint8_t lun) const
+	{
+		return tuh_msc_get_block_size(address, lun);
+	}
+
+	storage_size_t getSectorCount(uint8_t lun) const
+	{
+		return tuh_msc_get_block_count(address, lun);
+	}
+
+	bool read_sectors(uint8_t lun, uint32_t lba, void* dst, size_t size);
+	bool write_sectors(uint8_t lun, uint32_t lba, const void* src, size_t size);
+	bool wait();
+
+	static constexpr size_t MAX_LUN{CFG_TUH_MSC_MAXLUN};
+	std::unique_ptr<LogicalUnit> units[MAX_LUN]{};
 
 private:
 	enum class State {
@@ -72,16 +107,15 @@ private:
 		busy,
 	};
 
-	bool wait();
+	bool sendInquiry(uint8_t lun);
 
 	static MountCallback mountCallback;
 	static UnmountCallback unmountCallback;
+	static std::unique_ptr<Inquiry> inquiry;
 
-	CString name;
-	uint32_t block_size{defaultSectorSize};
-	uint32_t block_count{0};
-	uint8_t deviceAddress{0};
 	State state{};
+	const char* name;
+	uint8_t address{0};
 };
 
 HostDevice* getDevice(uint8_t dev_addr);
