@@ -18,31 +18,11 @@ HostDevice::UnmountCallback HostDevice::unmountCallback;
 
 HostDevice* getDevice(uint8_t dev_addr)
 {
-	extern HostDevice* devices[];
+	extern HostDevice* host_devices[];
 	--dev_addr;
-	return (dev_addr < CFG_TUH_MSC) ? devices[dev_addr] : nullptr;
+	return (dev_addr < CFG_TUH_MSC) ? host_devices[dev_addr] : nullptr;
 }
 
-} // namespace USB::MSC
-
-void tuh_msc_mount_cb(uint8_t dev_addr)
-{
-	auto dev = USB::MSC::getDevice(dev_addr);
-	if(dev) {
-		dev->begin(dev_addr);
-	}
-}
-
-void tuh_msc_umount_cb(uint8_t dev_addr)
-{
-	auto dev = USB::MSC::getDevice(dev_addr);
-	if(dev) {
-		dev->end();
-	}
-}
-
-namespace USB::MSC
-{
 bool HostDevice::begin(uint8_t deviceAddress)
 {
 	debug_i("[MSC] Device %u (%s) mounted", deviceAddress, getName().c_str());
@@ -150,5 +130,21 @@ bool HostDevice::raw_sync()
 }
 
 } // namespace USB::MSC
+
+void tuh_msc_mount_cb(uint8_t dev_addr)
+{
+	auto dev = USB::MSC::getDevice(dev_addr);
+	if(dev) {
+		dev->begin(dev_addr);
+	}
+}
+
+void tuh_msc_umount_cb(uint8_t dev_addr)
+{
+	auto dev = USB::MSC::getDevice(dev_addr);
+	if(dev) {
+		dev->end();
+	}
+}
 
 #endif

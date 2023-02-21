@@ -9,6 +9,37 @@ Device* getDevice(uint8_t inst)
 	extern Device* devices[];
 	return (inst < CFG_TUD_HID) ? devices[inst] : nullptr;
 }
+
+uint16_t Device::get_report(uint8_t report_id, hid_report_type_t report_type, uint8_t* buffer, uint16_t reqlen)
+{
+	return 0;
+}
+
+void Device::set_report(uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize)
+{
+	char buf[32];
+	m_snprintf(buf, sizeof(buf), "%s(%u, %u, %u)", __FUNCTION__, report_id, report_type, bufsize);
+	m_printHex(buf, buffer, bufsize);
+}
+
+bool Device::sendReport(uint8_t report_id, void const* report, uint16_t len, ReportComplete callback)
+{
+	if(reportCompleteCallback) {
+		return false;
+	}
+	reportCompleteCallback = callback;
+	return tud_hid_n_report(inst, report_id, report, len);
+}
+
+void Device::report_complete()
+{
+	if(reportCompleteCallback) {
+		auto callback = reportCompleteCallback;
+		reportCompleteCallback = nullptr;
+		callback();
+	}
+}
+
 } // namespace USB::HID
 
 using namespace USB::HID;
@@ -61,39 +92,5 @@ void tud_hid_report_complete_cb(uint8_t instance, uint8_t const* report, uint16_
 		dev->report_complete();
 	}
 }
-
-namespace USB::HID
-{
-uint16_t Device::get_report(uint8_t report_id, hid_report_type_t report_type, uint8_t* buffer, uint16_t reqlen)
-{
-	return 0;
-}
-
-void Device::set_report(uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize)
-{
-	char buf[32];
-	m_snprintf(buf, sizeof(buf), "%s(%u, %u, %u)", __FUNCTION__, report_id, report_type, bufsize);
-	m_printHex(buf, buffer, bufsize);
-}
-
-bool Device::sendReport(uint8_t report_id, void const* report, uint16_t len, ReportComplete callback)
-{
-	if(reportCompleteCallback) {
-		return false;
-	}
-	reportCompleteCallback = callback;
-	return tud_hid_n_report(inst, report_id, report, len);
-}
-
-void Device::report_complete()
-{
-	if(reportCompleteCallback) {
-		auto callback = reportCompleteCallback;
-		reportCompleteCallback = nullptr;
-		callback();
-	}
-}
-
-} // namespace USB::HID
 
 #endif

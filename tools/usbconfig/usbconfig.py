@@ -96,6 +96,7 @@ class ClassItem:
     dev_class: str
     code_class: str
     tag: str
+    is_host: bool
 
     def namespace(self):
         return self.dev_class.upper()
@@ -178,7 +179,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
             itf_counts = dict((c, 0) for c in INTERFACE_CLASSES)
             for itf_tag, itf in cfg['interfaces'].items():
                 itf_counts[itf['class']] += 1
-                classdefs.append(ClassItem(itf['class'], 'Device', itf_tag))
+                classdefs.append(ClassItem(itf['class'], 'Device', itf_tag, False))
 
             # Emit HID report descriptors
             hid_inst = 0
@@ -352,7 +353,7 @@ def parse_host(config, cfg_vars, classdefs, output_dir):
         class_counts = dict((c, 0) for c in HOST_CLASSES)
         for tag, dev in config['host'].items():
             class_counts[dev['class']] += 1
-            classdefs.append(ClassItem(dev['class'], 'HostDevice', tag))
+            classdefs.append(ClassItem(dev['class'], 'HostDevice', tag, True))
         for c, n in class_counts.items():
             classes += f"#define CFG_TUH_{make_identifier(c)}\t{n}\n"
 
@@ -388,16 +389,20 @@ def main():
     classdefs_h = readTemplate('classdefs.h', vars)
     write_file(args.output, 'usb_classdefs.h', classdefs_h)
 
-    class_types = dict((item.namespace(), []) for item in classdefs)
+    class_types = {}
     for item in classdefs:
-        class_types[item.namespace()].append(item)
-    print(class_types)
+        class_types.setdefault(item.namespace(), []).append(item)
     txt = ""
     for ns, items in class_types.items():
         for inst, item in enumerate(items):
             txt += f'{ns}::{item.code_class} {item.tag}({inst}, "{item.tag}");\n'
         txt += f'namespace {ns} {{\n'
-        txt += '  void* devices[] {' + ', '.join(f'&{item.tag}' for item in items) + '};\n'
+        devices = ', '.join(f'&{item.tag}' for item in items if not item.is_host)
+        if devices:
+            txt += f'  void* devices[] {{{devices}}};\n'
+        host_devices = ', '.join(f'&{item.tag}' for item in items if item.is_host)
+        if host_devices:
+            txt += f'  void* host_devices[] {{{host_devices}}};\n'
         txt += '}\n'
     vars = {
         'classdefs': txt

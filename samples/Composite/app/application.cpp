@@ -64,13 +64,14 @@ void init()
 	bool res = USB::begin();
 	debug_i("USB::begin(): %u", res);
 
-	// USB::cdc0.systemDebugOutput(true);
+	USB::cdc0.systemDebugOutput(true);
 	USB::cdc0.onDataReceived([](Stream& stream, char arrivedChar, unsigned short availableCharsCount) {
 		char buf[availableCharsCount];
 		auto n = stream.readBytes(buf, availableCharsCount);
 		Serial.write(buf, n);
 	});
 	Serial.onDataReceived([](Stream& stream, char arrivedChar, unsigned short availableCharsCount) {
+		Serial.read();
 		System.queueCallback([](uint32_t param) { Serial.write(char(param)); }, arrivedChar);
 		return;
 		for(;;) {
