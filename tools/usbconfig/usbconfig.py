@@ -245,19 +245,17 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                     ('Interface number', f"ITF_NUM_{itf_id}"),
                     ('String index', itf_desc_idx),
                 ]
+
                 if itf_class == 'hid':
                     ep1 = EP_IN(itf_id, ep_num)
                     ep_num += 1
                     epnum_defs += [ep1]
-                    ep_bufsize = itf.get('bufsize', HID_DEFAULT_EP_BUFSIZE)
-                    poll_interval = itf['poll-interval']
-                    protocol = f"HID_ITF_PROTOCOL_{itf['protocol'].upper()}"
                     desc_fields += [
-                        ('Protocol', protocol),
+                        ('Protocol', f"HID_ITF_PROTOCOL_{itf['protocol'].upper()}"),
                         ('Report descriptor len', f"sizeof(desc_{itf_tag}_report)"),
                         ('EP IN Address', ep1[0]),
-                        ('Size', ep_bufsize),
-                        ('Polling interval', poll_interval),
+                        ('Size', itf.get('bufsize', HID_DEFAULT_EP_BUFSIZE)),
+                        ('Polling interval', itf['poll-interval']),
                     ]
                     descriptors += [('TUD_HID_DESCRIPTOR', desc_fields)]
 
