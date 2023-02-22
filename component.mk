@@ -67,6 +67,7 @@ COMPONENT_APPCODE += \
 	src \
 	src/CDC \
 	src/HID \
+	src/MIDI \
 	src/MSC \
 	tinyusb/src \
 	tinyusb/src/portable/$(TUSB_FAMILY_PATH) \

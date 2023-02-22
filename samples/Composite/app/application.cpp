@@ -18,6 +18,8 @@ namespace
 {
 SimpleTimer timer;
 
+#if CFG_TUD_HID
+
 static const uint8_t conv_table[128][2] = {HID_ASCII_TO_KEYCODE};
 static const char* testText = "\x1b echo This should be harmless enough... Rrrrepeatinggggg.\n";
 static char lastChar;
@@ -51,6 +53,19 @@ void sendText()
 	sendChar();
 }
 
+#endif
+
+#if CFG_TUD_MIDI
+
+const char* midiCodes[] = {
+	"MISC",			  "CABLE_EVENT",	  "SYSCOM_2BYTE",	  "SYSCOM_3BYTE",
+	"SYSEX_START",	"SYSEX_END_1BYTE",  "SYSEX_END_2BYTE",   "SYSEX_END_3BYTE",
+	"NOTE_OFF",		  "NOTE_ON",		  "POLY_KEYPRESS",	 "CONTROL_CHANGE",
+	"PROGRAM_CHANGE", "CHANNEL_PRESSURE", "PITCH_BEND_CHANGE", "1BYTE_DATA",
+};
+
+#endif
+
 } // namespace
 
 void init()
@@ -64,6 +79,7 @@ void init()
 	bool res = USB::begin();
 	debug_i("USB::begin(): %u", res);
 
+#if CFG_TUD_CDC
 	USB::cdc0.systemDebugOutput(true);
 	USB::cdc0.onDataReceived([](Stream& stream, char arrivedChar, unsigned short availableCharsCount) {
 		char buf[availableCharsCount];
@@ -84,12 +100,25 @@ void init()
 			// USB::cdc0.write(buf, n);
 		}
 	});
+#endif
 
+#if CFG_TUD_MSC
 	USB::msc0.add(Storage::spiFlash, true);
+#endif
+
+#if CFG_TUD_MIDI
+	USB::midi0.onDataReceived([]() {
+		USB::MIDI::Packet pkt;
+		while(USB::midi0.readPacket(pkt)) {
+			debug_i("MIDI: %u %u %s(%u, %u, %u)", pkt.cable_number, pkt.code, midiCodes[pkt.code], pkt.m0, pkt.m1,
+					pkt.m2);
+		}
+	});
+#endif
 
 	timer.initializeMs<3000>(InterruptCallback([]() {
 		debug_i("Alive");
-		sendText();
+		// sendText();
 	}));
 	timer.start();
 }

@@ -76,8 +76,6 @@ HOST_CLASSES = {
     },
     'hid': {
     },
-    'midi': {
-    },
     'msc': {
     },
     'vendor': {
@@ -279,6 +277,19 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                     ]
                     itf_num += 1  # IAD specifies 2 interfaces
                     descriptors += [('TUD_CDC_DESCRIPTOR', desc_fields)]
+
+                elif itf_class == 'midi':
+                    ep1 = EP_OUT(itf_id, ep_num)
+                    ep2 = EP_IN(itf_id, ep_num)
+                    ep_num += 1
+                    epnum_defs += [ep1, ep2]
+                    desc_fields += [
+                        ('EP Out', ep1[0]),
+                        ('EP In', ep2[0]),
+                        ('EP size', 'TUD_OPT_HIGH_SPEED ? 512 : 64'),
+                    ]
+                    itf_num += 1
+                    descriptors += [('TUD_MIDI_DESCRIPTOR', desc_fields)]
 
                 elif itf_class == 'msc':
                     ep1 = EP_OUT(itf_id, ep_num)

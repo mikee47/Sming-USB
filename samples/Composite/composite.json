@@ -53,6 +53,10 @@
                         "msc0": {
                             "description": "TinyUSB MSC",
                             "class": "msc"
+                        },
+                        "midi0": {
+                            "description": "TinyUSB MIDI device",
+                            "class": "midi"
                         }
                     }
                 }
