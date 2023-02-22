@@ -1,4 +1,5 @@
 COMPONENT_SOC := \
+	host \
 	rp2040 \
 	esp32s2 \
 	esp32s3
@@ -16,7 +17,9 @@ else ifeq ($(SMING_SOC),esp32s3)
 TUSB_FAMILY_PATH := espressif/esp32sx
 CFG_TUSB_MCU := OPT_MCU_ESP32S3
 else
-TUSB_FAMILY_PATH :=
+TUSB_FAMILY_PATH := template
+CFG_TUSB_MCU := OPT_MCU_NONE
+GLOBAL_CFLAGS += -DTUP_DCD_ENDPOINT_MAX=16
 endif
 
 ifdef TUSB_FAMILY_PATH
