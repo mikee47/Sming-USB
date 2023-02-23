@@ -37,6 +37,21 @@ private:
 
 struct Inquiry {
 	scsi_inquiry_resp_t resp;
+
+	String vendorId() const
+	{
+		return String(reinterpret_cast<const char*>(resp.vendor_id), sizeof(resp.vendor_id));
+	}
+
+	String productId() const
+	{
+		return String(reinterpret_cast<const char*>(resp.product_id), sizeof(resp.product_id));
+	}
+
+	String productRev() const
+	{
+		return String(reinterpret_cast<const char*>(resp.product_rev), sizeof(resp.product_rev));
+	}
 };
 
 class HostDevice
