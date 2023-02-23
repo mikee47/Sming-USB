@@ -18,7 +18,6 @@
 #define USB_PID           (0x4000 | _PID_MAP(CDC, 0) | _PID_MAP(MSC, 1) | _PID_MAP(HID, 2) | \
                            _PID_MAP(MIDI, 3) | _PID_MAP(VENDOR, 4) )
 
-#define USB_VID   ${vendor_id}
 #define USB_BCD   0x0200
 
 //--------------------------------------------------------------------+
@@ -34,7 +33,7 @@ static const tusb_desc_device_t desc_${device_tag} =
     .bDeviceProtocol    = ${protocol_id},
     .bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
 
-    .idVendor           = USB_VID,
+    .idVendor           = ${vendor_id},
     .idProduct          = USB_PID,
     .bcdDevice          = ${version_bcd},
 
@@ -45,9 +44,7 @@ static const tusb_desc_device_t desc_${device_tag} =
     .bNumConfigurations = ${config_count},
 };
 
-// Invoked when received GET DEVICE DESCRIPTOR
-// Application return pointer to descriptor
-const uint8_t* tud_descriptor_device_cb(void)
+const tusb_desc_device_t* tud_get_device_descriptor(void)
 {
-  return (const uint8_t*)&desc_${device_tag};
+  return &desc_${device_tag};
 }

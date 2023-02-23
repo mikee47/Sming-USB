@@ -7,9 +7,11 @@
 #include "hal/usb_ll.h"
 #include "soc/periph_defs.h"
 #include <driver/periph_ctrl.h>
-
+#endif
 namespace
 {
+#ifdef ARCH_ESP32
+
 void configure_pins()
 {
 	for(auto iopin = usb_periph_iopins; iopin->pin >= 0; ++iopin) {
@@ -39,8 +41,6 @@ void initHardware()
 	configure_pins();
 }
 
-} // namespace
-
 #else
 
 void initHardware()
@@ -60,6 +60,38 @@ void poll()
 #endif
 
 	System.queueCallback(poll);
+}
+
+USB::GetDeviceDescriptor deviceDescriptorCallback;
+USB::GetDescriptorString descriptorStringCallback;
+
+} // namespace
+
+extern "C" {
+const tusb_desc_device_t* tud_get_device_descriptor(void);
+const uint16_t* tud_get_descriptor_string(uint8_t index);
+}
+
+// Invoked when received GET DEVICE DESCRIPTOR
+// Application return pointer to descriptor
+const uint8_t* tud_descriptor_device_cb(void)
+{
+	auto desc = tud_get_device_descriptor();
+	if(deviceDescriptorCallback) {
+		desc = deviceDescriptorCallback(*desc);
+	}
+	return reinterpret_cast<const uint8_t*>(desc);
+}
+
+const uint16_t* tud_descriptor_string_cb(uint8_t index, uint16_t langid)
+{
+	(void)langid;
+	auto str = tud_get_descriptor_string(index);
+	if(descriptorStringCallback) {
+		str = descriptorStringCallback(index);
+	}
+
+	return str;
 }
 
 namespace USB
@@ -83,6 +115,16 @@ bool begin()
 	}
 
 	return res;
+}
+
+void onGetDeviceDescriptor(GetDeviceDescriptor callback)
+{
+	deviceDescriptorCallback = callback;
+}
+
+void onGetDescriptorSting(GetDescriptorString callback)
+{
+	descriptorStringCallback = callback;
 }
 
 } // namespace USB

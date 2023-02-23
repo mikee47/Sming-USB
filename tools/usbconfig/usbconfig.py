@@ -133,23 +133,12 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
     cfg_vars['device_enabled'] = 1
 
     # Build sorted string list
-    strings = set()
+    strings = []
 
-    def add_string(s):
-        if s:
-            strings.add(s)
-
-    for dev in config['devices'].values():
-        for f in STRING_FIELDS['device']:
-            strings.add(dev[f])
-        for cfg in dev['configs'].values():
-            add_string(cfg.get('description'))
-            for itf in cfg['interfaces'].values():
-                add_string(itf.get('description'))
-    strings = sorted(strings)
-
-    def get_string_idx(s):
-        return strings.index(s) + 1 if s else 0
+    def add_string(tag, defn, name):
+        id = f'STRING_INDEX_{tag.upper()}_{name.upper()}'
+        strings.append((id, defn.get(name, "")))
+        return id
 
     desc_c = ""
     # Device descriptors
@@ -163,8 +152,9 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         vars['vendor_id'] = dev['vendor_id']
         ver = round(float(dev['version']) * 100)
         vars['version_bcd'] = f"0x{ver:04}"
-        for f in STRING_FIELDS['device']:
-            vars[f'{f}_idx'] = get_string_idx(dev[f])
+        vars['manufacturer_idx'] = add_string(tag, dev, 'manufacturer')
+        vars['product_idx'] = add_string(tag, dev, 'product')
+        vars['serial_idx'] = add_string(tag, dev, 'serial')
         vars['config_count'] = len(dev['configs'])
         desc_c += readTemplate('device/desc.c', vars)
 
@@ -209,7 +199,6 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                 desc_c += readTemplate('device/hid_report.c', vars)
 
             # Emit Configuration descriptors
-            desc_idx = get_string_idx(cfg.get('description'))
             if 'attributes' in cfg:
                 attr = " | ".join([CONFIG_ATTRIBUTES[a] for a in cfg['attributes']])
             else:
@@ -218,7 +207,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
             desc_fields = [
                 ('Config number', cfg_num),
                 ('interface count', 'ITF_NUM_TOTAL'),
-                ('string index', desc_idx),
+                ('string index', add_string(cfg_tag, cfg, 'description')),
                 ('total length', 'CONFIG_TOTAL_LEN'),
                 ('attribute', attr),
                 ('Power in mA', power)
@@ -240,10 +229,9 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                 info = INTERFACE_CLASSES[itf_class]
                 itf_id = make_identifier(itf_tag)
                 itfnum_defs += [(itf_id, itf_num)]
-                itf_desc_idx = get_string_idx(itf.get('description'))
                 desc_fields = [
                     ('Interface number', f"ITF_NUM_{itf_id}"),
-                    ('String index', itf_desc_idx),
+                    ('String index', add_string(itf_tag, itf, 'description')),
                 ]
 
                 if itf_class == 'hid':
@@ -321,11 +309,13 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
             desc_c += readTemplate('device/interface.c', vars)
 
         max_string_len = 0
+        string_ids = []
         string_data = []
-        for i, s in enumerate(strings):
-            s_encoded = s.encode('utf-16le')
-            max_string_len = max(max_string_len, len(s_encoded))
-            desc_array = bytes([2 + len(s_encoded), TUSB_DESC_STRING]) + s_encoded
+        for i, (tag, value) in enumerate(strings):
+            string_ids += [f'{tag},']
+            encoded = value.encode('utf-16le')
+            max_string_len = max(max_string_len, len(encoded))
+            desc_array = bytes([2 + len(encoded), TUSB_DESC_STRING]) + encoded
             string_data.append("".join(f"\\x{c:02x}" for c in desc_array))
 
         vars = {
@@ -342,6 +332,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         cfg_vars['hid_ep_bufsize'] = hid_ep_bufsize
 
         vars = {
+            'string_ids': indent(string_ids),
             'hid_report_ids': indent(hid_report_ids),
         }
         desc_h = readTemplate('device/desc.h', vars)
