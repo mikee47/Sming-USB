@@ -132,10 +132,11 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
 
     cfg_vars['device_enabled'] = 1
 
-    # Build sorted string list
+    # Build list of descriptor strings
     strings = []
 
-    def add_string(tag, defn, name):
+    def add_string(tag: str, defn: dict, name: str):
+        """Add a string to the descriptor list and return its index identifier"""
         id = f'STRING_INDEX_{tag.upper()}_{name.upper()}'
         strings.append((id, defn.get(name, "")))
         return id
@@ -164,37 +165,40 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         cfg_num = 1
         for cfg_tag, cfg in dev['configs'].items():
             # Count instances of each class type
-            itf_counts = dict((c, 0) for c in INTERFACE_CLASSES)
+            # itf_counts = dict((c, 0) for c in INTERFACE_CLASSES)
+            itf_counts = {}
             for itf_tag, itf in cfg['interfaces'].items():
-                itf_counts[itf['class']] += 1
+                itf_class = itf['class']
+                itf_counts[itf_class] = itf_counts.get(itf_class, 0) + 1
                 classdefs.append(ClassItem(itf['class'], 'Device', itf_tag, False))
 
             # Emit HID report descriptors
             hid_inst = 0
             hid_report = ""
-            hid_callback = []
+            hid_report_list = []
             hid_report_ids = set()
             hid_ep_bufsize = 0
             for itf_tag, itf in cfg['interfaces'].items():
                 if itf['class'] != 'hid':
                     continue
                 hid_ep_bufsize = max(hid_ep_bufsize, itf.get('bufsize', HID_DEFAULT_EP_BUFSIZE))
-                hid_report += f'static const uint8_t desc_{itf_tag}_report[] = {{\n'
+                report_name = f"desc_{itf_tag}_report"
+                hid_report += f'static const uint8_t {report_name}[] = {{\n'
                 for r in itf['reports']:
                     if r in HID_REPORTS:
                         id = make_identifier(r)
                         hid_report_ids.add(f"REPORT_ID_{id},")
-                        hid_report += indent(f"TUD_HID_REPORT_DESC_{id}\t(HID_REPORT_ID(REPORT_ID_{id}) ),")
+                        hid_report += indent(f"TUD_HID_REPORT_DESC_{id} (HID_REPORT_ID(REPORT_ID_{id}) ),")
                     else:
                         raise InputError(f'Unknown report "{r}"')
                 hid_report += '};\n\n'
-                hid_callback += [f'case {hid_inst}: return desc_{itf_tag}_report;']
+                hid_report_list += [report_name]
                 hid_inst += 1
 
             if hid_inst:
                 vars = {
                     'report': hid_report,
-                    'callback': indent(hid_callback),
+                    'report_list': ", ".join(hid_report_list)
                 }
                 desc_c += readTemplate('device/hid_report.c', vars)
 
@@ -327,7 +331,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
 
         classes = ""
         for c, n in itf_counts.items():
-            classes += f"#define CFG_TUD_{make_identifier(c)}\t{n}\n"
+            classes += f"#define CFG_TUD_{make_identifier(c)} {n}\n"
         cfg_vars['device_classes'] = classes
         cfg_vars['hid_ep_bufsize'] = hid_ep_bufsize
 
@@ -350,12 +354,13 @@ def parse_host(config, cfg_vars, classdefs, output_dir):
 
     if 'host' in config:
         host_enabled = 1
-        class_counts = dict((c, 0) for c in HOST_CLASSES)
+        class_counts = {}
         for tag, dev in config['host'].items():
-            class_counts[dev['class']] += 1
+            dev_class = dev['class']
+            class_counts[dev_class] = class_counts.get(dev_class, 0) + 1
             classdefs.append(ClassItem(dev['class'], 'HostDevice', tag, True))
         for c, n in class_counts.items():
-            classes += f"#define CFG_TUH_{make_identifier(c)}\t{n}\n"
+            classes += f"#define CFG_TUH_{make_identifier(c)} {n}\n"
 
     cfg_vars['host_enabled'] = host_enabled
     cfg_vars['host_classes'] = classes
