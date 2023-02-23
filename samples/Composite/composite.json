@@ -4,8 +4,8 @@
             "class": "misc",
             "subclass": "common",
             "protocol": "iad",
-            "vendor": "0xcafe",
-            "product": "auto", // Unique for any class type combination
+            "vendor_id": "0xcafe",
+            "product_id": "auto", // Unique for any class type combination
             "version": "1.0",
             "manufacturer": "TinyUSB",
             "product": "Удобное устройство",

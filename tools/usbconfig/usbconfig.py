@@ -160,7 +160,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         vars['class_id'] = DEVICE_CLASSES[dev['class']]
         vars['subclass_id'] = DEVICE_SUBCLASSES[dev['subclass']]
         vars['protocol_id'] = DEVICE_PROTOCOLS[dev['protocol']]
-        vars['vendor_id'] = dev['vendor']
+        vars['vendor_id'] = dev['vendor_id']
         ver = round(float(dev['version']) * 100)
         vars['version_bcd'] = f"0x{ver:04}"
         for f in STRING_FIELDS['device']:
