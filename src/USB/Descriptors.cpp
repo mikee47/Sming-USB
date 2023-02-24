@@ -27,12 +27,15 @@ const uint8_t* tud_descriptor_device_cb(void)
 const uint16_t* tud_descriptor_string_cb(uint8_t index, uint16_t langid)
 {
 	(void)langid;
-	auto str = tud_get_descriptor_string(index);
+
 	if(descriptorStringCallback) {
-		str = descriptorStringCallback(index);
+		auto desc = descriptorStringCallback(index);
+		if(desc) {
+			return reinterpret_cast<const uint16_t*>(desc);
+		}
 	}
 
-	return str;
+	return tud_get_descriptor_string(index);
 }
 
 namespace USB
