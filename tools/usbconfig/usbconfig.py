@@ -83,6 +83,8 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         cfg_vars['hid_ep_bufsize'] = 0
         return
 
+    interfaces = json_load(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'interfaces.json'))
+
     cfg_vars['device_enabled'] = 1
 
     # Build list of descriptor strings
@@ -173,12 +175,8 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
             itfnum_defs = []
             ep_num = 1
             epnum_defs = []
-
-            def EP_OUT(name, value):
-                return (f"EPNUM_{name}_OUT", value)
-
-            def EP_IN(name, value):
-                return (f"EPNUM_{name}_IN", value | 0x80)
+            ep_num_in = 0
+            ep_num_out = 0
 
             for itf_tag, itf in cfg['interfaces'].items():
                 itf_class = itf['class']
@@ -189,65 +187,31 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                     ('String index', add_string(itf_tag, itf, 'description')),
                 ]
 
-                if itf_class == 'hid':
-                    ep1 = EP_IN(itf_id, ep_num)
-                    ep_num += 1
-                    epnum_defs += [ep1]
-                    desc_fields += [
-                        ('Protocol', f"HID_ITF_PROTOCOL_{itf['protocol'].upper()}"),
-                        ('Report descriptor len', f"sizeof(desc_{itf_tag}_report)"),
-                        ('EP IN Address', ep1[0]),
-                        ('Size', itf.get('bufsize', HID_DEFAULT_EP_BUFSIZE)),
-                        ('Polling interval', itf['poll-interval']),
-                    ]
-                    descriptors += [('TUD_HID_DESCRIPTOR', desc_fields)]
-
-                elif itf_class == 'cdc':
-                    ep1 = EP_IN(f'{itf_id}_NOTIF', ep_num)
-                    ep_num += 1
-                    ep2 = EP_OUT(itf_id, ep_num)
-                    ep3 = EP_IN(itf_id, ep_num)
-                    ep_num += 1
-                    epnum_defs += [ep1, ep2, ep3]
-                    desc_fields += [
-                        ('EP notify address', ep1[0]),
-                        ('EP notify size', 8),
-                        ('EP data OUT', ep2[0]),
-                        ('EP data IN', ep3[0]),
-                        ('EP data size', 64),
-                    ]
-                    itf_num += 1  # IAD specifies 2 interfaces
-                    descriptors += [('TUD_CDC_DESCRIPTOR', desc_fields)]
-
-                elif itf_class == 'midi':
-                    ep1 = EP_OUT(itf_id, ep_num)
-                    ep2 = EP_IN(itf_id, ep_num)
-                    ep_num += 1
-                    epnum_defs += [ep1, ep2]
-                    desc_fields += [
-                        ('EP Out', ep1[0]),
-                        ('EP In', ep2[0]),
-                        ('EP size', 'TUD_OPT_HIGH_SPEED ? 512 : 64'),
-                    ]
-                    itf_num += 1
-                    descriptors += [('TUD_MIDI_DESCRIPTOR', desc_fields)]
-
-                elif itf_class == 'msc':
-                    ep1 = EP_OUT(itf_id, ep_num)
-                    ep2 = EP_IN(itf_id, ep_num)
-                    ep_num += 1
-                    epnum_defs += [ep1, ep2]
-                    desc_fields += [
-                        ('EP OUT', ep1[0]),
-                        ('EP IN', ep2[0]),
-                        ('EP Size', 64),
-                    ]
-                    descriptors += [('TUD_MSC_DESCRIPTOR', desc_fields)]
-
-                else:
-                    raise InputError(f'Unsupported class "{itf_class}"')
-
-                itf_num += 1
+                info = interfaces[itf_class]
+                for name, value in info['desc_fields'].items():
+                    if value == '@': # Endpoint number
+                        uname = name.upper()
+                        if name.startswith('EP '):
+                            if uname.endswith(' IN'):
+                                if ep_num == ep_num_in:
+                                    ep_num += 1
+                                ep_num_in = ep_num
+                                ep = ep_num | 0x80
+                            elif uname.endswith(' OUT'):
+                                if ep_num == ep_num_out:
+                                    ep_num += 1
+                                ep = ep_num_out = ep_num
+                            else:
+                                raise InterfaceError(f"Bad endpoint name '{name}', must end with 'IN' or 'OUT'")
+                            value = f"EPNUM_{itf_id}_{uname[3:].replace(' ', '_')}"
+                            epnum_defs += [(value, ep)]
+                        else:
+                            raise InterfaceError(f"Bad endpoint name '{name}', must start with 'EP'")
+                    elif isinstance(value, str):
+                        value = eval(f'f"{value}"')
+                    desc_fields += [(name, value)]
+                descriptors += [(info['desc_name'], desc_fields)]
+                itf_num += info['itf_count']
 
             itfnum_defs += [("TOTAL", itf_num)]
 

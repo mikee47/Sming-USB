@@ -1,0 +1,42 @@
+{
+    "hid": {
+        "desc_name": "TUD_HID_DESCRIPTOR",
+        "desc_fields": {
+            "Protocol": "HID_ITF_PROTOCOL_{itf['protocol'].upper()}",
+            "Report descriptor len": "sizeof(desc_{itf_tag}_report)",
+            "EP IN": "@",
+            "Size": "{itf.get('bufsize', 'HID_DEFAULT_EP_BUFSIZE')}",
+            "Polling interval": "{itf['poll-interval']}"
+        },
+        "itf_count": 1
+    },
+    "cdc": {
+        "desc_name": "TUD_CDC_DESCRIPTOR",
+        "desc_fields": {
+            "EP notify IN": "@",
+            "EP notify size": 8,
+            "EP data OUT": "@",
+            "EP data IN": "@",
+            "EP data size": 64
+        },
+        "itf_count": 2
+    },
+    "midi": {
+        "desc_name": "TUD_MIDI_DESCRIPTOR",
+        "desc_fields": {
+            "EP Out": "@",
+            "EP In": "@",
+            "EP size": "TUD_OPT_HIGH_SPEED ? 512 : 64"
+        },
+        "itf_count": 2
+    },
+    "msc": {
+        "desc_name": "TUD_MSC_DESCRIPTOR",
+        "desc_fields": {
+            "EP Out": "@",
+            "EP In": "@",
+            "EP Size": 64
+        },
+        "itf_count": 1
+    }
+}
