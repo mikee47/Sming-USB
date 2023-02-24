@@ -24,6 +24,14 @@ endif
 
 ifdef TUSB_FAMILY_PATH
 
+COMPONENT_VARS += USB_DEBUG_LEVEL
+USB_DEBUG_LEVEL ?= 0
+
+GLOBAL_CFLAGS += \
+	-DCFG_TUSB_MCU=$(CFG_TUSB_MCU) \
+	-DCFG_TUSB_DEBUG=$(USB_DEBUG_LEVEL) \
+	-DCFG_TUSB_DEBUG_PRINTF=m_printf
+
 COMPONENT_VARS += USB_CONFIG
 ifdef USB_CONFIG
 
@@ -37,47 +45,27 @@ COMPONENT_PREREQUISITES := $(USB_CONFIG_H)
 $(USB_CONFIG_H): $(USB_CONFIG)
 	$(USBCONFIG_TOOL) $(USB_CONFIG) $(USB_OUTPUT_DIR)
 
-endif # USB_CONFIG
-
 COMPONENT_APPCODE += $(USB_OUTPUT_DIR)
 COMPONENT_INCDIRS += $(USB_OUTPUT_DIR)
 
-GLOBAL_CFLAGS += -DCFG_TUSB_MCU=$(CFG_TUSB_MCU)
+USB_CLASS_DIRS := \
+	src/USB \
+	$(call ListSubDirs,$(COMPONENT_PATH)/src/USB)
 
-COMPONENT_VARS += USB_DEBUG_LEVEL
-USB_DEBUG_LEVEL ?= 0
-GLOBAL_CFLAGS += -DCFG_TUSB_DEBUG=$(USB_DEBUG_LEVEL)
-
-GLOBAL_CFLAGS += \
-	-DCFG_TUSB_DEBUG_PRINTF=m_printf
-
-TINYUSB_SRCDIRS := \
-	common \
-	device \
-	class/audio \
-	class/cdc \
-	class/dfu \
-	class/hid \
-	class/midi \
-	class/msc \
-	class/net \
-	class/usbtmc \
-	class/video \
-	class/vendor \
-	host
+endif # USB_CONFIG
 
 COMPONENT_APPCODE += \
 	src \
-	src/CDC \
-	src/HID \
-	src/MIDI \
-	src/MSC \
+	$(USB_CLASS_DIRS) \
 	tinyusb/src \
-	tinyusb/src/portable/$(TUSB_FAMILY_PATH) \
-	$(addprefix tinyusb/src/,$(TINYUSB_SRCDIRS))
+	tinyusb/src/common \
+	tinyusb/src/device \
+	tinyusb/src/host \
+	$(call ListSubDirs,$(COMPONENT_PATH)/tinyusb/src/class) \
+	tinyusb/src/portable/$(TUSB_FAMILY_PATH)
 
 COMPONENT_INCDIRS += \
-	src/include \
+	src \
 	tinyusb/src
 
 endif
