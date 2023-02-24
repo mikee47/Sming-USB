@@ -69,7 +69,7 @@ def readTemplate(name, vars):
 
 
 def make_identifier(s):
-    return s.replace('-', '_').upper()
+    return s.replace('-', '_').replace(' ', '_').upper()
 
 
 def indent(defs):
@@ -90,10 +90,12 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
     # Build list of descriptor strings
     strings = []
 
-    def add_string(tag: str, defn: dict, name: str):
+    def add_string(itf_tag: str, name: str, value):
+        if isinstance(value, dict):
+            value = value.get(name, "")
         """Add a string to the descriptor list and return its index identifier"""
-        id = f'STRING_INDEX_{tag.upper()}_{name.upper()}'
-        strings.append((id, defn.get(name, "")))
+        id = f'STRING_INDEX_{itf_tag.upper()}_{make_identifier(name)}'
+        strings.append((id, value))
         return id
 
     desc_c = ""
@@ -108,9 +110,9 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         vars['vendor_id'] = dev['vendor_id']
         ver = round(float(dev['version']) * 100)
         vars['version_bcd'] = f"0x{ver:04}"
-        vars['manufacturer_idx'] = add_string(tag, dev, 'manufacturer')
-        vars['product_idx'] = add_string(tag, dev, 'product')
-        vars['serial_idx'] = add_string(tag, dev, 'serial')
+        vars['manufacturer_idx'] = add_string(tag, 'manufacturer', dev)
+        vars['product_idx'] = add_string(tag, 'product', dev)
+        vars['serial_idx'] = add_string(tag, 'serial', dev)
         vars['config_count'] = len(dev['configs'])
         desc_c += readTemplate('device/desc.c', vars)
 
@@ -146,7 +148,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                     else:
                         raise InputError(f'Unknown report "{r}"')
                 hid_report += '};\n\n'
-                hid_report_list += [report_name]
+                hid_report_list.append(report_name)
                 hid_inst += 1
 
             if hid_inst:
@@ -165,7 +167,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
             desc_fields = [
                 ('Config number', cfg_num),
                 ('interface count', 'ITF_NUM_TOTAL'),
-                ('string index', add_string(cfg_tag, cfg, 'description')),
+                ('string index', add_string(cfg_tag, 'description', cfg)),
                 ('total length', 'CONFIG_TOTAL_LEN'),
                 ('attribute', attr),
                 ('Power in mA', power)
@@ -181,39 +183,40 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
             for itf_tag, itf in cfg['interfaces'].items():
                 itf_class = itf['class']
                 itf_id = make_identifier(itf_tag)
-                itfnum_defs += [(itf_id, itf_num)]
+                itfnum_defs.append((itf_id, itf_num))
                 desc_fields = [
                     ('Interface number', f"ITF_NUM_{itf_id}"),
-                    ('String index', add_string(itf_tag, itf, 'description')),
+                    ('String index', add_string(itf_tag, 'description', itf)),
                 ]
 
                 info = interfaces[itf_class]
-                for name, value in info['desc_fields'].items():
+                for name, value in info['desc-fields'].items():
                     if value == '@': # Endpoint number
                         uname = name.upper()
-                        if name.startswith('EP '):
-                            if uname.endswith(' IN'):
-                                if ep_num == ep_num_in:
-                                    ep_num += 1
-                                ep_num_in = ep_num
-                                ep = ep_num | 0x80
-                            elif uname.endswith(' OUT'):
-                                if ep_num == ep_num_out:
-                                    ep_num += 1
-                                ep = ep_num_out = ep_num
-                            else:
-                                raise InterfaceError(f"Bad endpoint name '{name}', must end with 'IN' or 'OUT'")
-                            value = f"EPNUM_{itf_id}_{uname[3:].replace(' ', '_')}"
-                            epnum_defs += [(value, ep)]
-                        else:
+                        if not name.startswith('EP '):
                             raise InterfaceError(f"Bad endpoint name '{name}', must start with 'EP'")
+                        if uname.endswith(' IN'):
+                            if ep_num == ep_num_in:
+                                ep_num += 1
+                            ep_num_in = ep_num
+                            ep = ep_num | 0x80
+                        elif uname.endswith(' OUT'):
+                            if ep_num == ep_num_out:
+                                ep_num += 1
+                            ep = ep_num_out = ep_num
+                        else:
+                            raise InterfaceError(f"Bad endpoint name '{name}', must end with 'IN' or 'OUT'")
+                        value = f"EPNUM_{itf_id}_{uname[3:].replace(' ', '_')}"
+                        epnum_defs.append((value, ep))
+                    elif value == '$': # String index
+                        value = add_string(itf_tag, name, "")
                     elif isinstance(value, str):
                         value = eval(f'f"{value}"')
-                    desc_fields += [(name, value)]
-                descriptors += [(info['desc_name'], desc_fields)]
+                    desc_fields.append((name, value))
+                descriptors.append((info['desc-name'], desc_fields))
                 itf_num += info['itf_count']
 
-            itfnum_defs += [("TOTAL", itf_num)]
+            itfnum_defs.append(("TOTAL", itf_num))
 
             config_desc = ""
             for name, df in descriptors:
@@ -221,7 +224,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                 config_desc += f'  {name}(' + ", ".join(str(value) for (name, value) in df) + '),\n'
             vars = {
                 'itfnum_defs': "\n".join(f"  ITF_NUM_{name} = {value}," for (name, value) in itfnum_defs),
-                'config_total_len': 'TUD_CONFIG_DESC_LEN' + "".join(f" + TUD_{itf['class'].upper()}_DESC_LEN" for itf in cfg['interfaces'].values()),
+                'config_total_len': 'TUD_CONFIG_DESC_LEN' + "".join(f" + TUD_{make_identifier(itf['class'])}_DESC_LEN" for itf in cfg['interfaces'].values()),
                 'epnum_defs': "\n".join(f"  {name} = 0x{value:02x}," for (name, value) in epnum_defs),
                 'config_desc': config_desc,
             }
@@ -231,7 +234,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         string_ids = []
         string_data = []
         for i, (tag, value) in enumerate(strings):
-            string_ids += [f'{tag},']
+            string_ids.append(f'{tag},')
             encoded = value.encode('utf-16le')
             max_string_len = max(max_string_len, len(encoded))
             desc_array = bytes([2 + len(encoded), TUSB_DESC_STRING]) + encoded

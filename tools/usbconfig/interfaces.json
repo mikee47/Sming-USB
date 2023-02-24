@@ -1,8 +1,9 @@
 {
     "hid": {
-        "desc_name": "TUD_HID_DESCRIPTOR",
-        "desc_fields": {
-            "Protocol": "HID_ITF_PROTOCOL_{itf['protocol'].upper()}",
+        "description": "HID Input only descriptor",
+        "desc-name": "TUD_HID_DESCRIPTOR",
+        "desc-fields": {
+            "Protocol": "HID_ITF_PROTOCOL_{itf.get('protocol', 'none').upper()}",
             "Report descriptor len": "sizeof(desc_{itf_tag}_report)",
             "EP IN": "@",
             "Size": "{itf.get('bufsize', 'HID_DEFAULT_EP_BUFSIZE')}",
@@ -10,9 +11,23 @@
         },
         "itf_count": 1
     },
+    "hid-inout": {
+        "description": "HID Input & Output descriptor",
+        "desc-name": "TUD_HID_INOUT_DESCRIPTOR",
+        "desc-fields": {
+            "Protocol": "HID_ITF_PROTOCOL_{itf.get('protocol', 'none').upper()}",
+            "Report descriptor len": "sizeof(desc_{itf_tag}_report)",
+            "EP OUT": "@",
+            "EP IN": "@",
+            "Size": "{itf.get('bufsize', 'HID_DEFAULT_EP_BUFSIZE')}",
+            "Polling interval": "{itf['poll-interval']}"
+        },
+        "itf_count": 1
+    },
     "cdc": {
-        "desc_name": "TUD_CDC_DESCRIPTOR",
-        "desc_fields": {
+        "description": "CDC Descriptor Template",
+        "desc-name": "TUD_CDC_DESCRIPTOR",
+        "desc-fields": {
             "EP notify IN": "@",
             "EP notify size": 8,
             "EP data OUT": "@",
@@ -22,8 +37,13 @@
         "itf_count": 2
     },
     "midi": {
-        "desc_name": "TUD_MIDI_DESCRIPTOR",
-        "desc_fields": {
+        "description": [
+            "MIDI simple descriptor",
+            " - 1 Embedded Jack In connected to 1 External Jack Out",
+            " - 1 Embedded Jack out connected to 1 External Jack In"
+        ],
+        "desc-name": "TUD_MIDI_DESCRIPTOR",
+        "desc-fields": {
             "EP Out": "@",
             "EP In": "@",
             "EP size": "TUD_OPT_HIGH_SPEED ? 512 : 64"
@@ -31,11 +51,119 @@
         "itf_count": 2
     },
     "msc": {
-        "desc_name": "TUD_MSC_DESCRIPTOR",
-        "desc_fields": {
+        "description": "MSC Descriptor Template",
+        "desc-name": "TUD_MSC_DESCRIPTOR",
+        "desc-fields": {
             "EP Out": "@",
             "EP In": "@",
             "EP Size": 64
+        },
+        "itf_count": 1
+    },
+    "audio-mic-one-ch": {
+        "description": [
+            "AUDIO simple descriptor (UAC2) for 1 microphone input",
+            " - 1 Input Terminal, 1 Feature Unit (Mute and Volume Control), 1 Output Terminal, 1 Clock Source"
+        ],
+        "desc-name": "TUD_AUDIO_MIC_ONE_CH_DESCRIPTOR",
+        "desc-fields": {
+            "Bytes Per Sample": "{itf['bytes-per-sample']}",
+            "Bits Used Per Sample": "{itf['bits-used-per-sample']}",
+            "EP IN": "@",
+            "EP Size": "CFG_TUD_AUDIO_EP_SZ_IN"
+        },
+        "itf_count": 1
+    },
+    "audio-mic-four-ch": {
+        "description": [
+            "AUDIO simple descriptor (UAC2) for 4 microphone input",
+            " - 1 Input Terminal, 1 Feature Unit (Mute and Volume Control), 1 Output Terminal, 1 Clock Source"
+        ],
+        "desc-name": "TUD_AUDIO_MIC_FOUR_CH_DESCRIPTOR",
+        "desc-fields": {
+            "Bytes Per Sample": "{itf['bytes-per-sample']}",
+            "Bits Used Per Sample": "{itf['bits-used-per-sample']}",
+            "EP IN": "@",
+            "EP Size": "CFG_TUD_AUDIO_EP_SZ_IN"
+        },
+        "itf_count": 1
+    },
+    "audio-speaker-mono-fb": {
+        "description": [
+            "AUDIO simple descriptor (UAC2) for mono speaker",
+            " - 1 Input Terminal, 2 Feature Unit (Mute and Volume Control), 3 Output Terminal, 4 Clock Source"
+        ],
+        "desc-name": "TUD_AUDIO_SPEAKER_MONO_FB_DESCRIPTOR",
+        "desc-fields": {
+            "Bytes Per Sample": "{itf['bytes-per-sample']}",
+            "Bits Used Per Sample": "{itf['bits-used-per-sample']}",
+            "EP OUT": "@",
+            "EP Size": "CFG_TUD_AUDIO_EP_SZ_OUT",
+            "EP FB IN": "@"
+        },
+        "itf_count": 1
+    },
+    "vendor": {
+        "description": "Vendor Descriptor Template",
+        "desc-name": "TUD_VENDOR_DESCRIPTOR",
+        "desc-fields": {
+            "EP OUT": "@",
+            "EP IN": "@",
+            "EP Size": "TUD_OPT_HIGH_SPEED ? 512 : 64"
+        },
+        "itf_count": 1
+    },
+    "dfu_rt": {
+        "description": "DFU runtime descriptor",
+        "desc-name": "TUD_DFU_RT_DESCRIPTOR",
+        "desc-fields": {
+            "Attributes": "{itf['attributes']}",
+            "Detach Timeout": "{itf['detach-timeout']}",
+            "Transfer Size": "{itf['transfer-size']}"
+        },
+        "itf_count": 1
+    },
+    // "description": "DFU Descriptor Template",
+    // Interface number, Alternate count, starting string index, attributes, detach timeout, transfer size
+    // Note: Alternate count must be numeric or macro, string index is increased by one for each Alt interface
+    // #define TUD_DFU_DESCRIPTOR(_itfnum, _alt_count, _stridx, _attr, _timeout, _xfer_size) \
+    "cdc-ecm": {
+        "description": "CDC-ECM Descriptor Template",
+        "desc-name": "TUD_CDC_ECM_DESCRIPTOR",
+        "desc-fields": {
+            "MAC address": "$",
+            "EP Notify IN": "@",
+            "EP Notify Size": 64,
+            "EP Data OUT": "@",
+            "EP Data IN": "@",
+            "EP Data Size": "CFG_TUD_NET_ENDPOINT_SIZE",
+            "Max Segment Size": "CFG_TUD_NET_MTU"
+        },
+        "itf_count": 1
+    },
+    "rndis": {
+        "description": "RNDIS Descriptor Template",
+        "desc-name": "TUD_RNDIS_DESCRIPTOR",
+        "desc-fields": {
+            "EP Notify IN": "@",
+            "EP Notify Size": 64,
+            "EP Data OUT": "@",
+            "EP Data IN": "@",
+            "EP Data Size": "CFG_TUD_NET_ENDPOINT_SIZE"
+        },
+        "itf_count": 1
+    },
+    "cdc-ncm": {
+        "description": "CDC-ECM Descriptor Template",
+        "desc-name": "TUD_CDC_NCM_DESCRIPTOR",
+        "desc-fields": {
+            "MAC address": "$",
+            "EP Notify IN": "@",
+            "EP Notify Size": 64,
+            "EP Data OUT": "@",
+            "EP Data IN": "@",
+            "EP Data Size": "CFG_TUD_NET_ENDPOINT_SIZE",
+            "Max Segment Size": "CFG_TUD_NET_MTU"
         },
         "itf_count": 1
     }
