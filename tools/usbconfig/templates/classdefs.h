@@ -1,5 +1,5 @@
 /*
- * usb_hostdefs.h
+ * usb_classdefs.h
  *
  * This file is auto-generated. Please do not edit!
  *

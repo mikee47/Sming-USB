@@ -36,53 +36,6 @@ CONFIG_ATTRIBUTES = {
     'self-powered': 'TUSB_DESC_CONFIG_ATT_SELF_POWERED',
 }
 
-# See tusb_option.h
-INTERFACE_CLASSES = {
-    'audio': {
-    },
-    'bth': {
-    },
-    'cdc': {
-    },
-    'dfu': {
-    },
-    'dfu-runtime': {
-    },
-    'ecm-rndis': {
-    },
-    'hid': {
-    },
-    'midi': {
-    },
-    'msc': {
-    },
-    'ncm': {
-    },
-    'net': {
-    },
-    'usbtmc': {
-    },
-    'vendor': {
-    },
-    'video': {
-    },
-}
-
-
-HOST_CLASSES = {
-    'hub': {
-    },
-    'cdc': {
-    },
-    'hid': {
-    },
-    'msc': {
-    },
-    'vendor': {
-    },
-}
-
-
 HID_PROTOCOLS = ['none', 'keyboard', 'mouse']
 HID_REPORTS = ['keyboard', 'mouse', 'consumer', 'system-control', 'gamepad', 'fido-u2f', 'generic-inout']
 HID_DEFAULT_EP_BUFSIZE = 64
@@ -165,7 +118,6 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         cfg_num = 1
         for cfg_tag, cfg in dev['configs'].items():
             # Count instances of each class type
-            # itf_counts = dict((c, 0) for c in INTERFACE_CLASSES)
             itf_counts = {}
             for itf_tag, itf in cfg['interfaces'].items():
                 itf_class = itf['class']
@@ -230,7 +182,6 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
 
             for itf_tag, itf in cfg['interfaces'].items():
                 itf_class = itf['class']
-                info = INTERFACE_CLASSES[itf_class]
                 itf_id = make_identifier(itf_tag)
                 itfnum_defs += [(itf_id, itf_num)]
                 desc_fields = [
