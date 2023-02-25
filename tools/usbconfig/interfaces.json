@@ -3,6 +3,7 @@
         "description": "HID Input only descriptor",
         "desc-name": "TUD_HID_DESCRIPTOR",
         "desc-fields": {
+            "description": "${itf.get('description', '')}",
             "Protocol": "HID_ITF_PROTOCOL_{itf.get('protocol', 'none').upper()}",
             "Report descriptor len": "sizeof(desc_{itf_tag}_report)",
             "EP IN": "@",
@@ -15,6 +16,7 @@
         "description": "HID Input & Output descriptor",
         "desc-name": "TUD_HID_INOUT_DESCRIPTOR",
         "desc-fields": {
+            "description": "${itf.get('description', '')}",
             "Protocol": "HID_ITF_PROTOCOL_{itf.get('protocol', 'none').upper()}",
             "Report descriptor len": "sizeof(desc_{itf_tag}_report)",
             "EP OUT": "@",
@@ -28,6 +30,7 @@
         "description": "CDC Descriptor Template",
         "desc-name": "TUD_CDC_DESCRIPTOR",
         "desc-fields": {
+            "description": "${itf.get('description', '')}",
             "EP notify IN": "@",
             "EP notify size": 8,
             "EP data OUT": "@",
@@ -44,6 +47,7 @@
         ],
         "desc-name": "TUD_MIDI_DESCRIPTOR",
         "desc-fields": {
+            "description": "${itf.get('description', '')}",
             "EP Out": "@",
             "EP In": "@",
             "EP size": "TUD_OPT_HIGH_SPEED ? 512 : 64"
@@ -54,6 +58,7 @@
         "description": "MSC Descriptor Template",
         "desc-name": "TUD_MSC_DESCRIPTOR",
         "desc-fields": {
+            "description": "${itf.get('description', '')}",
             "EP Out": "@",
             "EP In": "@",
             "EP Size": 64
@@ -67,6 +72,7 @@
         ],
         "desc-name": "TUD_AUDIO_MIC_ONE_CH_DESCRIPTOR",
         "desc-fields": {
+            "description": "${itf.get('description', '')}",
             "Bytes Per Sample": "{itf['bytes-per-sample']}",
             "Bits Used Per Sample": "{itf['bits-used-per-sample']}",
             "EP IN": "@",
@@ -81,6 +87,7 @@
         ],
         "desc-name": "TUD_AUDIO_MIC_FOUR_CH_DESCRIPTOR",
         "desc-fields": {
+            "description": "${itf.get('description', '')}",
             "Bytes Per Sample": "{itf['bytes-per-sample']}",
             "Bits Used Per Sample": "{itf['bits-used-per-sample']}",
             "EP IN": "@",
@@ -95,6 +102,7 @@
         ],
         "desc-name": "TUD_AUDIO_SPEAKER_MONO_FB_DESCRIPTOR",
         "desc-fields": {
+            "description": "${itf.get('description', '')}",
             "Bytes Per Sample": "{itf['bytes-per-sample']}",
             "Bits Used Per Sample": "{itf['bits-used-per-sample']}",
             "EP OUT": "@",
@@ -107,6 +115,7 @@
         "description": "Vendor Descriptor Template",
         "desc-name": "TUD_VENDOR_DESCRIPTOR",
         "desc-fields": {
+            "description": "${itf.get('description', '')}",
             "EP OUT": "@",
             "EP IN": "@",
             "EP Size": "TUD_OPT_HIGH_SPEED ? 512 : 64"
@@ -117,20 +126,32 @@
         "description": "DFU runtime descriptor",
         "desc-name": "TUD_DFU_RT_DESCRIPTOR",
         "desc-fields": {
+            "description": "${itf.get('description', '')}",
             "Attributes": "{itf['attributes']}",
             "Detach Timeout": "{itf['detach-timeout']}",
             "Transfer Size": "{itf['transfer-size']}"
         },
         "itf_count": 1
     },
-    // "description": "DFU Descriptor Template",
-    // Interface number, Alternate count, starting string index, attributes, detach timeout, transfer size
-    // Note: Alternate count must be numeric or macro, string index is increased by one for each Alt interface
-    // #define TUD_DFU_DESCRIPTOR(_itfnum, _alt_count, _stridx, _attr, _timeout, _xfer_size) \
+    "dfu": {
+        "description": "DFU Descriptor Template",
+        // Note: Alternate count must be numeric or macro, string index is increased by one for each Alt interface
+        "desc-name": "TUD_DFU_DESCRIPTOR",
+        "desc-fields": {
+            "Alernate count": "{len(itf['alternates'])}",
+            "description": "${itf['alternates']}",
+            "Attributes": "{itf['attributes']}",
+            "Detach timeout": 1000,
+            "Transfer size": "CFG_TUD_DFU_XFER_BUFSIZE"
+        },
+        "desc-len": "TUD_DFU_DESC_LEN({len(itf['alternates'])})",
+        "itf_count": 1
+    },
     "cdc-ecm": {
         "description": "CDC-ECM Descriptor Template",
         "desc-name": "TUD_CDC_ECM_DESCRIPTOR",
         "desc-fields": {
+            "description": "${itf.get('description', '')}",
             "MAC address": "$",
             "EP Notify IN": "@",
             "EP Notify Size": 64,
@@ -145,6 +166,7 @@
         "description": "RNDIS Descriptor Template",
         "desc-name": "TUD_RNDIS_DESCRIPTOR",
         "desc-fields": {
+            "description": "${itf.get('description', '')}",
             "EP Notify IN": "@",
             "EP Notify Size": 64,
             "EP Data OUT": "@",
@@ -157,6 +179,7 @@
         "description": "CDC-ECM Descriptor Template",
         "desc-name": "TUD_CDC_NCM_DESCRIPTOR",
         "desc-fields": {
+            "description": "${itf.get('description', '')}",
             "MAC address": "$",
             "EP Notify IN": "@",
             "EP Notify Size": 64,

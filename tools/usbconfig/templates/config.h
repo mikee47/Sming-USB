@@ -27,6 +27,8 @@
 // Device interface classes
 ${device_classes}
 
+#define CFG_TUD_NCM 1
+
 // HID buffer size must be sufficient to hold ID (if any) + Data
 #define CFG_TUD_HID_EP_BUFSIZE ${hid_ep_bufsize}
 
@@ -45,6 +47,9 @@ ${device_classes}
 // MIDI FIFO size of TX and RX
 #define CFG_TUD_MIDI_RX_BUFSIZE (TUD_OPT_HIGH_SPEED ? 512 : 64)
 #define CFG_TUD_MIDI_TX_BUFSIZE (TUD_OPT_HIGH_SPEED ? 512 : 64)
+
+// DFU buffer size, it has to be set to the buffer size used in TUD_DFU_DESCRIPTOR
+#define CFG_TUD_DFU_XFER_BUFSIZE  (TUD_OPT_HIGH_SPEED ? 512 : 64)
 
 //--------------------------------------------------------------------
 // HOST CONFIGURATION

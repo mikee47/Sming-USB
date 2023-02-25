@@ -175,6 +175,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
             descriptors = [('TUD_CONFIG_DESCRIPTOR', desc_fields)]
             itf_num = 0
             itfnum_defs = []
+            config_total_len = 'TUD_CONFIG_DESC_LEN'
             ep_num = 1
             epnum_defs = []
             ep_num_in = 0
@@ -186,10 +187,9 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                 itfnum_defs.append((itf_id, itf_num))
                 desc_fields = [
                     ('Interface number', f"ITF_NUM_{itf_id}"),
-                    ('String index', add_string(itf_tag, 'description', itf)),
                 ]
-
                 info = interfaces[itf_class]
+                config_total_len += " + " + eval('f"' + info.get('desc-len', 'TUD_{make_identifier(itf_class)}_DESC_LEN') + '"')
                 for name, value in info['desc-fields'].items():
                     if value == '@': # Endpoint number
                         uname = name.upper()
@@ -208,11 +208,20 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                             raise InterfaceError(f"Bad endpoint name '{name}', must end with 'IN' or 'OUT'")
                         value = f"EPNUM_{itf_id}_{uname[3:].replace(' ', '_')}"
                         epnum_defs.append((value, ep))
-                    elif value == '$': # String index
-                        value = add_string(itf_tag, name, "")
                     elif isinstance(value, str):
-                        value = eval(f'f"{value}"')
+                        if value.startswith('$'): # String index
+                            value = eval('f"' + value[1:] + '"')
+                            if value.startswith('['):
+                                for i, s in enumerate(eval(value)):
+                                    id = add_string(itf_tag, f"{name}{i}", s)
+                                    if i == 0:
+                                        value = id
+                            else:
+                                value = add_string(itf_tag, name, value)
+                        else:
+                            value = eval('f"' + value + '"')
                     desc_fields.append((name, value))
+
                 descriptors.append((info['desc-name'], desc_fields))
                 itf_num += info['itf_count']
 
@@ -224,7 +233,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                 config_desc += f'  {name}(' + ", ".join(str(value) for (name, value) in df) + '),\n'
             vars = {
                 'itfnum_defs': "\n".join(f"  ITF_NUM_{name} = {value}," for (name, value) in itfnum_defs),
-                'config_total_len': 'TUD_CONFIG_DESC_LEN' + "".join(f" + TUD_{make_identifier(itf['class'])}_DESC_LEN" for itf in cfg['interfaces'].values()),
+                'config_total_len': config_total_len,
                 'epnum_defs': "\n".join(f"  {name} = 0x{value:02x}," for (name, value) in epnum_defs),
                 'config_desc': config_desc,
             }
@@ -233,17 +242,20 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         max_string_len = 0
         string_ids = []
         string_data = []
-        for i, (tag, value) in enumerate(strings):
+        for tag, value in strings:
             string_ids.append(f'{tag},')
-            encoded = value.encode('utf-16le')
-            max_string_len = max(max_string_len, len(encoded))
-            desc_array = bytes([2 + len(encoded), TUSB_DESC_STRING]) + encoded
-            string_data.append("".join(f"\\x{c:02x}" for c in desc_array))
+            if value:
+                encoded = value.encode('utf-16le')
+                max_string_len = max(max_string_len, len(encoded))
+                desc_array = bytes([2 + len(encoded), TUSB_DESC_STRING]) + encoded
+                string_data.append('"' + "".join(f"\\x{c:02x}" for c in desc_array) + '"')
+            else:
+                string_data.append('NULL')
 
         vars = {
             'max_string_len': max_string_len,
-            'string_data': ",\n".join(f'  // {i+1}: "{s}"\n'
-                                      f'  "{d}"' for ((i, s), d) in zip(enumerate(strings), string_data)),
+            'string_data': ",\n".join(f'  // {tag}: "{value}"\n'
+                                      f'  {data}' for (tag, value), data in zip(strings, string_data)),
         }
         desc_c += readTemplate('device/string.c', vars)
 
@@ -301,8 +313,6 @@ def main():
     classdefs = []
     parse_devices(config, cfg_vars, classdefs, args.output)
     parse_host(config, cfg_vars, classdefs, args.output)
-
-    print(classdefs)
 
     code_classes = set(f'{item.namespace()}/{item.code_class}' for item in classdefs)
     vars = {
