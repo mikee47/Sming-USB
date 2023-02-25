@@ -83,7 +83,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         cfg_vars['hid_ep_bufsize'] = 0
         return
 
-    interfaces = json_load(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'interfaces.json'))
+    templates = json_load(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'interfaces.json'))
 
     cfg_vars['device_enabled'] = 1
 
@@ -124,9 +124,10 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
             # Count instances of each class type
             itf_counts = {}
             for itf_tag, itf in cfg['interfaces'].items():
-                itf_class = itf['class']
+                template_tag = itf['template']
+                itf_class = templates[template_tag]['class']
                 itf_counts[itf_class] = itf_counts.get(itf_class, 0) + 1
-                classdefs.append(ClassItem(itf['class'], 'Device', itf_tag, False))
+                classdefs.append(ClassItem(itf_class, 'Device', itf_tag, False))
 
             # Emit HID report descriptors
             hid_inst = 0
@@ -135,7 +136,9 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
             hid_report_ids = set()
             hid_ep_bufsize = 0
             for itf_tag, itf in cfg['interfaces'].items():
-                if itf['class'] != 'hid':
+                template_tag = itf['template']
+                itf_class = templates[template_tag]['class']
+                if itf_class != 'hid':
                     continue
                 hid_ep_bufsize = max(hid_ep_bufsize, itf.get('bufsize', HID_DEFAULT_EP_BUFSIZE))
                 report_name = f"desc_{itf_tag}_report"
@@ -182,15 +185,16 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
             ep_num_out = 0
 
             for itf_tag, itf in cfg['interfaces'].items():
-                itf_class = itf['class']
+                template_tag = itf['template']
+                template = templates[template_tag]
+                itf_class = template['class']
                 itf_id = make_identifier(itf_tag)
                 itfnum_defs.append((itf_id, itf_num))
                 desc_fields = [
                     ('Interface number', f"ITF_NUM_{itf_id}"),
                 ]
-                info = interfaces[itf_class]
-                config_total_len += " + " + eval('f"' + info.get('desc-len', 'TUD_{make_identifier(itf_class)}_DESC_LEN') + '"')
-                for name, value in info['desc-fields'].items():
+                config_total_len += " + " + eval('f"' + template.get('desc-len', 'TUD_{make_identifier(template_tag)}_DESC_LEN') + '"')
+                for name, value in template['desc-fields'].items():
                     if value == '@': # Endpoint number
                         uname = name.upper()
                         if not name.startswith('EP '):
@@ -222,8 +226,8 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                             value = eval('f"' + value + '"')
                     desc_fields.append((name, value))
 
-                descriptors.append((info['desc-name'], desc_fields))
-                itf_num += info['itf_count']
+                descriptors.append((template['desc-name'], desc_fields))
+                itf_num += template['itf_count']
 
             itfnum_defs.append(("TOTAL", itf_num))
 

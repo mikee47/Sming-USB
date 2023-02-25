@@ -20,7 +20,7 @@
                     "interfaces": {
                         "hid0": {
                             "description": "HID interface", // optional
-                            "class": "hid",
+                            "template": "hid",
                             "protocol": "none",
                             "bufsize": 16, // Don't require 64 bytes for EP
                             "poll-interval": 5,
@@ -33,7 +33,7 @@
                         },
                         "hid1": {
                             "description": "HID interface #2",
-                            "class": "hid",
+                            "template": "hid",
                             "protocol": "none",
                             "bufsize": 16,
                             "poll-interval": 5,
@@ -44,19 +44,22 @@
                         },
                         "cdc0": {
                             "description": "CDC0",
-                            "class": "cdc"
+                            "template": "cdc"
                         },
                         "cdc1": {
                             "description": "CDC1",
-                            "class": "cdc"
+                            "template": "cdc"
                         },
                         "msc0": {
                             "description": "TinyUSB MSC",
-                            "class": "msc"
+                            "template": "msc",
+                            "vendor": "TinyUSB",
+                            "product": "Mass Storage Device",
+                            "version": "1234"
                         },
                         "midi0": {
                             "description": "TinyUSB MIDI device",
-                            "class": "midi"
+                            "template": "midi"
                         }
                     }
                 }
