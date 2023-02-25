@@ -79,6 +79,18 @@ void init()
 	bool res = USB::begin();
 	debug_i("USB::begin(): %u", res);
 
+	USB::onGetDescriptorSting([](uint8_t index) -> const USB::Descriptor* {
+		switch(index) {
+		case STRING_INDEX_DEVICE0_SERIAL: {
+			static USB::StringDescriptor<8> desc = String(system_get_chip_id(), HEX, 8);
+			return &desc;
+		}
+
+		default:
+			return nullptr;
+		}
+	});
+
 #if CFG_TUD_CDC
 	USB::cdc0.systemDebugOutput(true);
 	USB::cdc0.onDataReceived([](Stream& stream, char arrivedChar, unsigned short availableCharsCount) {
