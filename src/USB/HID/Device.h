@@ -1,18 +1,15 @@
 #pragma once
 
-#include <usb_descriptors.h>
-#include <Delegate.h>
+#include "../Interface.h"
 
 namespace USB::HID
 {
-class Device
+class Device : public Interface
 {
 public:
 	using ReportComplete = Delegate<void()>;
 
-	Device(uint8_t instance, const char* name) : inst(instance)
-	{
-	}
+	using Interface::Interface;
 
 	bool sendReport(uint8_t report_id, void const* report, uint16_t len, ReportComplete callback);
 
@@ -21,7 +18,6 @@ public:
 	void report_complete();
 
 private:
-	uint8_t inst;
 	ReportComplete reportCompleteCallback;
 };
 

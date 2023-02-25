@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "../Interface.h"
 #include <HardwareSerial.h>
 #include <SimpleTimer.h>
 #include <Data/BitSet.h>
@@ -17,7 +18,7 @@
 
 namespace USB::CDC
 {
-class Device : public ReadWriteStream
+class Device : public Interface, public ReadWriteStream
 {
 public:
 	using TransmitComplete = Delegate<void(Device& device)>;
@@ -186,7 +187,6 @@ public:
 private:
 	void processEvents();
 
-	uint8_t inst;
 	StreamDataReceivedDelegate receiveCallback;
 	TransmitComplete transmitCompleteCallback;
 	std::unique_ptr<CommandExecutor> commandExecutor;

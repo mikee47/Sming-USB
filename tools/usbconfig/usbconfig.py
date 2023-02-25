@@ -50,7 +50,7 @@ class ClassItem:
     is_host: bool
 
     def namespace(self):
-        return self.dev_class.upper()
+        return make_identifier(self.dev_class)
 
 
 def write_file(dirname, filename, content):

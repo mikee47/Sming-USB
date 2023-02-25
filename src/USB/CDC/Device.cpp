@@ -17,7 +17,7 @@ Device* getDevice(uint8_t inst)
 	return (inst < CFG_TUD_CDC) ? devices[inst] : nullptr;
 }
 
-Device::Device(uint8_t instance, const char* name) : inst(instance)
+Device::Device(uint8_t instance, const char* name) : Interface(instance, name)
 {
 	flushTimer.initializeMs<50>(
 		[](void* param) {

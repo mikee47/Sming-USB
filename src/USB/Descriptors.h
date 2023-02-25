@@ -3,6 +3,9 @@
 #include <tusb.h>
 #include <Delegate.h>
 #include <usb_classdefs.h>
+#if CFG_TUD_ENABLED
+#include <usb_descriptors.h>
+#endif
 
 namespace USB
 {

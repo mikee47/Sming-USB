@@ -66,6 +66,7 @@ COMPONENT_APPCODE += \
 
 COMPONENT_INCDIRS += \
 	src \
-	tinyusb/src
+	tinyusb/src \
+	tinyusb/lib/networking
 
 endif

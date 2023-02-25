@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Storage/Device.h>
+#include "../Interface.h"
 
 namespace USB::MSC
 {
@@ -45,12 +46,10 @@ struct LogicalUnit {
 		return device->write(offset, buffer, bufsize) ? bufsize : -1;
 	}
 };
-class Device
+class Device : public Interface
 {
 public:
-	Device(uint8_t instance, const char* name)
-	{
-	}
+	using Interface::Interface;
 
 	static bool add(Storage::Device* device, bool readOnly);
 	static bool remove(const Storage::Device* device);

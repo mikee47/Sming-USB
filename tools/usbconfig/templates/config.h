@@ -27,8 +27,6 @@
 // Device interface classes
 ${device_classes}
 
-#define CFG_TUD_NCM 1
-
 // HID buffer size must be sufficient to hold ID (if any) + Data
 #define CFG_TUD_HID_EP_BUFSIZE ${hid_ep_bufsize}
 
