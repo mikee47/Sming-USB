@@ -227,7 +227,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                     desc_fields.append((name, value))
 
                 descriptors.append((template['desc-name'], desc_fields))
-                itf_num += template['itf_count']
+                itf_num += template.get('itf_count', 1)
 
             itfnum_defs.append(("TOTAL", itf_num))
 

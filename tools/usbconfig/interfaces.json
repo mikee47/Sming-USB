@@ -10,8 +10,7 @@
             "EP IN": "@",
             "Size": "{itf.get('bufsize', 'HID_DEFAULT_EP_BUFSIZE')}",
             "Polling interval": "{itf['poll-interval']}"
-        },
-        "itf_count": 1
+        }
     },
     "hid-inout": {
         "class": "hid",
@@ -25,8 +24,7 @@
             "EP IN": "@",
             "Size": "{itf.get('bufsize', 'HID_DEFAULT_EP_BUFSIZE')}",
             "Polling interval": "{itf['poll-interval']}"
-        },
-        "itf_count": 1
+        }
     },
     "cdc": {
         "class": "cdc",
@@ -67,8 +65,7 @@
             "EP Out": "@",
             "EP In": "@",
             "EP Size": 64
-        },
-        "itf_count": 1
+        }
     },
     "audio-mic-one-ch": {
         "class": "audio",
@@ -83,8 +80,7 @@
             "Bits Used Per Sample": "{itf['bits-used-per-sample']}",
             "EP IN": "@",
             "EP Size": "CFG_TUD_AUDIO_EP_SZ_IN"
-        },
-        "itf_count": 1
+        }
     },
     "audio-mic-four-ch": {
         "class": "audio",
@@ -99,8 +95,7 @@
             "Bits Used Per Sample": "{itf['bits-used-per-sample']}",
             "EP IN": "@",
             "EP Size": "CFG_TUD_AUDIO_EP_SZ_IN"
-        },
-        "itf_count": 1
+        }
     },
     "audio-speaker-mono-fb": {
         "class": "audio",
@@ -116,8 +111,7 @@
             "EP OUT": "@",
             "EP Size": "CFG_TUD_AUDIO_EP_SZ_OUT",
             "EP FB IN": "@"
-        },
-        "itf_count": 1
+        }
     },
     "vendor": {
         "class": "vendor",
@@ -128,8 +122,7 @@
             "EP OUT": "@",
             "EP IN": "@",
             "EP Size": "TUD_OPT_HIGH_SPEED ? 512 : 64"
-        },
-        "itf_count": 1
+        }
     },
     "dfu_rt": {
         "class": "dfu",
@@ -140,8 +133,7 @@
             "Attributes": "{itf['attributes']}",
             "Detach Timeout": "{itf['detach-timeout']}",
             "Transfer Size": "{itf['transfer-size']}"
-        },
-        "itf_count": 1
+        }
     },
     "dfu": {
         "class": "dfu",
@@ -155,8 +147,7 @@
             "Detach timeout": 1000,
             "Transfer size": "CFG_TUD_DFU_XFER_BUFSIZE"
         },
-        "desc-len": "TUD_DFU_DESC_LEN({len(itf['alternates'])})",
-        "itf_count": 1
+        "desc-len": "TUD_DFU_DESC_LEN({len(itf['alternates'])})"
     },
     "cdc-ecm": {
         "class": "ecm-rndis",
@@ -171,8 +162,7 @@
             "EP Data IN": "@",
             "EP Data Size": "CFG_TUD_NET_ENDPOINT_SIZE",
             "Max Segment Size": "CFG_TUD_NET_MTU"
-        },
-        "itf_count": 1
+        }
     },
     "rndis": {
         "class": "ecm-rndis",
@@ -185,8 +175,7 @@
             "EP Data OUT": "@",
             "EP Data IN": "@",
             "EP Data Size": "CFG_TUD_NET_ENDPOINT_SIZE"
-        },
-        "itf_count": 1
+        }
     },
     "cdc-ncm": {
         "class": "ncm",
@@ -201,7 +190,6 @@
             "EP Data IN": "@",
             "EP Data Size": "CFG_TUD_NET_ENDPOINT_SIZE",
             "Max Segment Size": "CFG_TUD_NET_MTU"
-        },
-        "itf_count": 1
+        }
     }
 }
