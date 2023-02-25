@@ -7,7 +7,7 @@ namespace USB::DFU
 class Device : public Interface
 {
 public:
-	using Interface::Interface;
+	Device(uint8_t inst, const char* name);
 };
 
 } // namespace USB::DFU

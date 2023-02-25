@@ -60,6 +60,11 @@
                         "midi0": {
                             "description": "TinyUSB MIDI device",
                             "template": "midi"
+                        },
+                        "dfu0": {
+                            "template": "dfu",
+                            "alternates": ["FLASH", "RAM", "EEPROM"],
+                            "attributes": "DFU_ATTR_CAN_UPLOAD | DFU_ATTR_CAN_DOWNLOAD | DFU_ATTR_MANIFESTATION_TOLERANT"
                         }
                     }
                 }

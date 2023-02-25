@@ -8,8 +8,17 @@ namespace
 {
 DEFINE_FSTR(image1, "Hello world from TinyUSB DFU! - Partition 0")
 DEFINE_FSTR(image2, "Hello world from TinyUSB DFU! - Partition 1")
-DEFINE_FSTR_VECTOR(upload_images, FlashString, &image1, &image2)
+DEFINE_FSTR(image3, "Hello world from TinyUSB DFU! - Partition 3")
+DEFINE_FSTR_VECTOR(upload_images, FlashString, &image1, &image2, &image3)
 } // namespace
+
+namespace USB::DFU
+{
+Device::Device(uint8_t inst, const char* name) : Interface(inst, name)
+{
+}
+
+} // namespace USB::DFU
 
 //--------------------------------------------------------------------+
 // DFU callbacks
@@ -42,8 +51,8 @@ void tud_dfu_download_cb(uint8_t alt, uint16_t block_num, uint8_t const* data, u
 	(void)alt;
 	(void)block_num;
 
-	debug_d("Received Alt %u BlockNum %u of length %u", alt, wBlockNum, length);
-	debug_hex(DBG, "DFU", data, length);
+	debug_i("[DFU] Received Alt %u BlockNum %u of length %u", alt, block_num, length);
+	debug_hex(INFO, "DFU", data, length);
 
 	// flashing op for download complete without error
 	tud_dfu_finish_flashing(DFU_STATUS_OK);
@@ -55,7 +64,7 @@ void tud_dfu_download_cb(uint8_t alt, uint16_t block_num, uint8_t const* data, u
 void tud_dfu_manifest_cb(uint8_t alt)
 {
 	(void)alt;
-	debug_i("Download completed, enter manifestation");
+	debug_i("[DFU] Download completed, enter manifestation");
 
 	// flashing op for manifest is complete without error
 	// Application can perform checksum, should it fail, use appropriate status such as errVERIFY.
@@ -67,23 +76,21 @@ void tud_dfu_manifest_cb(uint8_t alt)
 // Return the number of written bytes
 uint16_t tud_dfu_upload_cb(uint8_t alt, uint16_t block_num, uint8_t* data, uint16_t length)
 {
-	(void)block_num;
-	(void)length;
-
-	return upload_images[alt].read(0, reinterpret_cast<char*>(data), length);
+	debug_i("[DFU] Send Alt %u BlockNum %u of length %u", alt, block_num, length);
+	return block_num ? 0 : upload_images[alt].read(0, reinterpret_cast<char*>(data), length);
 }
 
 // Invoked when the Host has terminated a download or upload transfer
 void tud_dfu_abort_cb(uint8_t alt)
 {
 	(void)alt;
-	debug_w("Host aborted transfer");
+	debug_w("[DFU] Host aborted transfer");
 }
 
 // Invoked when a DFU_DETACH request is received
 void tud_dfu_detach_cb(void)
 {
-	debug_i("Host detach, we should probably reboot");
+	debug_i("[DFU] Host detach, we should probably reboot");
 }
 
 #endif
