@@ -40,6 +40,11 @@ HID_PROTOCOLS = ['none', 'keyboard', 'mouse']
 HID_REPORTS = ['keyboard', 'mouse', 'consumer', 'system-control', 'gamepad', 'fido-u2f', 'generic-inout']
 HID_DEFAULT_EP_BUFSIZE = 64
 
+DFU_DEFAULT_ATTR = [
+    'can-upload',
+    'can-download',
+    'manifestation-tolerant'
+]
 
 @dataclass
 class ClassItem:
@@ -50,7 +55,7 @@ class ClassItem:
     is_host: bool
 
     def namespace(self):
-        return make_identifier(self.dev_class)
+        return make_id(self.dev_class)
 
 
 def write_file(dirname, filename, content):
@@ -68,7 +73,7 @@ def readTemplate(name, vars):
     return tmpl.substitute(vars)
 
 
-def make_identifier(s):
+def make_id(s):
     return s.replace('-', '_').replace(' ', '_').upper()
 
 
@@ -94,7 +99,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         if isinstance(value, dict):
             value = value.get(name, "")
         """Add a string to the descriptor list and return its index identifier"""
-        id = f'STRING_INDEX_{itf_tag.upper()}_{make_identifier(name)}'
+        id = f'STRING_INDEX_{itf_tag.upper()}_{make_id(name)}'
         strings.append((id, value))
         return id
 
@@ -145,7 +150,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                 hid_report += f'static const uint8_t {report_name}[] = {{\n'
                 for r in itf['reports']:
                     if r in HID_REPORTS:
-                        id = make_identifier(r)
+                        id = make_id(r)
                         hid_report_ids.add(f"REPORT_ID_{id},")
                         hid_report += indent(f"TUD_HID_REPORT_DESC_{id} (HID_REPORT_ID(REPORT_ID_{id}) ),")
                     else:
@@ -188,14 +193,15 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                 template_tag = itf['template']
                 template = templates[template_tag]
                 itf_class = template['class']
-                itf_id = make_identifier(itf_tag)
+                itf_id = make_id(itf_tag)
                 itfnum_defs.append((itf_id, itf_num))
                 desc_fields = [
                     ('Interface number', f"ITF_NUM_{itf_id}"),
                 ]
-                config_total_len += " + " + eval('f"' + template.get('desc-len', 'TUD_{make_identifier(template_tag)}_DESC_LEN') + '"')
-                for name, value in template['desc-fields'].items():
-                    if value == '@': # Endpoint number
+                config_total_len += " + " + eval('f"' + template.get('desc-len',
+                                                 'TUD_{make_id(template_tag)}_DESC_LEN') + '"')
+                for name, value in template['fields'].items():
+                    if value == '@':  # Endpoint number
                         uname = name.upper()
                         if not name.startswith('EP '):
                             raise InterfaceError(f"Bad endpoint name '{name}', must start with 'EP'")
@@ -213,7 +219,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                         value = f"EPNUM_{itf_id}_{uname[3:].replace(' ', '_')}"
                         epnum_defs.append((value, ep))
                     elif isinstance(value, str):
-                        if value.startswith('$'): # String index
+                        if value.startswith('$'):  # String index
                             value = eval('f"' + value[1:] + '"')
                             if value.startswith('['):
                                 for i, s in enumerate(eval(value)):
@@ -226,7 +232,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                             value = eval('f"' + value + '"')
                     desc_fields.append((name, value))
 
-                descriptors.append((template['desc-name'], desc_fields))
+                descriptors.append((f'TUD_{make_id(template_tag)}_DESCRIPTOR', desc_fields))
                 itf_num += template.get('itf_count', 1)
 
             itfnum_defs.append(("TOTAL", itf_num))
@@ -265,7 +271,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
 
         classes = ""
         for c, n in itf_counts.items():
-            classes += f"#define CFG_TUD_{make_identifier(c)} {n}\n"
+            classes += f"#define CFG_TUD_{make_id(c)} {n}\n"
         cfg_vars['device_classes'] = classes
         cfg_vars['hid_ep_bufsize'] = hid_ep_bufsize
 
@@ -294,7 +300,7 @@ def parse_host(config, cfg_vars, classdefs, output_dir):
             class_counts[dev_class] = class_counts.get(dev_class, 0) + 1
             classdefs.append(ClassItem(dev['class'], 'HostDevice', tag, True))
         for c, n in class_counts.items():
-            classes += f"#define CFG_TUH_{make_identifier(c)} {n}\n"
+            classes += f"#define CFG_TUH_{make_id(c)} {n}\n"
 
     cfg_vars['host_enabled'] = host_enabled
     cfg_vars['host_classes'] = classes

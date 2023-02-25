@@ -2,10 +2,9 @@
     "hid": {
         "class": "hid",
         "description": "HID Input only descriptor",
-        "desc-name": "TUD_HID_DESCRIPTOR",
-        "desc-fields": {
+        "fields": {
             "description": "${itf.get('description', '')}",
-            "Protocol": "HID_ITF_PROTOCOL_{itf.get('protocol', 'none').upper()}",
+            "Protocol": "HID_ITF_PROTOCOL_{make_id(itf.get('protocol', 'none'))}",
             "Report descriptor len": "sizeof(desc_{itf_tag}_report)",
             "EP IN": "@",
             "Size": "{itf.get('bufsize', 'HID_DEFAULT_EP_BUFSIZE')}",
@@ -15,10 +14,9 @@
     "hid-inout": {
         "class": "hid",
         "description": "HID Input & Output descriptor",
-        "desc-name": "TUD_HID_INOUT_DESCRIPTOR",
-        "desc-fields": {
+        "fields": {
             "description": "${itf.get('description', '')}",
-            "Protocol": "HID_ITF_PROTOCOL_{itf.get('protocol', 'none').upper()}",
+            "Protocol": "HID_ITF_PROTOCOL_{make_id(itf.get('protocol', 'none'))}",
             "Report descriptor len": "sizeof(desc_{itf_tag}_report)",
             "EP OUT": "@",
             "EP IN": "@",
@@ -29,8 +27,7 @@
     "cdc": {
         "class": "cdc",
         "description": "CDC Descriptor Template",
-        "desc-name": "TUD_CDC_DESCRIPTOR",
-        "desc-fields": {
+        "fields": {
             "description": "${itf.get('description', '')}",
             "EP notify IN": "@",
             "EP notify size": 8,
@@ -38,7 +35,7 @@
             "EP data IN": "@",
             "EP data size": 64
         },
-        "itf_count": 2
+        "itf_count": 2 // CDC, CDC_DATA
     },
     "midi": {
         "class": "midi",
@@ -47,20 +44,18 @@
             " - 1 Embedded Jack In connected to 1 External Jack Out",
             " - 1 Embedded Jack out connected to 1 External Jack In"
         ],
-        "desc-name": "TUD_MIDI_DESCRIPTOR",
-        "desc-fields": {
+        "fields": {
             "description": "${itf.get('description', '')}",
             "EP Out": "@",
             "EP In": "@",
             "EP size": "TUD_OPT_HIGH_SPEED ? 512 : 64"
         },
-        "itf_count": 2
+        "itf_count": 2 // Audio Control (AC), MIDI Streaming (MS)
     },
     "msc": {
         "class": "msc",
         "description": "MSC Descriptor Template",
-        "desc-name": "TUD_MSC_DESCRIPTOR",
-        "desc-fields": {
+        "fields": {
             "description": "${itf.get('description', '')}",
             "EP Out": "@",
             "EP In": "@",
@@ -73,14 +68,14 @@
             "AUDIO simple descriptor (UAC2) for 1 microphone input",
             " - 1 Input Terminal, 1 Feature Unit (Mute and Volume Control), 1 Output Terminal, 1 Clock Source"
         ],
-        "desc-name": "TUD_AUDIO_MIC_ONE_CH_DESCRIPTOR",
-        "desc-fields": {
+        "fields": {
             "description": "${itf.get('description', '')}",
             "Bytes Per Sample": "{itf['bytes-per-sample']}",
             "Bits Used Per Sample": "{itf['bits-used-per-sample']}",
             "EP IN": "@",
             "EP Size": "CFG_TUD_AUDIO_EP_SZ_IN"
-        }
+        },
+        "itf_count": 2 // Audio Control (AC), Audio Streaming (AS)
     },
     "audio-mic-four-ch": {
         "class": "audio",
@@ -88,14 +83,14 @@
             "AUDIO simple descriptor (UAC2) for 4 microphone input",
             " - 1 Input Terminal, 1 Feature Unit (Mute and Volume Control), 1 Output Terminal, 1 Clock Source"
         ],
-        "desc-name": "TUD_AUDIO_MIC_FOUR_CH_DESCRIPTOR",
-        "desc-fields": {
+        "fields": {
             "description": "${itf.get('description', '')}",
             "Bytes Per Sample": "{itf['bytes-per-sample']}",
             "Bits Used Per Sample": "{itf['bits-used-per-sample']}",
             "EP IN": "@",
             "EP Size": "CFG_TUD_AUDIO_EP_SZ_IN"
-        }
+        },
+        "itf_count": 2 // Audio Control (AC), Audio Streaming (AS)
     },
     "audio-speaker-mono-fb": {
         "class": "audio",
@@ -103,21 +98,20 @@
             "AUDIO simple descriptor (UAC2) for mono speaker",
             " - 1 Input Terminal, 2 Feature Unit (Mute and Volume Control), 3 Output Terminal, 4 Clock Source"
         ],
-        "desc-name": "TUD_AUDIO_SPEAKER_MONO_FB_DESCRIPTOR",
-        "desc-fields": {
+        "fields": {
             "description": "${itf.get('description', '')}",
             "Bytes Per Sample": "{itf['bytes-per-sample']}",
             "Bits Used Per Sample": "{itf['bits-used-per-sample']}",
             "EP OUT": "@",
             "EP Size": "CFG_TUD_AUDIO_EP_SZ_OUT",
             "EP FB IN": "@"
-        }
+        },
+        "itf_count": 2 // Audio Control (AC), Audio Streaming (AS)
     },
     "vendor": {
         "class": "vendor",
         "description": "Vendor Descriptor Template",
-        "desc-name": "TUD_VENDOR_DESCRIPTOR",
-        "desc-fields": {
+        "fields": {
             "description": "${itf.get('description', '')}",
             "EP OUT": "@",
             "EP IN": "@",
@@ -127,8 +121,7 @@
     "dfu_rt": {
         "class": "dfu",
         "description": "DFU runtime descriptor",
-        "desc-name": "TUD_DFU_RT_DESCRIPTOR",
-        "desc-fields": {
+        "fields": {
             "description": "${itf.get('description', '')}",
             "Attributes": "{itf['attributes']}",
             "Detach Timeout": "{itf['detach-timeout']}",
@@ -138,12 +131,10 @@
     "dfu": {
         "class": "dfu",
         "description": "DFU Descriptor Template",
-        // Note: Alternate count must be numeric or macro, string index is increased by one for each Alt interface
-        "desc-name": "TUD_DFU_DESCRIPTOR",
-        "desc-fields": {
-            "Alernate count": "{len(itf['alternates'])}",
+        "fields": {
+            "Alternate count": "{len(itf['alternates'])}",
             "description": "${itf['alternates']}",
-            "Attributes": "{itf['attributes']}",
+            "Attributes": "{' | '.join(f'DFU_ATTR_{make_id(a)}' for a in itf.get('attributes', DFU_DEFAULT_ATTR))}",
             "Detach timeout": 1000,
             "Transfer size": "CFG_TUD_DFU_XFER_BUFSIZE"
         },
@@ -152,8 +143,7 @@
     "cdc-ecm": {
         "class": "ecm-rndis",
         "description": "CDC-ECM Descriptor Template",
-        "desc-name": "TUD_CDC_ECM_DESCRIPTOR",
-        "desc-fields": {
+        "fields": {
             "description": "${itf.get('description', '')}",
             "MAC address": "$",
             "EP Notify IN": "@",
@@ -162,26 +152,26 @@
             "EP Data IN": "@",
             "EP Data Size": "CFG_TUD_NET_ENDPOINT_SIZE",
             "Max Segment Size": "CFG_TUD_NET_MTU"
-        }
+        },
+        "itf-count": 2 // CDC Control, CDC Data
     },
     "rndis": {
         "class": "ecm-rndis",
         "description": "RNDIS Descriptor Template",
-        "desc-name": "TUD_RNDIS_DESCRIPTOR",
-        "desc-fields": {
+        "fields": {
             "description": "${itf.get('description', '')}",
             "EP Notify IN": "@",
             "EP Notify Size": 64,
             "EP Data OUT": "@",
             "EP Data IN": "@",
             "EP Data Size": "CFG_TUD_NET_ENDPOINT_SIZE"
-        }
+        },
+        "itf-count": 2 // CDC Control, CDC Data
     },
     "cdc-ncm": {
         "class": "ncm",
         "description": "CDC-ECM Descriptor Template",
-        "desc-name": "TUD_CDC_NCM_DESCRIPTOR",
-        "desc-fields": {
+        "fields": {
             "description": "${itf.get('description', '')}",
             "MAC address": "$",
             "EP Notify IN": "@",
@@ -190,6 +180,7 @@
             "EP Data IN": "@",
             "EP Data Size": "CFG_TUD_NET_ENDPOINT_SIZE",
             "Max Segment Size": "CFG_TUD_NET_MTU"
-        }
+        },
+        "itf-count": 2 // CDC Control, CDC Data
     }
 }
