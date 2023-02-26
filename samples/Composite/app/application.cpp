@@ -115,7 +115,7 @@ void init()
 #endif
 
 #if CFG_TUD_MSC
-	USB::msc0.add(Storage::spiFlash, true);
+	USB::msc0.setLogicalUnit(0, {Storage::spiFlash, true});
 #endif
 
 #if CFG_TUD_MIDI

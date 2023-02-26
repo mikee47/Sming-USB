@@ -8,37 +8,15 @@ namespace USB::MSC
 {
 LogicalUnit Device::logicalUnits[MAX_LUN];
 
-bool Device::add(Storage::Device* device, bool readOnly)
+bool Device::setLogicalUnit(uint8_t lun, LogicalUnit unit)
 {
-	if(device == nullptr) {
+	if(lun >= MAX_LUN) {
+		debug_e("[MSC] Invalid LUN %u", lun);
 		return false;
 	}
 
-	remove(device);
-	for(auto& unit : logicalUnits) {
-		if(!unit) {
-			unit = LogicalUnit{device, readOnly};
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool Device::remove(const Storage::Device* device)
-{
-	if(device == nullptr) {
-		return false;
-	}
-
-	for(auto& unit : logicalUnits) {
-		if(unit.device == device) {
-			unit = LogicalUnit{};
-			return true;
-		}
-	}
-
-	return false;
+	logicalUnits[lun] = unit;
+	return true;
 }
 
 void Device::inquiry(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16], uint8_t product_rev[4])

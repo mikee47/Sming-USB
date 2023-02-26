@@ -52,8 +52,7 @@ class Device : public Interface
 public:
 	using Interface::Interface;
 
-	static bool add(Storage::Device* device, bool readOnly);
-	static bool remove(const Storage::Device* device);
+	static bool setLogicalUnit(uint8_t lun, LogicalUnit unit);
 
 	static void getCapacity(uint8_t lun, uint32_t* block_count, uint16_t* block_size)
 	{
