@@ -64,6 +64,11 @@ size_t Device::write(const uint8_t* buffer, size_t size)
 
 void Device::handleEvent(Event event)
 {
+	if(event == Event::line_break) {
+		bitSet(status, eSERS_BreakDetected);
+		return;
+	}
+
 	if(!eventMask) {
 		System.queueCallback(
 			[](void* param) {
@@ -106,28 +111,23 @@ void Device::processEvents()
 void Device::systemDebugOutput(bool enabled)
 {
 	if(enabled) {
-		if(!oldPuts) {
-			oldPuts = m_setPuts([this](const char* data, size_t length) -> size_t { return write(data, length); });
-		}
-	} else if(oldPuts) {
-		m_setPuts(oldPuts);
-		oldPuts = nullptr;
+		m_setPuts([this](const char* data, size_t length) -> size_t { return write(data, length); });
+	} else {
+		m_setPuts(nullptr);
 	}
 }
 
 unsigned Device::getStatus()
 {
-	unsigned status = 0;
-	// unsigned ustat = smg_uart_get_status(uart);
-	// if(ustat & UART_STATUS_BRK_DET) {
-	// 	bitSet(status, eSERS_BreakDetected);
-	// }
+	unsigned res = status;
+	status = 0;
 
+	// TODO: Is it possible for rx fifo to overflow? Or does USB throttle?
 	// if(ustat & UART_STATUS_RXFIFO_OVF) {
 	// 	bitSet(status, eSERS_Overflow);
 	// }
 
-	return status;
+	return res;
 }
 
 void Device::commandProcessing(bool reqEnable)
@@ -187,7 +187,10 @@ void tud_cdc_line_coding_cb(uint8_t inst, cdc_line_coding_t const* p_line_coding
 // Invoked when received send break
 void tud_cdc_send_break_cb(uint8_t inst, uint16_t duration_ms)
 {
-	debug_i("%s(%u, %u)", __FUNCTION__, inst, duration_ms);
+	auto dev = getDevice(inst);
+	if(dev) {
+		dev->handleEvent(Event::line_break);
+	}
 }
 
 #endif

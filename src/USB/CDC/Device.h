@@ -21,6 +21,7 @@ namespace USB::CDC
 enum class Event {
 	rx_data,
 	tx_done,
+	line_break,
 };
 class Device : public Interface, public ReadWriteStream
 {
@@ -166,16 +167,6 @@ public:
 	}
 
 	/**
-	 * @brief Returns the location of the searched character
-	 * @param c - character to search for
-	 * @retval int -1 if not found 0 or positive number otherwise
-	 */
-	int indexOf(char c) override
-	{
-		return -1;
-	}
-
-	/**
 	 * @brief Get status error flags and clear them
 	 * @retval unsigned Status flags, combination of SerialStatus bits
 	 * @see SerialStatus
@@ -192,8 +183,8 @@ private:
 	TransmitComplete transmitCompleteCallback;
 	std::unique_ptr<CommandExecutor> commandExecutor;
 	SimpleTimer flushTimer;
-	nputs_callback_t oldPuts{};
 	uart_options_t options{_BV(UART_OPT_TXWAIT)};
+	uint16_t status{0};
 	BitSet<uint8_t, Event> eventMask;
 };
 
