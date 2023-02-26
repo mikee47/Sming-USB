@@ -11,9 +11,15 @@
 
 namespace USB::CDC
 {
-Device* getDevice(uint8_t inst)
+class InternalDevice : public Device
 {
-	extern Device* devices[];
+public:
+	using Device::handleEvent;
+};
+
+InternalDevice* getDevice(uint8_t inst)
+{
+	extern InternalDevice* devices[];
 	return (inst < CFG_TUD_CDC) ? devices[inst] : nullptr;
 }
 
@@ -56,7 +62,7 @@ size_t Device::write(const uint8_t* buffer, size_t size)
 	return written;
 }
 
-void Device::queueEvent(Event event)
+void Device::handleEvent(Event event)
 {
 	if(!eventMask) {
 		System.queueCallback(
@@ -146,7 +152,7 @@ void tud_cdc_rx_cb(uint8_t inst)
 {
 	auto dev = getDevice(inst);
 	if(dev) {
-		dev->queueEvent(Device::Event::rx_data);
+		dev->handleEvent(Event::rx_data);
 	}
 }
 
@@ -161,7 +167,7 @@ void tud_cdc_tx_complete_cb(uint8_t inst)
 {
 	auto dev = getDevice(inst);
 	if(dev) {
-		dev->queueEvent(Device::Event::tx_done);
+		dev->handleEvent(Event::tx_done);
 	}
 }
 

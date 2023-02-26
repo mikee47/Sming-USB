@@ -18,6 +18,10 @@
 
 namespace USB::CDC
 {
+enum class Event {
+	rx_data,
+	tx_done,
+};
 class Device : public Interface, public ReadWriteStream
 {
 public:
@@ -178,11 +182,8 @@ public:
 	 */
 	unsigned getStatus();
 
-	enum class Event {
-		rx_data,
-		tx_done,
-	};
-	void queueEvent(Event event);
+protected:
+	void handleEvent(Event event);
 
 private:
 	void processEvents();

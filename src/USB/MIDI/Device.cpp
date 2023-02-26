@@ -4,9 +4,15 @@
 
 namespace USB::MIDI
 {
-Device* getDevice(uint8_t inst)
+class InternalDevice : public Device
 {
-	extern Device* devices[];
+public:
+	using Device::handleEvent;
+};
+
+InternalDevice* getDevice(uint8_t inst)
+{
+	extern InternalDevice* devices[];
 	return (inst < CFG_TUD_MIDI) ? devices[inst] : nullptr;
 }
 
@@ -20,7 +26,7 @@ Device::Device(uint8_t instance, const char* name) : Interface(instance, name)
 {
 }
 
-void Device::handle_event(Event event)
+void Device::handleEvent(Event event)
 {
 	switch(event) {
 	case Event::rx:
@@ -38,7 +44,7 @@ void tud_midi_rx_cb(uint8_t itf)
 {
 	auto dev = getDevice(itf);
 	if(dev) {
-		dev->handle_event(Event::rx);
+		dev->handleEvent(Event::rx);
 	}
 }
 

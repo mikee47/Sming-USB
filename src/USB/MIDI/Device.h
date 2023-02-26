@@ -67,7 +67,8 @@ public:
 		receiveCallback = callback;
 	}
 
-	void handle_event(Event event);
+protected:
+	void handleEvent(Event event);
 
 private:
 	Callback receiveCallback;

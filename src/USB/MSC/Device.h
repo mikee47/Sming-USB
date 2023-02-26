@@ -46,6 +46,7 @@ struct LogicalUnit {
 		return device->write(offset, buffer, bufsize) ? bufsize : -1;
 	}
 };
+
 class Device : public Interface
 {
 public:

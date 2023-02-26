@@ -4,9 +4,17 @@
 
 namespace USB::HID
 {
-Device* getDevice(uint8_t inst)
+class InternalDevice : public Device
 {
-	extern Device* devices[];
+public:
+	using Device::get_report;
+	using Device::report_complete;
+	using Device::set_report;
+};
+
+InternalDevice* getDevice(uint8_t inst)
+{
+	extern InternalDevice* devices[];
 	return (inst < CFG_TUD_HID) ? devices[inst] : nullptr;
 }
 
