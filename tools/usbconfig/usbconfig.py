@@ -13,31 +13,6 @@ from dataclasses import dataclass
 
 TUSB_DESC_STRING = 3
 
-STRING_FIELDS = {
-    "device": ['manufacturer', 'product', 'serial']
-}
-
-DEVICE_CLASSES = {
-    'misc': 'TUSB_CLASS_MISC',
-}
-
-DEVICE_SUBCLASSES = {
-    'none': 0,
-    'common': 'MISC_SUBCLASS_COMMON',
-}
-
-DEVICE_PROTOCOLS = {
-    'none': 0,
-    'iad': 'MISC_PROTOCOL_IAD',
-}
-
-CONFIG_ATTRIBUTES = {
-    'remote-wakeup': 'TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP',
-    'self-powered': 'TUSB_DESC_CONFIG_ATT_SELF_POWERED',
-}
-
-HID_PROTOCOLS = ['none', 'keyboard', 'mouse']
-HID_REPORTS = ['keyboard', 'mouse', 'consumer', 'system-control', 'gamepad', 'fido-u2f', 'generic-inout']
 HID_DEFAULT_EP_BUFSIZE = 64
 
 DFU_DEFAULT_ATTR = [
@@ -109,10 +84,12 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
     for tag, dev in config['devices'].items():
         vars = dict([(key, value) for key, value in dev.items() if not isinstance(value, dict)])
         vars['device_tag'] = tag
-        vars['class_id'] = DEVICE_CLASSES[dev['class']]
-        vars['subclass_id'] = DEVICE_SUBCLASSES[dev['subclass']]
-        vars['protocol_id'] = DEVICE_PROTOCOLS[dev['protocol']]
-        vars['vendor_id'] = dev['vendor_id']
+        vars['class_id'] = f"TUSB_CLASS_{make_id(dev.get('class', 'unspecified'))}"
+        clsid = make_id(dev.get('class', 'unspecified'))
+        subclass = dev.get('subclass')
+        vars['subclass_id'] = f"{clsid}_SUBCLASS_{make_id(subclass)}" if subclass else 0
+        protocol = dev.get('protocol')
+        vars['protocol_id'] = f"{clsid}_PROTOCOL_{make_id(protocol)}" if protocol else 0
         ver = round(float(dev['version']) * 100)
         vars['version_bcd'] = f"0x{ver:04}"
         vars['manufacturer_idx'] = add_string(tag, 'manufacturer', dev)
@@ -149,12 +126,9 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                 report_name = f"desc_{itf_tag}_report"
                 hid_report += f'static const uint8_t {report_name}[] = {{\n'
                 for r in itf['reports']:
-                    if r in HID_REPORTS:
-                        id = make_id(r)
-                        hid_report_ids.add(f"REPORT_ID_{id},")
-                        hid_report += indent(f"TUD_HID_REPORT_DESC_{id} (HID_REPORT_ID(REPORT_ID_{id}) ),")
-                    else:
-                        raise InputError(f'Unknown report "{r}"')
+                    id = make_id(r)
+                    hid_report_ids.add(f"REPORT_ID_{id},")
+                    hid_report += indent(f"TUD_HID_REPORT_DESC_{id} (HID_REPORT_ID(REPORT_ID_{id}) ),")
                 hid_report += '};\n\n'
                 hid_report_list.append(report_name)
                 hid_inst += 1
@@ -167,10 +141,8 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                 desc_c += readTemplate('device/hid_report.c', vars)
 
             # Emit Configuration descriptors
-            if 'attributes' in cfg:
-                attr = " | ".join([CONFIG_ATTRIBUTES[a] for a in cfg['attributes']])
-            else:
-                attr = 0
+            attr = cfg.get('attributes')
+            attr = " | ".join([f"TUSB_DESC_CONFIG_ATT_{make_id(a)}" for a in attr]) if attr else 0
             power = cfg['power']
             desc_fields = [
                 ('Config number', cfg_num),
@@ -327,7 +299,7 @@ def main():
     code_classes = set(f'{item.namespace()}/{item.code_class}' for item in classdefs)
     vars = {
         'includes': "\n".join(f'#include <USB/{c}.h>' for c in code_classes),
-        'classdefs': "".join(f'extern {item.namespace()}::{item.code_class} {item.tag};\n' for item in classdefs),
+        'classdefs': "\n".join(f'extern {item.namespace()}::{item.code_class} {item.tag};' for item in classdefs),
     }
     classdefs_h = readTemplate('classdefs.h', vars)
     write_file(args.output, 'usb_classdefs.h', classdefs_h)
@@ -340,10 +312,10 @@ def main():
         for inst, item in enumerate(items):
             txt += f'{ns}::{item.code_class} {item.tag}({inst}, "{item.tag}");\n'
         txt += f'namespace {ns} {{\n'
-        devices = ', '.join(f'&{item.tag}' for item in items if not item.is_host)
+        devices = ", ".join(f'&{item.tag}' for item in items if not item.is_host)
         if devices:
             txt += f'  void* devices[] {{{devices}}};\n'
-        host_devices = ', '.join(f'&{item.tag}' for item in items if item.is_host)
+        host_devices = ", ".join(f'&{item.tag}' for item in items if item.is_host)
         if host_devices:
             txt += f'  void* host_devices[] {{{host_devices}}};\n'
         txt += '}\n'
