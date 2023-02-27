@@ -4,55 +4,56 @@
 
 namespace USB::CDC
 {
-class Device : public UsbSerial
+class HostDevice : public UsbSerial
 {
 public:
-	Device(uint8_t instance, const char* name);
+	HostDevice(uint8_t instance, const char* name);
 
 	size_t setRxBufferSize(size_t size) override
 	{
-		return CFG_TUD_CDC_RX_BUFSIZE;
+		return CFG_TUH_CDC_RX_BUFSIZE;
 	}
 
 	virtual size_t setTxBufferSize(size_t size) override
 	{
-		return CFG_TUD_CDC_TX_BUFSIZE;
+		return CFG_TUH_CDC_TX_BUFSIZE;
 	}
 
 	int available() override
 	{
-		return tud_cdc_n_available(inst);
+		return tuh_cdc_read_available(inst);
 	}
 
 	int read() override
 	{
-		return tud_cdc_n_read_char(inst);
+		char c;
+		return tuh_cdc_read(inst, &c, 1) ? c : -1;
 	}
 
 	size_t readBytes(char* buffer, size_t length) override
 	{
-		return tud_cdc_n_read(inst, buffer, length);
+		return tuh_cdc_read(inst, buffer, length);
 	}
 
 	int peek() override
 	{
 		uint8_t c;
-		return tud_cdc_n_peek(inst, &c) ? c : -1;
+		return tuh_cdc_peek(inst, &c) ? c : -1;
 	}
 
 	void clear(SerialMode mode = SERIAL_FULL) override
 	{
 		if(mode != SerialMode::TxOnly) {
-			tud_cdc_n_read_flush(inst);
+			tuh_cdc_read_clear(inst);
 		}
 		if(mode != SerialMode::RxOnly) {
-			tud_cdc_n_write_clear(inst);
+			tuh_cdc_write_clear(inst);
 		}
 	}
 
 	void flush() override
 	{
-		tud_cdc_n_write_flush(inst);
+		tuh_cdc_write_flush(inst);
 	}
 
 	using Stream::write;

@@ -2,38 +2,15 @@
 
 #if defined(ENABLE_USB_CLASSES) && CFG_TUD_CDC
 
-#include "Platform/System.h"
-#include <SimpleTimer.h>
-
-#if ENABLE_CMD_EXECUTOR
-#include <Services/CommandProcessing/CommandExecutor.h>
-#endif
-
 namespace USB::CDC
 {
-class InternalDevice : public Device
+Device* getDevice(uint8_t inst)
 {
-public:
-	using Device::handleEvent;
-};
-
-InternalDevice* getDevice(uint8_t inst)
-{
-	extern InternalDevice* devices[];
+	extern Device* devices[];
 	return (inst < CFG_TUD_CDC) ? devices[inst] : nullptr;
 }
 
-Device::Device(uint8_t instance, const char* name) : Interface(instance, name)
-{
-	flushTimer.initializeMs<50>(
-		[](void* param) {
-			auto self = static_cast<Device*>(param);
-			self->flush();
-		},
-		this);
-}
-
-Device::~Device()
+Device::Device(uint8_t instance, const char* name) : UsbSerial(instance, name)
 {
 }
 
@@ -60,87 +37,6 @@ size_t Device::write(const uint8_t* buffer, size_t size)
 	flushTimer.startOnce();
 
 	return written;
-}
-
-void Device::handleEvent(Event event)
-{
-	if(event == Event::line_break) {
-		bitSet(status, eSERS_BreakDetected);
-		return;
-	}
-
-	if(!eventMask) {
-		System.queueCallback(
-			[](void* param) {
-				auto self = static_cast<Device*>(param);
-				self->processEvents();
-			},
-			this);
-	}
-
-	eventMask += event;
-}
-
-void Device::processEvents()
-{
-	auto evt = eventMask;
-	eventMask = 0;
-	if(evt[Event::rx_data]) {
-		if(receiveCallback) {
-			uint8_t ch{0};
-			tud_cdc_n_peek(inst, &ch);
-			receiveCallback(*this, ch, tud_cdc_n_available(inst));
-		}
-#if ENABLE_CMD_EXECUTOR
-		if(commandExecutor) {
-			uint8_t ch;
-			while(tud_cdc_n_read(inst, &ch, 1)) {
-				commandExecutor->executorReceive(ch);
-			}
-		}
-#endif
-	}
-
-	if(evt[Event::tx_done]) {
-		if(transmitCompleteCallback) {
-			transmitCompleteCallback(*this);
-		}
-	}
-}
-
-void Device::systemDebugOutput(bool enabled)
-{
-	if(enabled) {
-		m_setPuts([this](const char* data, size_t length) -> size_t { return write(data, length); });
-	} else {
-		m_setPuts(nullptr);
-	}
-}
-
-unsigned Device::getStatus()
-{
-	unsigned res = status;
-	status = 0;
-
-	// TODO: Is it possible for rx fifo to overflow? Or does USB throttle?
-	// if(ustat & UART_STATUS_RXFIFO_OVF) {
-	// 	bitSet(status, eSERS_Overflow);
-	// }
-
-	return res;
-}
-
-void Device::commandProcessing(bool reqEnable)
-{
-#if ENABLE_CMD_EXECUTOR
-	if(reqEnable) {
-		if(!commandExecutor) {
-			commandExecutor.reset(new CommandExecutor(this));
-		}
-	} else {
-		commandExecutor.reset();
-	}
-#endif
 }
 
 } // namespace USB::CDC
