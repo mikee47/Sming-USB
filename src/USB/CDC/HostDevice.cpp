@@ -4,9 +4,19 @@
 
 namespace USB::CDC
 {
-HostDevice* getDevice(uint8_t inst)
+HostDevice::MountCallback HostDevice::mountCallback;
+HostDevice::UnmountCallback HostDevice::unmountCallback;
+
+class InternalHostDevice : public HostDevice
 {
-	extern HostDevice* devices[];
+public:
+	using HostDevice::begin;
+	using HostDevice::end;
+};
+
+InternalHostDevice* getDevice(uint8_t inst)
+{
+	extern InternalHostDevice* host_devices[];
 	return (inst < CFG_TUH_CDC) ? host_devices[inst] : nullptr;
 }
 
@@ -31,7 +41,7 @@ size_t HostDevice::write(const uint8_t* buffer, size_t size)
 		if(!bitRead(options, UART_OPT_TXWAIT)) {
 			break;
 		}
-		tud_task_ext(0, true);
+		tuh_task_ext(0, true);
 	}
 
 	flushTimer.startOnce();
@@ -43,7 +53,22 @@ size_t HostDevice::write(const uint8_t* buffer, size_t size)
 
 using namespace USB::CDC;
 
-// Invoked when received new data
+void tuh_cdc_mount_cb(uint8_t inst)
+{
+	auto dev = getDevice(inst);
+	if(dev) {
+		dev->begin();
+	}
+}
+
+void tuh_cdc_umount_cb(uint8_t inst)
+{
+	auto dev = getDevice(inst);
+	if(dev) {
+		dev->end();
+	}
+}
+
 void tuh_cdc_rx_cb(uint8_t inst)
 {
 	auto dev = getDevice(inst);
@@ -52,7 +77,6 @@ void tuh_cdc_rx_cb(uint8_t inst)
 	}
 }
 
-// Invoked when a TX is complete and therefore space becomes available in TX buffer
 void tuh_cdc_tx_complete_cb(uint8_t inst)
 {
 	auto dev = getDevice(inst);

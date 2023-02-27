@@ -64,3 +64,6 @@ ${host_classes}
 
 // max device support (excluding hub device)
 #define CFG_TUH_DEVICE_MAX (CFG_TUH_HUB ? 4 : 1) // hub typically has 4 ports
+
+#define CFG_TUH_CDC_RX_BUFSIZE (TUH_OPT_HIGH_SPEED ? TUSB_EPSIZE_BULK_HS : TUSB_EPSIZE_BULK_FS)
+#define CFG_TUH_CDC_TX_BUFSIZE (TUH_OPT_HIGH_SPEED ? TUSB_EPSIZE_BULK_HS : TUSB_EPSIZE_BULK_FS)

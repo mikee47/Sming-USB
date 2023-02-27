@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../Interface.h"
 #include <Storage/Disk/BlockDevice.h>
 
 namespace USB::MSC
@@ -54,15 +55,13 @@ struct Inquiry {
 	}
 };
 
-class HostDevice
+class HostDevice : public Interface
 {
 public:
 	using MountCallback = Delegate<void(LogicalUnit& unit, const Inquiry& inquiry)>;
 	using UnmountCallback = Delegate<void(HostDevice& dev)>;
 
-	HostDevice(uint8_t instance, const char* name) : name(name)
-	{
-	}
+	using Interface::Interface;
 
 	~HostDevice()
 	{
@@ -132,7 +131,5 @@ private:
 	const char* name;
 	uint8_t address{0};
 };
-
-HostDevice* getDevice(uint8_t dev_addr);
 
 } // namespace USB::MSC

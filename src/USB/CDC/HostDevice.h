@@ -7,7 +7,20 @@ namespace USB::CDC
 class HostDevice : public UsbSerial
 {
 public:
+	using MountCallback = Delegate<void(HostDevice& dev)>;
+	using UnmountCallback = Delegate<void(HostDevice& dev)>;
+
 	HostDevice(uint8_t instance, const char* name);
+
+	static void onMount(MountCallback callback)
+	{
+		mountCallback = callback;
+	}
+
+	static void onUnmount(UnmountCallback callback)
+	{
+		unmountCallback = callback;
+	}
 
 	size_t setRxBufferSize(size_t size) override
 	{
@@ -59,6 +72,25 @@ public:
 	using Stream::write;
 
 	size_t write(const uint8_t* buffer, size_t size) override;
+
+protected:
+	void begin()
+	{
+		if(mountCallback) {
+			mountCallback(*this);
+		}
+	}
+
+	void end()
+	{
+		if(unmountCallback) {
+			unmountCallback(*this);
+		}
+	}
+
+private:
+	static MountCallback mountCallback;
+	static UnmountCallback unmountCallback;
 };
 
 } // namespace USB::CDC

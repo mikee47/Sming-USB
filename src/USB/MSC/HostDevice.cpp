@@ -181,9 +181,11 @@ bool HostDevice::write_sectors(uint8_t lun, uint32_t lba, const void* src, size_
 
 } // namespace USB::MSC
 
+using namespace USB::MSC;
+
 void tuh_msc_mount_cb(uint8_t dev_addr)
 {
-	auto dev = USB::MSC::getDevice(dev_addr);
+	auto dev = getDevice(dev_addr);
 	if(dev) {
 		dev->begin(dev_addr);
 	}
@@ -191,7 +193,7 @@ void tuh_msc_mount_cb(uint8_t dev_addr)
 
 void tuh_msc_umount_cb(uint8_t dev_addr)
 {
-	auto dev = USB::MSC::getDevice(dev_addr);
+	auto dev = getDevice(dev_addr);
 	if(dev) {
 		dev->end();
 	}
