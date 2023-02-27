@@ -74,7 +74,7 @@ void init()
 	Serial.systemDebugOutput(true);
 
 	delay(1000);
-	Serial << +_F("TinyUSB Host CDC MSC HID Example") << endl;
+	Serial << +_F("Sming Basic Device USB sample application") << endl;
 
 	bool res = USB::begin();
 	debug_i("USB::begin(): %u", res);
