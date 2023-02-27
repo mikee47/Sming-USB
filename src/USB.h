@@ -3,7 +3,7 @@
 #include <tusb.h>
 
 #ifdef ENABLE_USB_CLASSES
-#include "USB/Descriptors.h"
+#include "USB/Classes.h"
 #endif
 
 namespace USB

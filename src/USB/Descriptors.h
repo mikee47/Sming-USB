@@ -2,7 +2,7 @@
 
 #include <tusb.h>
 #include <Delegate.h>
-#include <usb_classdefs.h>
+#include <WString.h>
 #if CFG_TUD_ENABLED
 #include <usb_descriptors.h>
 #endif
@@ -18,6 +18,14 @@ struct Descriptor {
 	uint8_t length; ///< Total size (in bytes) including this header
 	uint8_t type;   ///< e.g. TUSB_DESC_STRING
 					// Content follows
+};
+
+/**
+ * @brief Buffer containing list of descriptors
+ */
+struct DescriptorList {
+	const Descriptor* desc;
+	size_t length;
 };
 
 /**
