@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Interface.h"
+#include "../HostInterface.h"
 #include <Storage/Disk/BlockDevice.h>
 
 namespace USB::MSC
@@ -9,9 +9,7 @@ class HostDevice;
 class LogicalUnit : public Storage::Disk::BlockDevice
 {
 public:
-	LogicalUnit(HostDevice& device, uint8_t lun) : device(device), lun(lun)
-	{
-	}
+	LogicalUnit(HostDevice& device, uint8_t lun);
 
 	/* Storage Device methods */
 
@@ -22,8 +20,6 @@ public:
 
 	String getName() const override;
 	uint32_t getId() const override;
-	size_t getBlockSize() const override;
-	storage_size_t getSectorCount() const override;
 
 protected:
 	bool raw_sector_read(storage_size_t address, void* dst, size_t size) override;
@@ -55,42 +51,23 @@ struct Inquiry {
 	}
 };
 
-class HostDevice : public Interface
+class HostDevice : public HostInterface
 {
 public:
-	using MountCallback = Delegate<void(LogicalUnit& unit, const Inquiry& inquiry)>;
-	using UnmountCallback = Delegate<void(HostDevice& dev)>;
+	/**
+	  * @brief Callback passed to enumerate() method
+	  * @param unit The logical unit attached to a device
+	  * @param inquiry Detailed information
+	  * @retval bool true to continue enumeration, false to stop
+	  */
+	using EnumCallback = Delegate<bool(LogicalUnit& unit, const Inquiry& inquiry)>;
 
-	using Interface::Interface;
+	using HostInterface::HostInterface;
 
-	~HostDevice()
-	{
-		end();
-	}
-
-	bool begin(uint8_t deviceAddress);
-
+	bool begin(const Instance& inst);
 	void end();
 
-	const char* getName() const
-	{
-		return name;
-	}
-
-	uint8_t getAddress() const
-	{
-		return address;
-	}
-
-	static void onMount(MountCallback callback)
-	{
-		mountCallback = callback;
-	}
-
-	static void onUnmount(UnmountCallback callback)
-	{
-		unmountCallback = callback;
-	}
+	bool enumerate(EnumCallback callback);
 
 	LogicalUnit* operator[](unsigned lun) const
 	{
@@ -99,12 +76,12 @@ public:
 
 	size_t getBlockSize(uint8_t lun) const
 	{
-		return tuh_msc_get_block_size(address, lun);
+		return tuh_msc_get_block_size(inst.dev_addr, lun);
 	}
 
 	storage_size_t getSectorCount(uint8_t lun) const
 	{
-		return tuh_msc_get_block_count(address, lun);
+		return tuh_msc_get_block_count(inst.dev_addr, lun);
 	}
 
 	bool read_sectors(uint8_t lun, uint32_t lba, void* dst, size_t size);
@@ -122,14 +99,17 @@ private:
 	};
 
 	bool sendInquiry(uint8_t lun);
+	bool handleInquiry(const tuh_msc_complete_data_t* cb_data);
 
-	static MountCallback mountCallback;
-	static UnmountCallback unmountCallback;
-	static std::unique_ptr<Inquiry> inquiry;
-
+	std::unique_ptr<Inquiry> inquiry;
+	EnumCallback enumCallback;
 	State state{};
-	const char* name;
-	uint8_t address{0};
 };
+
+using MountCallback = Delegate<HostDevice*(const HostInterface::Instance& inst)>;
+using UnmountCallback = Delegate<void(HostDevice& dev)>;
+
+void onMount(MountCallback callback);
+void onUnmount(UnmountCallback callback);
 
 } // namespace USB::MSC

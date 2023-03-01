@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../Interface.h"
 #include <HardwareSerial.h>
 #include <SimpleTimer.h>
 #include <Data/BitSet.h>
@@ -14,13 +13,13 @@ enum class Event {
 	line_break,
 };
 
-class UsbSerial : public Interface, public ReadWriteStream
+class UsbSerial : public ReadWriteStream
 {
 public:
 	using DataReceived = StreamDataReceivedDelegate;
 	using TransmitComplete = Delegate<void(UsbSerial& device)>;
 
-	UsbSerial(uint8_t instance, const char* name);
+	UsbSerial();
 	~UsbSerial();
 
 	/**

@@ -14,7 +14,7 @@ DEFINE_FSTR_VECTOR(upload_images, FlashString, &image1, &image2, &image3)
 
 namespace USB::DFU
 {
-Device::Device(uint8_t inst, const char* name) : Interface(inst, name)
+Device::Device(uint8_t inst, const char* name) : DeviceInterface(inst, name)
 {
 }
 

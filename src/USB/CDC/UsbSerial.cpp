@@ -11,7 +11,7 @@
 
 namespace USB::CDC
 {
-UsbSerial::UsbSerial(uint8_t instance, const char* name) : Interface(instance, name)
+UsbSerial::UsbSerial()
 {
 	flushTimer.initializeMs<50>(
 		[](void* param) {

@@ -8,15 +8,34 @@
 
 namespace USB::MSC
 {
-HostDevice::MountCallback HostDevice::mountCallback;
-HostDevice::UnmountCallback HostDevice::unmountCallback;
-std::unique_ptr<Inquiry> HostDevice::inquiry;
+namespace
+{
+MountCallback mountCallback;
+UnmountCallback unmountCallback;
+HostDevice* host_devices[CFG_TUH_DEVICE_MAX];
+} // namespace
+
+void onMount(MountCallback callback)
+{
+	mountCallback = callback;
+}
+
+void onUnmount(UnmountCallback callback)
+{
+	unmountCallback = callback;
+}
 
 HostDevice* getDevice(uint8_t dev_addr)
 {
-	extern HostDevice* host_devices[];
-	--dev_addr;
-	return (dev_addr < CFG_TUH_MSC) ? host_devices[dev_addr] : nullptr;
+	unsigned idx = dev_addr - 1;
+	return (idx < ARRAY_SIZE(host_devices)) ? host_devices[idx] : nullptr;
+}
+
+LogicalUnit::LogicalUnit(HostDevice& device, uint8_t lun) : device(device), lun(lun)
+{
+	sectorCount = device.getSectorCount(lun);
+	sectorSize = device.getBlockSize(lun);
+	sectorSizeShift = Storage::getSizeBits(sectorSize);
 }
 
 uint32_t LogicalUnit::getId() const
@@ -31,16 +50,6 @@ String LogicalUnit::getName() const
 	s += '.';
 	s += lun;
 	return s;
-}
-
-size_t LogicalUnit::getBlockSize() const
-{
-	return device.getBlockSize(lun);
-}
-
-storage_size_t LogicalUnit::getSectorCount() const
-{
-	return device.getSectorCount(lun);
 }
 
 bool LogicalUnit::raw_sector_read(storage_size_t address, void* dst, size_t size)
@@ -63,62 +72,89 @@ bool LogicalUnit::raw_sync()
 	return device.wait();
 }
 
-bool HostDevice::begin(uint8_t deviceAddress)
+bool HostDevice::begin(const Instance& inst)
 {
-	address = deviceAddress;
+	HostInterface::begin(inst);
 	state = State::ready;
-	debug_i("[MSC] Device %u (%s) mounted, max_lun %u", address, name, tuh_msc_get_maxlun(address));
-	return sendInquiry(0);
+	debug_i("[MSC] Device %u (%s) mounted, max_lun %u", inst.dev_addr, inst.name, tuh_msc_get_maxlun(inst.dev_addr));
+	return true;
+}
+
+bool HostDevice::enumerate(EnumCallback callback)
+{
+	if(inquiry) {
+		debug_e("[MSC] Enumeration already in progress");
+		return false;
+	}
+
+	for(auto& unit : units) {
+		unit.reset();
+	}
+
+	if(!sendInquiry(0)) {
+		return false;
+	}
+
+	enumCallback = callback;
+	return true;
 }
 
 bool HostDevice::sendInquiry(uint8_t lun)
 {
 	auto callback = [](uint8_t dev_addr, const tuh_msc_complete_data_t* cb_data) {
 		auto dev = reinterpret_cast<HostDevice*>(cb_data->user_arg);
-		auto lun = cb_data->cbw->lun;
-		if(cb_data->csw->status != 0) {
-			debug_e("[MSC] Inquiry failed (addr %u, lun %u)", dev_addr, lun);
-		} else {
-			debug_hex(DBG, "INQUIRY", inquiry.get(), sizeof(*inquiry));
-			auto block_count = tuh_msc_get_block_count(dev_addr, lun);
-			debug_d("[MSC] Block count %u, size %u", block_count, tuh_msc_get_block_size(dev_addr, lun));
-			// Ignore any un-populated units
-			if(block_count != 0) {
-				auto& unit = dev->units[lun];
-				if(!unit) {
-					unit.reset(new LogicalUnit(*dev, lun));
-				}
-				Storage::Disk::scanPartitions(*unit);
-				if(mountCallback) {
-					mountCallback(*unit, *inquiry);
-				}
-			}
-		}
-
-		++lun;
-		if(lun < MAX_LUN && lun < tuh_msc_get_maxlun(dev_addr)) {
-			return dev->sendInquiry(lun);
-		}
-
-		inquiry.reset();
-		return true;
+		return dev ? dev->handleInquiry(cb_data) : false;
 	};
 
 	if(!inquiry) {
 		inquiry.reset(new Inquiry{});
 	}
 
-	if(!tuh_msc_inquiry(address, lun, &inquiry->resp, callback, reinterpret_cast<uintptr_t>(this))) {
+	if(!tuh_msc_inquiry(inst.dev_addr, lun, &inquiry->resp, callback, reinterpret_cast<uintptr_t>(this))) {
 		debug_e("tuh_msc_inquiry failed");
-		end();
 		return false;
 	}
 
 	return true;
 }
 
+bool HostDevice::handleInquiry(const tuh_msc_complete_data_t* cb_data)
+{
+	auto lun = cb_data->cbw->lun;
+	if(cb_data->csw->status != 0) {
+		debug_e("[MSC] Inquiry failed (addr %u, lun %u)", inst.dev_addr, lun);
+	} else {
+		debug_hex(DBG, "INQUIRY", inquiry.get(), sizeof(*inquiry));
+		auto block_count = tuh_msc_get_block_count(inst.dev_addr, lun);
+		debug_d("[MSC] Block count %u, size %u", block_count, tuh_msc_get_block_size(inst.dev_addr, lun));
+		// Ignore any un-populated units
+		if(block_count != 0) {
+			auto& unit = units[lun];
+			if(!unit) {
+				unit.reset(new LogicalUnit(*this, lun));
+			}
+			Storage::Disk::scanPartitions(*unit);
+			if(enumCallback) {
+				enumCallback(*unit, *inquiry);
+			}
+		}
+	}
+
+	++lun;
+	if(lun < MAX_LUN && lun < tuh_msc_get_maxlun(inst.dev_addr)) {
+		if(sendInquiry(lun)) {
+			return true;
+		}
+	}
+
+	inquiry.reset();
+	enumCallback = nullptr;
+	return true;
+}
+
 void HostDevice::end()
 {
+	HostInterface::end();
 	if(state == State::idle) {
 		return;
 	}
@@ -151,7 +187,7 @@ bool HostDevice::read_sectors(uint8_t lun, uint32_t lba, void* dst, size_t size)
 		return true;
 	};
 
-	if(!tuh_msc_read10(address, lun, dst, lba, size, callback, reinterpret_cast<uintptr_t>(this))) {
+	if(!tuh_msc_read10(inst.dev_addr, lun, dst, lba, size, callback, reinterpret_cast<uintptr_t>(this))) {
 		return false;
 	}
 
@@ -171,7 +207,7 @@ bool HostDevice::write_sectors(uint8_t lun, uint32_t lba, const void* src, size_
 		return true;
 	};
 
-	if(!tuh_msc_write10(address, lun, src, lba, size, callback, reinterpret_cast<uintptr_t>(this))) {
+	if(!tuh_msc_write10(inst.dev_addr, lun, src, lba, size, callback, reinterpret_cast<uintptr_t>(this))) {
 		return false;
 	}
 
@@ -185,17 +221,26 @@ using namespace USB::MSC;
 
 void tuh_msc_mount_cb(uint8_t dev_addr)
 {
-	auto dev = getDevice(dev_addr);
-	if(dev) {
-		dev->begin(dev_addr);
+	debug_i("%s(%u)", __FUNCTION__, dev_addr);
+
+	unsigned idx = dev_addr - 1;
+	if(idx >= ARRAY_SIZE(host_devices)) {
+		return;
+	}
+	if(mountCallback) {
+		HostDevice::Instance inst{dev_addr, 0, ""};
+		host_devices[idx] = mountCallback(inst);
 	}
 }
 
 void tuh_msc_umount_cb(uint8_t dev_addr)
 {
+	debug_i("%s(%u)", __FUNCTION__, dev_addr);
+
 	auto dev = getDevice(dev_addr);
 	if(dev) {
 		dev->end();
+		host_devices[dev_addr] = nullptr;
 	}
 }
 

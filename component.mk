@@ -25,8 +25,6 @@ CFG_TUSB_MCU := OPT_MCU_NONE
 GLOBAL_CFLAGS += -DTUP_DCD_ENDPOINT_MAX=16
 endif
 
-ifdef TUSB_FAMILY_PATH
-
 COMPONENT_VARS += USB_DEBUG_LEVEL
 USB_DEBUG_LEVEL ?= 0
 
@@ -71,5 +69,3 @@ COMPONENT_INCDIRS += \
 	src \
 	tinyusb/src \
 	tinyusb/lib/networking
-
-endif

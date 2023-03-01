@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Interface.h"
+#include "../DeviceInterface.h"
 
 namespace USB::MIDI
 {
@@ -19,7 +19,7 @@ enum class Event {
 	rx,
 };
 
-class Device : public Interface
+class Device : public DeviceInterface
 {
 public:
 	using Callback = Delegate<void()>;

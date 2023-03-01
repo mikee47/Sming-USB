@@ -1,15 +1,15 @@
 #pragma once
 
-#include "../Interface.h"
+#include "../DeviceInterface.h"
 
 namespace USB::HID
 {
-class Device : public Interface
+class Device : public DeviceInterface
 {
 public:
 	using ReportComplete = Delegate<void()>;
 
-	using Interface::Interface;
+	using DeviceInterface::DeviceInterface;
 
 	bool sendReport(uint8_t report_id, void const* report, uint16_t len, ReportComplete callback);
 

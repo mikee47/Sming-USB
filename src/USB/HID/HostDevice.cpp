@@ -4,8 +4,19 @@
 
 namespace USB::HID
 {
-HostDevice::MountCallback HostDevice::mountCallback;
-HostDevice::UnmountCallback HostDevice::unmountCallback;
+MountCallback mountCallback;
+UnmountCallback unmountCallback;
+HostDevice* host_devices[CFG_TUH_HID];
+
+void onMount(MountCallback callback)
+{
+	mountCallback = callback;
+}
+
+void onUnmount(UnmountCallback callback)
+{
+	unmountCallback = callback;
+}
 
 class InternalHostDevice : public HostDevice
 {
@@ -17,12 +28,7 @@ public:
 
 InternalHostDevice* getDevice(uint8_t inst)
 {
-	extern InternalHostDevice* host_devices[];
-	return (inst < CFG_TUH_HID) ? host_devices[inst] : nullptr;
-}
-
-HostDevice::HostDevice(uint8_t inst, const char* name): Interface(inst, name)
-{
+	return (inst < CFG_TUH_HID) ? static_cast<InternalHostDevice*>(host_devices[inst]) : nullptr;
 }
 
 } // namespace USB::HID
@@ -36,18 +42,26 @@ using namespace USB::HID;
 // therefore report_desc = NULL, desc_len = 0
 void tuh_hid_mount_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* report_desc, uint16_t desc_len)
 {
-	auto dev = getDevice(instance);
-	if(dev) {
-		dev->begin(Report{reinterpret_cast<const USB::Descriptor*>(report_desc), desc_len});
+	if(!mountCallback) {
+		return;
 	}
+
+	HostDevice::Instance inst{dev_addr, instance, "hid"};
+	Report report{reinterpret_cast<const USB::Descriptor*>(report_desc), desc_len};
+	host_devices[instance] = mountCallback(inst, report);
 }
 
 // Invoked when device with hid interface is un-mounted
 void tuh_hid_umount_cb(uint8_t dev_addr, uint8_t instance)
 {
 	auto dev = getDevice(instance);
-	if(dev) {
-		dev->end();
+	if(!dev) {
+		return;
+	}
+
+	dev->end();
+	if(unmountCallback) {
+		unmountCallback(*dev);
 	}
 }
 

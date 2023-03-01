@@ -4,36 +4,38 @@
 
 namespace USB::CDC
 {
-HostDevice::MountCallback HostDevice::mountCallback;
-HostDevice::UnmountCallback HostDevice::unmountCallback;
-
-class InternalHostDevice : public HostDevice
+namespace
 {
-public:
-	using HostDevice::begin;
-	using HostDevice::end;
-};
+MountCallback mountCallback;
+UnmountCallback unmountCallback;
+HostDevice* host_devices[CFG_TUH_CDC];
+} // namespace
 
-InternalHostDevice* getDevice(uint8_t inst)
+void onMount(MountCallback callback)
 {
-	extern InternalHostDevice* host_devices[];
-	return (inst < CFG_TUH_CDC) ? host_devices[inst] : nullptr;
+	mountCallback = callback;
 }
 
-HostDevice::HostDevice(uint8_t instance, const char* name) : UsbSerial(instance, name)
+void onUnmount(UnmountCallback callback)
 {
+	unmountCallback = callback;
+}
+
+HostDevice* getDevice(uint8_t idx)
+{
+	return (idx < CFG_TUH_CDC) ? host_devices[idx] : nullptr;
 }
 
 size_t HostDevice::write(const uint8_t* buffer, size_t size)
 {
 	size_t written{0};
 	while(size != 0) {
-		size_t n = tuh_cdc_write_available(inst);
+		size_t n = tuh_cdc_write_available(inst.idx);
 		if(n == 0) {
-			tuh_cdc_write_flush(inst);
+			tuh_cdc_write_flush(inst.idx);
 		} else {
 			n = std::min(n, size);
-			tuh_cdc_write(inst, buffer, n);
+			tuh_cdc_write(inst.idx, buffer, n);
 			written += n;
 			buffer += n;
 			size -= n;
@@ -53,33 +55,41 @@ size_t HostDevice::write(const uint8_t* buffer, size_t size)
 
 using namespace USB::CDC;
 
-void tuh_cdc_mount_cb(uint8_t inst)
+void tuh_cdc_mount_cb(uint8_t idx)
 {
-	auto dev = getDevice(inst);
-	if(dev) {
-		dev->begin();
+	if(idx >= ARRAY_SIZE(host_devices)) {
+		return;
+	}
+	if(mountCallback) {
+		USB::HostInterface::Instance inst{0, idx, ""};
+		host_devices[idx] = mountCallback(inst);
 	}
 }
 
-void tuh_cdc_umount_cb(uint8_t inst)
+void tuh_cdc_umount_cb(uint8_t idx)
 {
-	auto dev = getDevice(inst);
-	if(dev) {
-		dev->end();
+	auto dev = getDevice(idx);
+	if(!dev) {
+		return;
 	}
+	dev->end();
+	if(unmountCallback) {
+		unmountCallback(*dev);
+	}
+	host_devices[idx] = nullptr;
 }
 
-void tuh_cdc_rx_cb(uint8_t inst)
+void tuh_cdc_rx_cb(uint8_t idx)
 {
-	auto dev = getDevice(inst);
+	auto dev = getDevice(idx);
 	if(dev) {
 		dev->handleEvent(Event::rx_data);
 	}
 }
 
-void tuh_cdc_tx_complete_cb(uint8_t inst)
+void tuh_cdc_tx_complete_cb(uint8_t idx)
 {
-	auto dev = getDevice(inst);
+	auto dev = getDevice(idx);
 	if(dev) {
 		dev->handleEvent(Event::tx_done);
 	}

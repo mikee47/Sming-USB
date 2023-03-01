@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../Interface.h"
+#include "../DeviceInterface.h"
 
 namespace USB::DFU
 {
-class Device : public Interface
+class Device : public DeviceInterface
 {
 public:
 	Device(uint8_t inst, const char* name);

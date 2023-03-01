@@ -17,6 +17,8 @@ void tuh_umount_cb(uint8_t dev_addr)
 namespace
 {
 SimpleTimer timer;
+USB::CDC::HostDevice cdc0;
+USB::MSC::HostDevice msc0;
 
 } // namespace
 
@@ -31,13 +33,36 @@ void init()
 	bool res = USB::begin();
 	debug_i("USB::begin(): %u", res);
 
-#if CFG_TUH_CDC
-	// USB::cdc0.systemDebugOutput(true);
-	USB::cdc0.onDataReceived([](Stream& stream, char arrivedChar, unsigned short availableCharsCount) {
-		char buf[availableCharsCount];
-		auto n = stream.readBytes(buf, availableCharsCount);
-		Serial.write(buf, n);
+#if CFG_TUH_MSC
+	USB::MSC::onMount([](auto& inst) {
+		debug_i("MSC mount %u", inst.dev_addr);
+		msc0.begin(inst);
+		msc0.enumerate([](USB::MSC::LogicalUnit& unit, USB::MSC::Inquiry inquiry) {
+			Serial << unit << endl;
+			for(auto part : unit.partitions()) {
+				Serial << part << endl;
+			}
+
+			return true; // Continue enumerating
+		});
+		return &msc0;
 	});
+#endif
+
+#if CFG_TUH_CDC
+	USB::CDC::onMount([](auto& inst) {
+		debug_i("CDC mount %u", inst.idx);
+		cdc0.begin(inst);
+		// cdc0.systemDebugOutput(true);
+		cdc0.onDataReceived([](Stream& stream, char arrivedChar, unsigned short availableCharsCount) {
+			char buf[availableCharsCount];
+			auto n = stream.readBytes(buf, availableCharsCount);
+			Serial.write(buf, n);
+		});
+		return &cdc0;
+	});
+	USB::CDC::onUnmount([](USB::CDC::HostDevice& dev) { dev.systemDebugOutput(false); });
+
 	Serial.onDataReceived([](Stream& stream, char arrivedChar, unsigned short availableCharsCount) {
 		Serial.read();
 		System.queueCallback([](uint32_t param) { Serial.write(char(param)); }, arrivedChar);

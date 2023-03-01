@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../Interface.h"
+#include "../DeviceInterface.h"
 
 namespace USB::NCM
 {
-class Device : public Interface
+class Device : public DeviceInterface
 {
 public:
-	using Interface::Interface;
+	using Interface::DeviceInterface;
 };
 
 } // namespace USB::NCM

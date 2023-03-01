@@ -22,7 +22,7 @@ InternalDevice* getDevice(uint8_t inst)
  * The problem is also difficult to detect during compile time.
  * One reason to avoid weak symbols if possible.
  */
-Device::Device(uint8_t instance, const char* name) : Interface(instance, name)
+Device::Device(uint8_t instance, const char* name) : DeviceInterface(instance, name)
 {
 }
 

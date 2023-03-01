@@ -299,31 +299,30 @@ def main():
     code_classes = set(f'{item.namespace()}/{item.code_class}' for item in classdefs)
     vars = {
         'includes': "\n".join(f'#include <USB/{c}.h>' for c in code_classes),
-        'classdefs': "\n".join(f'extern {item.namespace()}::{item.code_class} {item.tag};' for item in classdefs),
+        'classdefs': "\n".join(f'extern {item.namespace()}::{item.code_class} {item.tag};' for item in classdefs if not item.is_host),
     }
     classdefs_h = readTemplate('classdefs.h', vars)
     write_file(args.output, 'usb_classdefs.h', classdefs_h)
 
     class_types = {}
     for item in classdefs:
-        class_types.setdefault(item.namespace(), []).append(item)
-    txt = ""
-    for ns, items in class_types.items():
-        for inst, item in enumerate(items):
-            txt += f'{ns}::{item.code_class} {item.tag}({inst}, "{item.tag}");\n'
-        txt += f'namespace {ns} {{\n'
-        devices = ", ".join(f'&{item.tag}' for item in items if not item.is_host)
-        if devices:
-            txt += f'  void* devices[] {{{devices}}};\n'
-        host_devices = ", ".join(f'&{item.tag}' for item in items if item.is_host)
-        if host_devices:
-            txt += f'  void* host_devices[] {{{host_devices}}};\n'
-        txt += '}\n'
-    vars = {
-        'classdefs': txt
-    }
-    classdefs_cpp = readTemplate('classdefs.cpp', vars)
-    write_file(args.output, 'usb_classdefs.cpp', classdefs_cpp)
+        if not item.is_host:
+            class_types.setdefault(item.namespace(), []).append(item)
+    if class_types:
+        txt = ""
+        for ns, items in class_types.items():
+            for inst, item in enumerate(items):
+                txt += f'{ns}::{item.code_class} {item.tag}({inst}, "{item.tag}");\n'
+            txt += f'namespace {ns} {{\n'
+            devices = ", ".join(f'&{item.tag}' for item in items)
+            if devices:
+                txt += f'  void* devices[] {{{devices}}};\n'
+            txt += '}\n'
+        vars = {
+            'classdefs': txt
+        }
+        classdefs_cpp = readTemplate('classdefs.cpp', vars)
+        write_file(args.output, 'usb_classdefs.cpp', classdefs_cpp)
 
     config_h = readTemplate('config.h', cfg_vars)
     write_file(args.output, 'tusb_config.h', config_h)

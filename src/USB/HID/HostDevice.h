@@ -1,47 +1,21 @@
 #pragma once
 
-#include "../Interface.h"
+#include "../HostInterface.h"
 
 namespace USB::HID
 {
 using Report = DescriptorList;
 
-class HostDevice : public Interface
+class HostDevice : public HostInterface
 {
 public:
-	using MountCallback = Delegate<void(HostDevice& dev, const Report& report)>;
-	using UnmountCallback = Delegate<void(HostDevice& dev)>;
 	using ReportReceived = Delegate<void(const Report& report)>;
 
-	HostDevice(uint8_t inst, const char* name);
-
-	static void onMount(MountCallback callback)
-	{
-		mountCallback = callback;
-	}
-
-	static void onUnmount(UnmountCallback callback)
-	{
-		unmountCallback = callback;
-	}
+	using HostInterface::HostInterface;
 
 	bool requestReport(ReportReceived callback);
 
 protected:
-	void begin(DescriptorList report)
-	{
-		if(mountCallback) {
-			mountCallback(*this, report);
-		}
-	}
-
-	void end()
-	{
-		if(unmountCallback) {
-			unmountCallback(*this);
-		}
-	}
-
 	void reportReceived(DescriptorList report)
 	{
 		if(reportReceivedCallback) {
@@ -50,9 +24,13 @@ protected:
 	}
 
 private:
-	static MountCallback mountCallback;
-	static UnmountCallback unmountCallback;
 	ReportReceived reportReceivedCallback;
 };
+
+using MountCallback = Delegate<HostDevice*(const HostInterface::Instance& inst, const Report& report)>;
+using UnmountCallback = Delegate<void(HostDevice& dev)>;
+
+void onMount(MountCallback callback);
+void onUnmount(UnmountCallback callback);
 
 } // namespace USB::HID

@@ -1,13 +1,14 @@
 #pragma once
 
 #include "UsbSerial.h"
+#include "../DeviceInterface.h"
 
 namespace USB::CDC
 {
-class Device : public UsbSerial
+class Device : public DeviceInterface, public UsbSerial
 {
 public:
-	Device(uint8_t instance, const char* name);
+	Device(uint8_t idx, const char* name);
 
 	size_t setRxBufferSize(size_t size) override
 	{

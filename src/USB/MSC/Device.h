@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Storage/Device.h>
-#include "../Interface.h"
+#include "../DeviceInterface.h"
 
 namespace USB::MSC
 {
@@ -47,10 +47,10 @@ struct LogicalUnit {
 	}
 };
 
-class Device : public Interface
+class Device : public DeviceInterface
 {
 public:
-	using Interface::Interface;
+	using DeviceInterface::DeviceInterface;
 
 	static bool setLogicalUnit(uint8_t lun, LogicalUnit unit);
 

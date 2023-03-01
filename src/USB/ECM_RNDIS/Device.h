@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../Interface.h"
+#include "../DeviceInterface.h"
 
 namespace USB::ECM_RNDIS
 {
-class Device : public Interface
+class Device : public DeviceInterface
 {
 public:
-	using Interface::Interface;
+	using DeviceInterface::DeviceInterface;
 };
 
 } // namespace USB::ECM_RNDIS

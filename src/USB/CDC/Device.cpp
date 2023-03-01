@@ -10,7 +10,7 @@ Device* getDevice(uint8_t inst)
 	return (inst < CFG_TUD_CDC) ? devices[inst] : nullptr;
 }
 
-Device::Device(uint8_t instance, const char* name) : UsbSerial(instance, name)
+Device::Device(uint8_t idx, const char* name) : DeviceInterface(idx, name), UsbSerial()
 {
 }
 
