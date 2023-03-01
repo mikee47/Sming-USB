@@ -44,6 +44,11 @@ public:
 		return inst == other.inst;
 	}
 
+	bool operator==(const Instance& other) const
+	{
+		return inst == other;
+	}
+
 protected:
 	Instance inst;
 };

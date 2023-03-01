@@ -19,6 +19,7 @@ namespace
 SimpleTimer timer;
 USB::CDC::HostDevice cdc0;
 USB::MSC::HostDevice msc0;
+USB::HID::HostDevice hid0;
 
 } // namespace
 
@@ -32,6 +33,24 @@ void init()
 
 	bool res = USB::begin();
 	debug_i("USB::begin(): %u", res);
+
+#if CFG_TUH_HID
+	USB::HID::onMount([](auto& inst, auto report) -> USB::HID::HostDevice* {
+		auto protocol = tuh_hid_interface_protocol(inst.dev_addr, inst.idx);
+		debug_i("HID mounted, inst %u/%u, protocol %u", inst.dev_addr, inst.idx, protocol);
+		m_printHex("RPT", report.desc, report.length);
+		if(protocol != HID_ITF_PROTOCOL_KEYBOARD) {
+			return nullptr;
+		}
+		hid0.begin(inst);
+		hid0.onReport([](auto& rpt) {
+			debug_i("Report received, %u bytes", rpt.length);
+			hid0.requestReport();
+		});
+		hid0.requestReport();
+		return &hid0;
+	});
+#endif
 
 #if CFG_TUH_MSC
 	USB::MSC::onMount([](auto& inst) {

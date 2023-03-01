@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../HostInterface.h"
+#include <debug_progmem.h>
 
 namespace USB::HID
 {
@@ -13,9 +14,16 @@ public:
 
 	using HostInterface::HostInterface;
 
-	bool requestReport(ReportReceived callback);
+	bool requestReport()
+	{
+		return tuh_hid_receive_report(inst.dev_addr, inst.idx);
+	}
 
-protected:
+	void onReport(ReportReceived callback)
+	{
+		reportReceivedCallback = callback;
+	}
+
 	void reportReceived(DescriptorList report)
 	{
 		if(reportReceivedCallback) {

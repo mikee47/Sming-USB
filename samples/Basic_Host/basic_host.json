@@ -1,24 +1,8 @@
 {
     "host": {
-        "hid0": {
-            "description": "HID interface", // optional
-            "class": "hid"
-        },
-        "hid1": {
-            "class": "hid"
-        },
-        "cdc0": {
-            "description": "CDC0",
-            "class": "cdc"
-        },
-        "cdc1": {
-            "description": "CDC1",
-            "class": "cdc"
-        },
-        "msc0": {
-            "description": "TinyUSB MSC",
-            "class": "msc"
-        }
+        "hid": 4,
+        "cdc": 2,
+        "msc": 1
         // "midi0": {
         //     "description": "TinyUSB MIDI device",
         //     "class": "midi"

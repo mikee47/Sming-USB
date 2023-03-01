@@ -266,11 +266,9 @@ def parse_host(config, cfg_vars, classdefs, output_dir):
 
     if 'host' in config:
         host_enabled = 1
-        class_counts = {}
-        for tag, dev in config['host'].items():
-            dev_class = dev['class']
-            class_counts[dev_class] = class_counts.get(dev_class, 0) + 1
-            classdefs.append(ClassItem(dev['class'], 'HostDevice', tag, True))
+        class_counts = config['host']
+        for dev_class in class_counts:
+            classdefs.append(ClassItem(dev_class, 'HostDevice', dev_class, True))
         for c, n in class_counts.items():
             classes += f"#define CFG_TUH_{make_id(c)} {n}\n"
 
