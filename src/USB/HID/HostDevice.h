@@ -5,7 +5,9 @@
 
 namespace USB::HID
 {
-using Report = DescriptorList;
+struct Report : public DescriptorList {
+	unsigned parse(tuh_hid_report_info_t report_info_arr[], unsigned arr_count) const;
+};
 
 class HostDevice : public HostInterface
 {
@@ -24,7 +26,7 @@ public:
 		reportReceivedCallback = callback;
 	}
 
-	void reportReceived(DescriptorList report)
+	void reportReceived(const Report& report)
 	{
 		if(reportReceivedCallback) {
 			reportReceivedCallback(report);

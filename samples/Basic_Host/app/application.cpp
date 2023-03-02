@@ -39,6 +39,14 @@ void init()
 		auto protocol = tuh_hid_interface_protocol(inst.dev_addr, inst.idx);
 		debug_i("HID mounted, inst %u/%u, protocol %u", inst.dev_addr, inst.idx, protocol);
 		m_printHex("RPT", report.desc, report.length);
+
+		tuh_hid_report_info_t info[8];
+		auto n = report.parse(info, ARRAY_SIZE(info));
+		Serial << "HID has " << n << " reports" << endl;
+		for(unsigned i = 0; i < n; ++i) {
+			auto& r = info[i];
+			Serial << "  ID " << r.report_id << ", Usage " << r.usage << ", Page " << r.usage_page << endl;
+		}
 		if(protocol != HID_ITF_PROTOCOL_KEYBOARD) {
 			return nullptr;
 		}
