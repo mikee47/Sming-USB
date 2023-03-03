@@ -49,6 +49,22 @@ const char* getDescTypeName(uint8_t type)
 	}
 }
 
+const char* getXferTypeName(uint8_t type)
+{
+	switch(type) {
+	case TUSB_XFER_CONTROL:
+		return "CTRL";
+	case TUSB_XFER_ISOCHRONOUS:
+		return "ISO";
+	case TUSB_XFER_BULK:
+		return "BULK";
+	case TUSB_XFER_INTERRUPT:
+		return "INT";
+	default:
+		return "?";
+	}
+}
+
 const uint8_t xbox360_desc_data[]{
 	0x09, 0x02, 0x99, 0x00, 0x04, 0x01, 0x00, 0xA0, 0xFA, 0x09, 0x04, 0x00, 0x00, 0x02, 0xFF, 0x5D, 0x01,
 	0x00, 0x11, 0x21, 0x00, 0x01, 0x01, 0x25, 0x81, 0x14, 0x00, 0x00, 0x00, 0x00, 0x13, 0x01, 0x08, 0x00,
@@ -71,10 +87,18 @@ void parse_xbox360()
 		m_printHex(getDescTypeName(desc->type), desc, desc->length, -1, 32);
 		switch(desc->type) {
 		case TUSB_DESC_INTERFACE: {
-			auto itf = reinterpret_cast<const tusb_desc_interface_t*>(desc);
+			auto itf = desc->as<tusb_desc_interface_t>();
 			Serial << "  #" << itf->bInterfaceNumber << ", class " << itf->bInterfaceClass << ", subclass "
 				   << itf->bInterfaceSubClass << ", protocol " << itf->bInterfaceProtocol << endl;
 			break;
+		}
+
+		case TUSB_DESC_ENDPOINT: {
+			auto ep = desc->as<tusb_desc_endpoint_t>();
+			Serial << "  Addr " << String(ep->bEndpointAddress, HEX, 2) << ", xfer " << ep->bmAttributes.xfer << ' '
+				   << getXferTypeName(ep->bmAttributes.xfer) << ", sync " << ep->bmAttributes.sync << ", usage "
+				   << ep->bmAttributes.usage << ", MaxPacketSize " << ep->wMaxPacketSize << ", interval "
+				   << ep->bInterval << endl;
 		}
 
 		default:;
@@ -90,22 +114,50 @@ struct Info {
 };
 Info info{};
 
+void vendorControl(uint8_t dev_addr, tusb_request_recipient_t recipient, uint16_t value, uint16_t length,
+				   tuh_xfer_cb_t complete_cb, uint8_t state)
+{
+	static uint8_t buffer[20]{};
+	const tusb_control_request_t request = {
+		.bmRequestType_bit = {.recipient = recipient, .type = TUSB_REQ_TYPE_VENDOR, .direction = TUSB_DIR_IN},
+		.bRequest = 1,
+		.wValue = tu_htole16(value),
+		.wIndex = tu_htole16(0),
+		.wLength = tu_htole16(length),
+	};
+
+	tuh_xfer_t xfer = {
+		.daddr = dev_addr,
+		.ep_addr = 0,
+		.setup = &request,
+		.buffer = buffer,
+		.complete_cb = complete_cb,
+		.user_data = state,
+	};
+
+	tuh_control_xfer(&xfer);
+}
+
 void transferCallback(tuh_xfer_t* xfer)
 {
+	debug_i("%s(%u)", __FUNCTION__, xfer->user_data);
 	switch(xfer->user_data) {
 	case 0:
-		tuh_descriptor_get_manufacturer_string(xfer->daddr, 0, info.manf, sizeof(info.manf), transferCallback, 1);
+		vendorControl(xfer->daddr, TUSB_REQ_RCPT_INTERFACE, 0, 8, transferCallback, 1);
 		break;
-
 	case 1:
-		tuh_descriptor_get_product_string(xfer->daddr, 0, info.product, sizeof(info.product), transferCallback, 2);
+		vendorControl(xfer->daddr, TUSB_REQ_RCPT_DEVICE, 0, 4, transferCallback, 2);
 		break;
-
 	case 2:
-		tuh_descriptor_get_serial_string(xfer->daddr, 0, info.serial, sizeof(info.serial), transferCallback, 3);
+		tuh_descriptor_get_manufacturer_string(xfer->daddr, 0, info.manf, sizeof(info.manf), transferCallback, 3);
 		break;
-
 	case 3:
+		tuh_descriptor_get_product_string(xfer->daddr, 0, info.product, sizeof(info.product), transferCallback, 4);
+		break;
+	case 4:
+		tuh_descriptor_get_serial_string(xfer->daddr, 0, info.serial, sizeof(info.serial), transferCallback, 5);
+		break;
+	case 5:
 		m_printHex("MANF", info.manf, xfer->actual_len);
 		m_printHex("PROD", info.product, xfer->actual_len);
 		m_printHex("SER", info.serial, xfer->actual_len);
@@ -120,10 +172,12 @@ void tuh_mount_cb(uint8_t dev_addr)
 	uint16_t vid{};
 	uint16_t pid{};
 	tuh_vid_pid_get(dev_addr, &vid, &pid);
-
-	tuh_configuration_set(dev_addr, 0, transferCallback, 0);
-
 	debug_i("A device with address %u is mounted, %04x:%04x", dev_addr, vid, pid);
+
+	// XBOX 360 controller
+	if(vid == 0x045e && pid == 0x028e) {
+		vendorControl(dev_addr, TUSB_REQ_RCPT_INTERFACE, 0x100, 20, transferCallback, 0);
+	}
 }
 
 void tuh_umount_cb(uint8_t dev_addr)

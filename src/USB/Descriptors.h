@@ -39,6 +39,11 @@ struct Descriptor {
 	{
 		return (length < 2) ? 0 : length - 2;
 	}
+
+	template <typename T> const T* as() const
+	{
+		return reinterpret_cast<const T*>(this);
+	}
 };
 
 /**
