@@ -15,9 +15,30 @@ using GetDeviceDescriptor = Delegate<const tusb_desc_device_t*(const tusb_desc_d
  * @brief Structure of a USB descriptor
 */
 struct Descriptor {
+	union Type {
+		uint8_t value;
+		struct {
+			uint8_t id : 5;
+			uint8_t type : 2; // tusb_request_type_t
+			uint8_t reserved : 1;
+		};
+	};
+
+	static_assert(sizeof(Type) == 1, "Bad alignment");
+
 	uint8_t length; ///< Total size (in bytes) including this header
 	uint8_t type;   ///< e.g. TUSB_DESC_STRING
-					// Content follows
+	// uint8_t content[];
+
+	const uint8_t* data() const
+	{
+		return &length + 2;
+	}
+
+	unsigned dataLength() const
+	{
+		return (length < 2) ? 0 : length - 2;
+	}
 };
 
 /**
@@ -26,6 +47,36 @@ struct Descriptor {
 struct DescriptorList {
 	const Descriptor* desc;
 	size_t length;
+};
+
+class DescriptorEnum
+{
+public:
+	DescriptorEnum(DescriptorList list) : list(list)
+	{
+	}
+
+	void reset()
+	{
+		offset = 0;
+	}
+
+	const Descriptor* next()
+	{
+		if(offset >= list.length) {
+			return nullptr;
+		}
+
+		auto ptr = reinterpret_cast<const uint8_t*>(list.desc);
+		ptr += offset;
+		auto desc = reinterpret_cast<const Descriptor*>(ptr);
+		offset += desc->length;
+		return (offset <= list.length) ? desc : nullptr;
+	}
+
+private:
+	DescriptorList list;
+	size_t offset{0};
 };
 
 /**
