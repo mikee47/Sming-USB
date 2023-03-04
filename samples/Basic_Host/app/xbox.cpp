@@ -28,7 +28,7 @@ bool Xbox::init(uint8_t dev_addr)
 	daddr = dev_addr;
 	state = 0;
 
-	const tusb_desc_endpoint_t ep_desc = {
+	tusb_desc_endpoint_t ep_desc = {
 		.bLength = sizeof(tusb_desc_endpoint_t),
 		.bDescriptorType = TUSB_DESC_ENDPOINT,
 		.bEndpointAddress = ep_in,
@@ -41,6 +41,8 @@ bool Xbox::init(uint8_t dev_addr)
 		.wMaxPacketSize = 64,
 		.bInterval = 0,
 	};
+	TU_ASSERT(tuh_edpt_open(daddr, &ep_desc));
+	ep_desc.bEndpointAddress = ep_out;
 	TU_ASSERT(tuh_edpt_open(daddr, &ep_desc));
 
 	control(TUSB_REQ_RCPT_INTERFACE, 0x100, 20);
@@ -82,23 +84,8 @@ void Xbox::control_cb(tuh_xfer_t* xfer)
 		control(TUSB_REQ_RCPT_DEVICE, 0, 4);
 		break;
 	case 2:
+		setled(LedCommand::rotate2);
 		read();
-
-		// case 2:
-		//     tuh_descriptor_get_manufacturer_string(xfer->daddr, 0, info.manf, sizeof(info.manf), static_control_cb,
-		//                                         uintptr_t(this));
-		//     break;
-		// case 3:
-		// 	tuh_descriptor_get_product_string(xfer->daddr, 0, info.product, sizeof(info.product), transferCallback, 4);
-		// 	break;
-		// case 4:
-		// 	tuh_descriptor_get_serial_string(xfer->daddr, 0, info.serial, sizeof(info.serial), transferCallback, 5);
-		// 	break;
-		// case 5:
-		// 	m_printHex("MANF", info.manf, xfer->actual_len);
-		// 	m_printHex("PROD", info.product, xfer->actual_len);
-		// 	m_printHex("SER", info.serial, xfer->actual_len);
-		// 	break;
 	}
 }
 
@@ -108,7 +95,7 @@ bool Xbox::read()
 
 	auto callback = [](tuh_xfer_t* xfer) {
 		auto self = reinterpret_cast<Xbox*>(xfer->user_data);
-		m_printHex("RX", self->buffer, xfer->actual_len);
+		debug_hex(DBG, "RX", self->buffer, xfer->actual_len);
 		self->process_packet();
 		self->read();
 	};
@@ -121,111 +108,95 @@ bool Xbox::read()
 	return true;
 }
 
+template <typename T> bool compare(T a, T b)
+{
+	return a == b;
+}
+
+template <> bool compare(int16_t a, int16_t b)
+{
+	return abs(a - b) < 256;
+}
+
 void Xbox::process_packet()
 {
 	auto data = buffer;
 
-#define INPUT_MAP(XX)                                                                                                  \
-	XX(ABS_HAT0X)                                                                                                      \
-	XX(ABS_HAT0Y)                                                                                                      \
-	XX(BTN_START)                                                                                                      \
-	XX(BTN_BACK)                                                                                                     \
-	XX(BTN_THUMBL)                                                                                                     \
-	XX(BTN_THUMBR)                                                                                                     \
-	XX(BTN_A)                                                                                                          \
-	XX(BTN_B)                                                                                                          \
-	XX(BTN_X)                                                                                                          \
-	XX(BTN_Y)                                                                                                          \
-	XX(BTN_TL)                                                                                                         \
-	XX(BTN_TR)                                                                                                         \
-	XX(BTN_MODE)                                                                                                       \
-	XX(ABS_X)                                                                                                          \
-	XX(ABS_Y)                                                                                                          \
-	XX(ABS_RX)                                                                                                         \
-	XX(ABS_RY)                                                                                                         \
-	XX(ABS_Z)                                                                                                          \
-	XX(ABS_RZ)
-
-	struct Inputs {
-#define XX(tag) int tag;
-		INPUT_MAP(XX)
-#undef XX
-	};
-
 	Inputs inputs{
-		.ABS_HAT0X = !!(data[2] & 0x08) - !!(data[2] & 0x04),
-		.ABS_HAT0Y = !!(data[2] & 0x02) - !!(data[2] & 0x01),
+		.dpad_up = !!(data[2] & 0x01),
+		.dpad_down = !!(data[2] & 0x02),
+		.dpad_left = !!(data[2] & 0x04),
+		.dpad_right = !!(data[2] & 0x08),
 
 		/* start/back buttons */
-		.BTN_START = bool(data[2] & BIT(4)),
-		.BTN_BACK = bool(data[2] & BIT(5)),
+		.btn_start = !!(data[2] & BIT(4)),
+		.btn_back = !!(data[2] & BIT(5)),
 
 		/* stick press left/right */
-		.BTN_THUMBL = bool(data[2] & BIT(6)),
-		.BTN_THUMBR = bool(data[2] & BIT(7)),
+		.btn_stick_left = bool(data[2] & BIT(6)),
+		.btn_stick_right = bool(data[2] & BIT(7)),
 
 		/* buttons A,B,X,Y,TL,TR and MODE */
-		.BTN_A = bool(data[3] & BIT(4)),
-		.BTN_B = bool(data[3] & BIT(5)),
-		.BTN_X = bool(data[3] & BIT(6)),
-		.BTN_Y = bool(data[3] & BIT(7)),
-		.BTN_TL = bool(data[3] & BIT(0)),
-		.BTN_TR = bool(data[3] & BIT(1)),
-		.BTN_MODE = bool(data[3] & BIT(2)),
-
-		/* left stick */
-		.ABS_X = int16_t(data[6] | (data[7] << 8)),
-		.ABS_Y = int16_t(~(data[8] | (data[9] << 8))),
-
-		/* right stick */
-		.ABS_RX = int16_t(data[10] | (data[11] << 8)),
-		.ABS_RY = int16_t(~(data[12] | (data[13] << 8))),
+		.btn_a = !!(data[3] & BIT(4)),
+		.btn_b = !!(data[3] & BIT(5)),
+		.btn_x = !!(data[3] & BIT(6)),
+		.btn_y = !!(data[3] & BIT(7)),
+		.btn_trig_left = !!(data[3] & BIT(0)),
+		.btn_trig_right = !!(data[3] & BIT(1)),
+		.btn_mode = !!(data[3] & BIT(2)),
 
 		/* triggers left/right */
-		.ABS_Z = data[4],
-		.ABS_RZ = data[5],
+		.trig_left = data[4],
+		.trig_right = data[5],
+
+		/* left stick */
+		.stick_left_x = int16_t(data[6] | (data[7] << 8)),
+		.stick_left_y = int16_t(~(data[8] | (data[9] << 8))),
+
+		/* right stick */
+		.stick_right_x = int16_t(data[10] | (data[11] << 8)),
+		.stick_right_y = int16_t(~(data[12] | (data[13] << 8))),
 	};
 
-	Serial << "XBOX Inputs:" << endl;
-#define XX(tag) Serial << "  " #tag ": " << inputs.tag << endl;
-	INPUT_MAP(XX)
+#define XX(tag, ...)                                                                                                   \
+	if(!compare(inputs.tag, prevInputs.tag)) {                                                                         \
+		Serial << #tag ": " << inputs.tag << endl;                                                                     \
+	}
+	XBOX360_INPUT_MAP(XX)
 #undef XX
+	prevInputs = inputs;
 }
 
-/*
- * set the LEDs on Xbox360 / Wireless Controllers
- * @param command
- *  0: off
- *  1: all blink, then previous setting
- *  2: 1/top-left blink, then on
- *  3: 2/top-right blink, then on
- *  4: 3/bottom-left blink, then on
- *  5: 4/bottom-right blink, then on
- *  6: 1/top-left on
- *  7: 2/top-right on
- *  8: 3/bottom-left on
- *  9: 4/bottom-right on
- * 10: rotate
- * 11: blink, based on previous setting
- * 12: slow blink, based on previous setting
- * 13: rotate with two lights
- * 14: persistent slow all blink
- * 15: blink once, then previous setting
- */
+bool Xbox::output(const void* data, uint8_t length)
+{
+	TU_VERIFY(usbh_edpt_claim(daddr, ep_out));
+
+	auto callback = [](tuh_xfer_t* xfer) {};
+
+	memcpy(output_buffer, data, length);
+	if(!usbh_edpt_xfer_with_callback(daddr, ep_out, output_buffer, length, callback, uintptr_t(this))) {
+		usbh_edpt_release(daddr, ep_out);
+		return false;
+	}
+
+	return true;
+}
+
 bool Xbox::setled(LedCommand cmd)
 {
-	// struct xpad_output_packet *packet = &xpad->out_packets[XPAD_OUT_LED_IDX];
-	// unsigned long flags;
+	const uint8_t data[] = {
+		0x01,
+		0x03,
+		uint8_t(cmd),
+	};
+	return output(data, ARRAY_SIZE(data));
+}
 
-	// command %= 16;
+bool Xbox::rumble(uint8_t strong, uint8_t weak)
+{
+	const uint8_t data[] = {
+		0x00, 0x08, 0x00, strong, weak, 0x00, 0x00, 0x00,
+	};
 
-	// packet->data[0] = 0x01;
-	// packet->data[1] = 0x03;
-	// packet->data[2] = command;
-	// packet->len = 3;
-	// packet->pending = true;
-
-	// xpad_try_sending_next_out_packet(xpad);
-
-	return false;
+	return output(data, ARRAY_SIZE(data));
 }
