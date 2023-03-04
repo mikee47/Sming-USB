@@ -1,6 +1,7 @@
 #include <SmingCore.h>
 #include <USB.h>
 #include <Storage/SpiFlash.h>
+#include <host/usbh_classdriver.h>
 
 namespace
 {
@@ -114,8 +115,54 @@ struct Info {
 };
 Info info{};
 
-void vendorControl(uint8_t dev_addr, tusb_request_recipient_t recipient, uint16_t value, uint16_t length,
-				   tuh_xfer_cb_t complete_cb, uint8_t state)
+class Xbox
+{
+public:
+	bool init(uint8_t dev_addr);
+	bool read();
+
+private:
+	void control(tusb_request_recipient_t recipient, uint16_t value, uint16_t length);
+	void control_cb(tuh_xfer_t* xfer);
+
+	static void static_control_cb(tuh_xfer_t* xfer)
+	{
+		auto self = reinterpret_cast<Xbox*>(xfer->user_data);
+		self->control_cb(xfer);
+	}
+
+	static constexpr size_t bufSize{64};
+	uint8_t buffer[bufSize];
+	uint8_t daddr;
+	uint8_t ep_in{0x81};
+	uint8_t state{0};
+};
+
+bool Xbox::init(uint8_t dev_addr)
+{
+	daddr = dev_addr;
+
+	const tusb_desc_endpoint_t ep_desc = {
+		.bLength = sizeof(tusb_desc_endpoint_t),
+		.bDescriptorType = TUSB_DESC_ENDPOINT,
+		.bEndpointAddress = ep_in,
+		.bmAttributes =
+			{
+				.xfer = TUSB_XFER_INTERRUPT,
+				.sync = 0,
+				.usage = 0,
+			},
+		.wMaxPacketSize = 64,
+		.bInterval = 0,
+	};
+	TU_ASSERT(tuh_edpt_open(daddr, &ep_desc));
+
+	control(TUSB_REQ_RCPT_INTERFACE, 0x100, 20);
+
+	return true;
+}
+
+void Xbox::control(tusb_request_recipient_t recipient, uint16_t value, uint16_t length)
 {
 	static uint8_t buffer[20]{};
 	const tusb_control_request_t request = {
@@ -127,43 +174,67 @@ void vendorControl(uint8_t dev_addr, tusb_request_recipient_t recipient, uint16_
 	};
 
 	tuh_xfer_t xfer = {
-		.daddr = dev_addr,
+		.daddr = daddr,
 		.ep_addr = 0,
 		.setup = &request,
 		.buffer = buffer,
-		.complete_cb = complete_cb,
-		.user_data = state,
+		.complete_cb = static_control_cb,
+		.user_data = uintptr_t(this),
 	};
 
 	tuh_control_xfer(&xfer);
 }
 
-void transferCallback(tuh_xfer_t* xfer)
+void Xbox::control_cb(tuh_xfer_t* xfer)
 {
 	debug_i("%s(%u)", __FUNCTION__, xfer->user_data);
-	switch(xfer->user_data) {
+	switch(state++) {
 	case 0:
-		vendorControl(xfer->daddr, TUSB_REQ_RCPT_INTERFACE, 0, 8, transferCallback, 1);
+		control(TUSB_REQ_RCPT_INTERFACE, 0, 8);
 		break;
 	case 1:
-		vendorControl(xfer->daddr, TUSB_REQ_RCPT_DEVICE, 0, 4, transferCallback, 2);
+		control(TUSB_REQ_RCPT_DEVICE, 0, 4);
 		break;
 	case 2:
-		tuh_descriptor_get_manufacturer_string(xfer->daddr, 0, info.manf, sizeof(info.manf), transferCallback, 3);
+		tuh_descriptor_get_manufacturer_string(xfer->daddr, 0, info.manf, sizeof(info.manf), static_control_cb,
+											   uintptr_t(this));
 		break;
 	case 3:
-		tuh_descriptor_get_product_string(xfer->daddr, 0, info.product, sizeof(info.product), transferCallback, 4);
-		break;
-	case 4:
-		tuh_descriptor_get_serial_string(xfer->daddr, 0, info.serial, sizeof(info.serial), transferCallback, 5);
-		break;
-	case 5:
-		m_printHex("MANF", info.manf, xfer->actual_len);
-		m_printHex("PROD", info.product, xfer->actual_len);
-		m_printHex("SER", info.serial, xfer->actual_len);
-		break;
+		read();
+
+		// case 3:
+		// 	tuh_descriptor_get_product_string(xfer->daddr, 0, info.product, sizeof(info.product), transferCallback, 4);
+		// 	break;
+		// case 4:
+		// 	tuh_descriptor_get_serial_string(xfer->daddr, 0, info.serial, sizeof(info.serial), transferCallback, 5);
+		// 	break;
+		// case 5:
+		// 	m_printHex("MANF", info.manf, xfer->actual_len);
+		// 	m_printHex("PROD", info.product, xfer->actual_len);
+		// 	m_printHex("SER", info.serial, xfer->actual_len);
+		// 	break;
 	}
 }
+
+bool Xbox::read()
+{
+	TU_VERIFY(usbh_edpt_claim(daddr, ep_in));
+
+	auto callback = [](tuh_xfer_t* xfer) {
+		auto self = reinterpret_cast<Xbox*>(xfer->user_data);
+		m_printHex("RX", self->buffer, xfer->actual_len);
+		self->read();
+	};
+
+	if(!usbh_edpt_xfer_with_callback(daddr, ep_in, buffer, bufSize, callback, uintptr_t(this))) {
+		usbh_edpt_release(daddr, ep_in);
+		return false;
+	}
+
+	return true;
+}
+
+Xbox xbox;
 
 } // namespace
 
@@ -176,7 +247,7 @@ void tuh_mount_cb(uint8_t dev_addr)
 
 	// XBOX 360 controller
 	if(vid == 0x045e && pid == 0x028e) {
-		vendorControl(dev_addr, TUSB_REQ_RCPT_INTERFACE, 0x100, 20, transferCallback, 0);
+		xbox.init(dev_addr);
 	}
 }
 
