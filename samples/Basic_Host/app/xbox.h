@@ -24,6 +24,7 @@ public:
 		blink_once,			   //  15: blink once, then previous setting
 	};
 
+	static bool probe(uint8_t dev_addr);
 	bool init(uint8_t dev_addr);
 	bool read();
 	bool setled(LedCommand cmd);
@@ -31,6 +32,7 @@ public:
 private:
 	void control(tusb_request_recipient_t recipient, uint16_t value, uint16_t length);
 	void control_cb(tuh_xfer_t* xfer);
+	void process_packet();
 
 	static void static_control_cb(tuh_xfer_t* xfer)
 	{

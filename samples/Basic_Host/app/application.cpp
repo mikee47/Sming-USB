@@ -120,9 +120,7 @@ void tuh_mount_cb(uint8_t dev_addr)
 	debug_i("A device with address %u is mounted, %04x:%04x", dev_addr, vid, pid);
 
 	// XBOX 360 controller
-	if(vid == 0x045e && pid == 0x028e) {
-		xbox.init(dev_addr);
-	}
+	xbox.init(dev_addr);
 }
 
 void tuh_umount_cb(uint8_t dev_addr)

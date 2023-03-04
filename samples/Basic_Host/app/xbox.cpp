@@ -1,9 +1,32 @@
+/*
+ * Code based on the linux xpad driver.
+ * drivers/input/joystick/xpad.c
+ *
+ * The purpose is to explore how best to construct custom drivers for tinyusb using C++.
+ * To keep things simple, supports only the XBOX 360 controller.
+ * This is not a full xpad implementation!
+ */
+
 #include "xbox.h"
 #include <host/usbh_classdriver.h>
 
+bool Xbox::probe(uint8_t dev_addr)
+{
+	uint16_t vid{};
+	uint16_t pid{};
+	tuh_vid_pid_get(dev_addr, &vid, &pid);
+	return vid == 0x045e && pid == 0x028e;
+}
+
 bool Xbox::init(uint8_t dev_addr)
 {
+	if(!probe(dev_addr)) {
+		debug_w("Not an xbox 360 controller");
+		return false;
+	}
+
 	daddr = dev_addr;
+	state = 0;
 
 	const tusb_desc_endpoint_t ep_desc = {
 		.bLength = sizeof(tusb_desc_endpoint_t),
@@ -86,6 +109,7 @@ bool Xbox::read()
 	auto callback = [](tuh_xfer_t* xfer) {
 		auto self = reinterpret_cast<Xbox*>(xfer->user_data);
 		m_printHex("RX", self->buffer, xfer->actual_len);
+		self->process_packet();
 		self->read();
 	};
 
@@ -95,6 +119,77 @@ bool Xbox::read()
 	}
 
 	return true;
+}
+
+void Xbox::process_packet()
+{
+	auto data = buffer;
+
+#define INPUT_MAP(XX)                                                                                                  \
+	XX(ABS_HAT0X)                                                                                                      \
+	XX(ABS_HAT0Y)                                                                                                      \
+	XX(BTN_START)                                                                                                      \
+	XX(BTN_BACK)                                                                                                     \
+	XX(BTN_THUMBL)                                                                                                     \
+	XX(BTN_THUMBR)                                                                                                     \
+	XX(BTN_A)                                                                                                          \
+	XX(BTN_B)                                                                                                          \
+	XX(BTN_X)                                                                                                          \
+	XX(BTN_Y)                                                                                                          \
+	XX(BTN_TL)                                                                                                         \
+	XX(BTN_TR)                                                                                                         \
+	XX(BTN_MODE)                                                                                                       \
+	XX(ABS_X)                                                                                                          \
+	XX(ABS_Y)                                                                                                          \
+	XX(ABS_RX)                                                                                                         \
+	XX(ABS_RY)                                                                                                         \
+	XX(ABS_Z)                                                                                                          \
+	XX(ABS_RZ)
+
+	struct Inputs {
+#define XX(tag) int tag;
+		INPUT_MAP(XX)
+#undef XX
+	};
+
+	Inputs inputs{
+		.ABS_HAT0X = !!(data[2] & 0x08) - !!(data[2] & 0x04),
+		.ABS_HAT0Y = !!(data[2] & 0x02) - !!(data[2] & 0x01),
+
+		/* start/back buttons */
+		.BTN_START = bool(data[2] & BIT(4)),
+		.BTN_BACK = bool(data[2] & BIT(5)),
+
+		/* stick press left/right */
+		.BTN_THUMBL = bool(data[2] & BIT(6)),
+		.BTN_THUMBR = bool(data[2] & BIT(7)),
+
+		/* buttons A,B,X,Y,TL,TR and MODE */
+		.BTN_A = bool(data[3] & BIT(4)),
+		.BTN_B = bool(data[3] & BIT(5)),
+		.BTN_X = bool(data[3] & BIT(6)),
+		.BTN_Y = bool(data[3] & BIT(7)),
+		.BTN_TL = bool(data[3] & BIT(0)),
+		.BTN_TR = bool(data[3] & BIT(1)),
+		.BTN_MODE = bool(data[3] & BIT(2)),
+
+		/* left stick */
+		.ABS_X = int16_t(data[6] | (data[7] << 8)),
+		.ABS_Y = int16_t(~(data[8] | (data[9] << 8))),
+
+		/* right stick */
+		.ABS_RX = int16_t(data[10] | (data[11] << 8)),
+		.ABS_RY = int16_t(~(data[12] | (data[13] << 8))),
+
+		/* triggers left/right */
+		.ABS_Z = data[4],
+		.ABS_RZ = data[5],
+	};
+
+	Serial << "XBOX Inputs:" << endl;
+#define XX(tag) Serial << "  " #tag ": " << inputs.tag << endl;
+	INPUT_MAP(XX)
+#undef XX
 }
 
 /*
