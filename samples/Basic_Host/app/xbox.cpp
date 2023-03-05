@@ -19,86 +19,48 @@ bool Xbox::begin(const Instance& inst, const Config& cfg)
 		return false;
 	}
 
-	if(!parseInterface(cfg.itf)) {
-		return false;
-	}
-
-	debug_i("[XBOX] Found controller");
-
-	if(daddr) {
-		debug_w("[XBOX] Already initialised");
-		return false;
-	}
-
-	daddr = inst.dev_addr;
-	state = 0;
-
-	return true;
-}
-
-bool Xbox::parseInterface(DescriptorEnum e)
-{
-	auto desc = e.next();
-	if(!desc || desc->type != TUSB_DESC_INTERFACE) {
-		return false;
-	}
-	auto itf = desc->as<tusb_desc_interface_t>();
+	auto itf = cfg.list.desc->as<tusb_desc_interface_t>();
 	if(itf->bInterfaceSubClass != 93 || itf->bInterfaceProtocol != 1) {
 		return false;
 	}
-	desc = e.next();
-	if(!desc || desc->type != TUSB_DESC_CS_DEVICE) {
-		return false;
-	}
-	desc = e.next();
-	if(!desc || desc->type != TUSB_DESC_ENDPOINT) {
-		return false;
-	}
-	ep_in = desc->as<tusb_desc_endpoint_t>()->bEndpointAddress;
-	desc = e.next();
-	if(!desc || desc->type != TUSB_DESC_ENDPOINT) {
-		return false;
-	}
-	ep_out = desc->as<tusb_desc_endpoint_t>()->bEndpointAddress;
-	if(ep_out & TUSB_DIR_IN_MASK) {
-		std::swap(ep_in, ep_out);
+
+	HostInterface::begin(inst);
+	state = 0;
+
+	debug_i("[XBOX] Found controller");
+
+	return parseInterface(cfg.list);
+}
+
+bool Xbox::parseInterface(DescriptorList list)
+{
+	ep_in = ep_out = 0;
+	DescriptorEnum e(list);
+	while(auto desc = e.next()) {
+		if(desc->type != TUSB_DESC_ENDPOINT) {
+			continue;
+		}
+		auto ep = desc->as<tusb_desc_endpoint_t>();
+		if(ep->bEndpointAddress & TUSB_DIR_IN_MASK) {
+			ep_in = ep->bEndpointAddress;
+		} else {
+			ep_out = ep->bEndpointAddress;
+		}
+		TU_ASSERT(tuh_edpt_open(inst.dev_addr, ep));
 	}
 
 	debug_i("ep-in 0x%02x, ep-out 0x%02x", ep_in, ep_out);
-
-	return true;
+	return ep_in && ep_out;
 }
 
 bool Xbox::setConfig(uint8_t itf_num)
 {
-	if(itf_num != 0) {
+	if(itf_num != inst.idx) {
 		debug_e("[XBOX] itf %u not supported", itf_num);
 		return false;
 	}
 
-	tusb_desc_endpoint_t ep_desc = {
-		.bLength = sizeof(tusb_desc_endpoint_t),
-		.bDescriptorType = TUSB_DESC_ENDPOINT,
-		.bEndpointAddress = ep_in,
-		.bmAttributes =
-			{
-				.xfer = TUSB_XFER_INTERRUPT,
-				.sync = 0,
-				.usage = 0,
-			},
-		.wMaxPacketSize = 64,
-		.bInterval = 0,
-	};
-	TU_ASSERT(tuh_edpt_open(daddr, &ep_desc));
-	ep_desc.bEndpointAddress = ep_out;
-	TU_ASSERT(tuh_edpt_open(daddr, &ep_desc));
-
 	return control(TUSB_REQ_RCPT_INTERFACE, 0x100, 20);
-}
-
-void Xbox::end()
-{
-	daddr = 0;
 }
 
 bool Xbox::control(tusb_request_recipient_t recipient, uint16_t value, uint16_t length)
@@ -113,7 +75,7 @@ bool Xbox::control(tusb_request_recipient_t recipient, uint16_t value, uint16_t 
 	};
 
 	tuh_xfer_t xfer = {
-		.daddr = daddr,
+		.daddr = inst.dev_addr,
 		.ep_addr = 0,
 		.setup = &request,
 		.buffer = buffer,
@@ -150,10 +112,10 @@ bool Xbox::transferComplete(const Transfer& txfr)
 
 bool Xbox::read()
 {
-	TU_VERIFY(usbh_edpt_claim(daddr, ep_in));
+	TU_VERIFY(usbh_edpt_claim(inst.dev_addr, ep_in));
 
-	if(!usbh_edpt_xfer(daddr, ep_in, buffer, bufSize)) {
-		usbh_edpt_release(daddr, ep_in);
+	if(!usbh_edpt_xfer(inst.dev_addr, ep_in, buffer, bufSize)) {
+		usbh_edpt_release(inst.dev_addr, ep_in);
 		return false;
 	}
 
@@ -209,11 +171,11 @@ void Xbox::process_packet()
 
 bool Xbox::output(const void* data, uint8_t length)
 {
-	TU_VERIFY(usbh_edpt_claim(daddr, ep_out));
+	TU_VERIFY(usbh_edpt_claim(inst.dev_addr, ep_out));
 
 	memcpy(output_buffer, data, length);
-	if(!usbh_edpt_xfer(daddr, ep_out, output_buffer, length)) {
-		usbh_edpt_release(daddr, ep_out);
+	if(!usbh_edpt_xfer(inst.dev_addr, ep_out, output_buffer, length)) {
+		usbh_edpt_release(inst.dev_addr, ep_out);
 		return false;
 	}
 

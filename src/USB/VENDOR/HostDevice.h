@@ -11,7 +11,7 @@ public:
 	struct Config {
 		uint16_t vid;
 		uint16_t pid;
-		DescriptorEnum itf;
+		DescriptorList list;
 	};
 
 	struct Transfer {
@@ -22,6 +22,7 @@ public:
 	};
 
 	virtual bool setConfig(uint8_t itf_num) = 0;
+	virtual bool ownsEndpoint(uint8_t ep) = 0;
 	virtual bool transferComplete(const Transfer& txfr) = 0;
 
 	using HostInterface::HostInterface;

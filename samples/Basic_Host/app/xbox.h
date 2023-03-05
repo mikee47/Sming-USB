@@ -82,7 +82,6 @@ public:
 	};
 
 	bool begin(const Instance& inst, const Config& cfg);
-	void end() override;
 	bool read();
 	bool setled(LedCommand cmd);
 	bool rumble(uint8_t strong, uint8_t weak);
@@ -100,10 +99,14 @@ public:
 	static const char* getInputName(Xbox::Input input);
 
 	bool setConfig(uint8_t itf_num) override;
+	bool ownsEndpoint(uint8_t ep) override
+	{
+		return ep == ep_in || ep == ep_out;
+	}
 	bool transferComplete(const Transfer& txfr) override;
 
 private:
-	bool parseInterface(DescriptorEnum itf);
+	bool parseInterface(DescriptorList list);
 	bool control(tusb_request_recipient_t recipient, uint16_t value, uint16_t length);
 	void control_cb(tuh_xfer_t* xfer);
 	void process_packet();
@@ -120,9 +123,8 @@ private:
 	InputChange inputChangeCallback;
 	uint8_t buffer[bufSize];
 	uint8_t output_buffer[8];
-	uint8_t daddr;
-	uint8_t ep_in;
-	uint8_t ep_out;
+	uint8_t ep_in{0};
+	uint8_t ep_out{0};
 	uint8_t state{0};
 };
 

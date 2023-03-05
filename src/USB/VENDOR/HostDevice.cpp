@@ -6,7 +6,7 @@ namespace USB::VENDOR
 {
 MountCallback mountCallback;
 UnmountCallback unmountCallback;
-HostDevice* host_devices[CFG_TUH_DEVICE_MAX];
+HostDevice* host_devices[CFG_TUH_DEVICE_MAX][CFG_TUH_VENDOR];
 
 void onMount(MountCallback callback)
 {
@@ -18,11 +18,28 @@ void onUnmount(UnmountCallback callback)
 	unmountCallback = callback;
 }
 
-HostDevice* getDevice(uint8_t dev_addr, uint8_t ep_addr)
+HostDevice* getDeviceByInterface(uint8_t dev_addr, uint8_t itf_num)
 {
-	// TODO: Multiple Vendor devices must be differentiated by ep_addr
-	unsigned idx = dev_addr - 1;
-	return (dev_addr < ARRAY_SIZE(host_devices)) ? host_devices[idx] : nullptr;
+	unsigned dev_idx = dev_addr - 1;
+	TU_ASSERT(dev_idx < CFG_TUH_DEVICE_MAX, nullptr);
+	for(auto dev : host_devices[dev_idx]) {
+		if(*dev == HostInterface::Instance{dev_addr, itf_num}) {
+			return dev;
+		}
+	}
+	return nullptr;
+}
+
+HostDevice* getDeviceByEndpoint(uint8_t dev_addr, uint8_t ep_addr)
+{
+	unsigned dev_idx = dev_addr - 1;
+	TU_ASSERT(dev_idx < CFG_TUH_DEVICE_MAX, nullptr);
+	for(auto dev : host_devices[dev_idx]) {
+		if(dev && dev->ownsEndpoint(ep_addr)) {
+			return dev;
+		}
+	}
+	return nullptr;
 }
 
 } // namespace USB::VENDOR
@@ -43,30 +60,38 @@ bool cush_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const* it
 		return false;
 	}
 
-	auto dev = getDevice(dev_addr, 0);
-	if(dev) {
+	unsigned dev_idx = dev_addr - 1;
+	TU_ASSERT(dev_idx < CFG_TUH_DEVICE_MAX, false);
+
+	auto getFreeDevice = [&]() -> HostDevice** {
+		for(auto& dev : host_devices[dev_idx]) {
+			if(!dev) {
+				return &dev;
+			}
+		}
+		return nullptr;
+	};
+
+	auto freeDevPtr = getFreeDevice();
+	if(!freeDevPtr) {
 		debug_e("[USB-VEND] No free instances");
 		return false;
 	}
 
-	HostInterface::Instance inst{dev_addr, 0};
+	HostInterface::Instance inst{dev_addr, itf_desc->bInterfaceNumber};
 	DescriptorList list{reinterpret_cast<const Descriptor*>(itf_desc), max_len};
-	HostDevice::Config cfg{.itf = list};
+	HostDevice::Config cfg{.list = list};
 	tuh_vid_pid_get(dev_addr, &cfg.vid, &cfg.pid);
-	dev = mountCallback(inst, cfg);
-	if(!dev) {
-		return false;
-	}
-
-	host_devices[dev_addr - 1] = dev;
-	return true;
+	auto dev = mountCallback(inst, cfg);
+	*freeDevPtr = dev;
+	return dev;
 }
 
 bool cush_set_config(uint8_t dev_addr, uint8_t itf_num)
 {
 	debug_d("%s(dev_addr %u, itf_num %u)", __FUNCTION__, dev_addr, itf_num);
 
-	auto dev = getDevice(dev_addr, 0);
+	auto dev = getDeviceByInterface(dev_addr, itf_num);
 	return dev && dev->setConfig(itf_num);
 }
 
@@ -75,7 +100,7 @@ bool cush_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, uint3
 	debug_d("%s(dev_addr %u, ep_addr %u, result %u, xferred_bytes %u)", __FUNCTION__, dev_addr, ep_addr, result,
 			xferred_bytes);
 
-	auto dev = getDevice(dev_addr, ep_addr);
+	auto dev = getDeviceByEndpoint(dev_addr, ep_addr);
 	return dev && dev->transferComplete({dev_addr, ep_addr, result, xferred_bytes});
 }
 
@@ -83,9 +108,15 @@ void cush_close(uint8_t dev_addr)
 {
 	debug_d("%s(dev_addr %u)", __FUNCTION__, dev_addr);
 
-	auto dev = getDevice(dev_addr, 0);
-	if(dev) {
-		dev->end();
+	unsigned idx = dev_addr - 1;
+	if(idx >= CFG_TUH_DEVICE_MAX) {
+		return;
+	}
+	for(auto& dev : host_devices[idx]) {
+		if(dev) {
+			dev->end();
+			dev = nullptr;
+		}
 	}
 }
 
