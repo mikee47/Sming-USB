@@ -222,6 +222,16 @@ void init()
 
 #if CFG_TUH_VENDOR
 	USB::VENDOR::onMount([](auto& inst, auto itf) { return xbox.begin(inst, itf) ? &xbox : nullptr; });
+	xbox.onChange([](auto changed) {
+		using Input = decltype(xbox)::Input;
+		for(unsigned i = 0; i < unsigned(Input::MAX); ++i) {
+			auto input = Input(i);
+			if(changed[input]) {
+				Serial << xbox.getInputName(input) << ": " << xbox.inputs()[input] << endl;
+			}
+		}
+	});
+
 #endif
 
 #ifdef ARCH_HOST

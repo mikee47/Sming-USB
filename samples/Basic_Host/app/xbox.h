@@ -1,40 +1,65 @@
 #pragma once
 
 #include <USB.h>
+#include <Data/BitSet.h>
 
-// tag, type
+// tag, type, bits, compare mask
 #define XBOX360_INPUT_MAP(XX)                                                                                          \
-	XX(dpad_up, bool)                                                                                                  \
-	XX(dpad_down, bool)                                                                                                \
-	XX(dpad_left, bool)                                                                                                \
-	XX(dpad_right, bool)                                                                                               \
-	XX(btn_start, bool)                                                                                                \
-	XX(btn_back, bool)                                                                                                 \
-	XX(btn_stick_left, bool)                                                                                           \
-	XX(btn_stick_right, bool)                                                                                          \
-	XX(btn_a, bool)                                                                                                    \
-	XX(btn_b, bool)                                                                                                    \
-	XX(btn_x, bool)                                                                                                    \
-	XX(btn_y, bool)                                                                                                    \
-	XX(btn_trig_left, bool)                                                                                            \
-	XX(btn_trig_right, bool)                                                                                           \
-	XX(btn_mode, bool)                                                                                                 \
-	XX(trig_left, uint8_t)                                                                                             \
-	XX(trig_right, uint8_t)                                                                                            \
-	XX(stick_left_x, int16_t)                                                                                          \
-	XX(stick_left_y, int16_t)                                                                                          \
-	XX(stick_right_x, int16_t)                                                                                         \
-	XX(stick_right_y, int16_t)
+	XX(dpad_up, bool, 1, 0x01)                                                                                         \
+	XX(dpad_down, bool, 1, 0x01)                                                                                       \
+	XX(dpad_left, bool, 1, 0x01)                                                                                       \
+	XX(dpad_right, bool, 1, 0x01)                                                                                      \
+	XX(btn_start, bool, 1, 0x01)                                                                                       \
+	XX(btn_back, bool, 1, 0x01)                                                                                        \
+	XX(btn_stick_left, bool, 1, 0x01)                                                                                  \
+	XX(btn_stick_right, bool, 1, 0x01)                                                                                 \
+	XX(btn_trig_left, bool, 1, 0x01)                                                                                   \
+	XX(btn_trig_right, bool, 1, 0x01)                                                                                  \
+	XX(btn_mode, bool, 1, 0x01)                                                                                        \
+	XX(btn_unk1, bool, 1, 0x01)                                                                                        \
+	XX(btn_a, bool, 1, 0x01)                                                                                           \
+	XX(btn_b, bool, 1, 0x01)                                                                                           \
+	XX(btn_x, bool, 1, 0x01)                                                                                           \
+	XX(btn_y, bool, 1, 0x01)                                                                                           \
+	XX(trig_left, uint8_t, 8, 0xff)                                                                                    \
+	XX(trig_right, uint8_t, 8, 0xff)                                                                                   \
+	XX(stick_left_x, int16_t, 16, 0xff00)                                                                              \
+	XX(stick_left_y, int16_t, 16, 0xff00)                                                                              \
+	XX(stick_right_x, int16_t, 16, 0xff00)                                                                             \
+	XX(stick_right_y, int16_t, 16, 0xff00)
 
 namespace USB::VENDOR
 {
 class Xbox : public HostDevice
 {
 public:
-	struct Inputs {
-#define XX(tag, type) type tag;
+	enum class Input {
+#define XX(tag, ...) tag,
 		XBOX360_INPUT_MAP(XX)
 #undef XX
+			MAX
+	};
+
+	using InputMask = BitSet<uint32_t, Input>;
+	using InputChange = Delegate<void(InputMask changed)>;
+
+	struct InputData {
+#define XX(tag, type, size, ...) type tag : size;
+		XBOX360_INPUT_MAP(XX)
+#undef XX
+
+		int16_t operator[](Input input) const
+		{
+			switch(input) {
+#define XX(tag, ...)                                                                                                   \
+	case Input::tag:                                                                                                   \
+		return tag;
+				XBOX360_INPUT_MAP(XX)
+#undef XX
+			default:
+				return 0;
+			}
+		}
 	};
 
 	enum class LedCommand {
@@ -63,6 +88,18 @@ public:
 	bool setled(LedCommand cmd);
 	bool rumble(uint8_t strong, uint8_t weak);
 
+	void onChange(InputChange callback)
+	{
+		inputChangeCallback = callback;
+	}
+
+	const InputData& inputs() const
+	{
+		return inputData;
+	}
+
+	static const char* getInputName(Xbox::Input input);
+
 	bool setConfig(uint8_t itf_num) override;
 	bool transferComplete(const Transfer& txfr) override;
 
@@ -79,7 +116,8 @@ private:
 	}
 
 	static constexpr size_t bufSize{64};
-	Inputs prevInputs{};
+	InputData inputData{};
+	InputChange inputChangeCallback;
 	uint8_t buffer[bufSize];
 	uint8_t output_buffer[8];
 	uint8_t daddr;

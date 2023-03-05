@@ -136,53 +136,41 @@ template <> bool compare(int16_t a, int16_t b)
 	return abs(a - b) < 256;
 }
 
+const char* Xbox::getInputName(Xbox::Input input)
+{
+	switch(input) {
+#define XX(tag, ...)                                                                                                   \
+	case Xbox::Input::tag:                                                                                             \
+		return #tag;
+		XBOX360_INPUT_MAP(XX)
+#undef XX
+	default:
+		return "?";
+	}
+}
+
 void Xbox::process_packet()
 {
-	auto data = buffer;
+	InputData data alignas(16);
+	memcpy(&data, &buffer[2], sizeof(data));
 
-	Inputs inputs{
-		.dpad_up = !!(data[2] & 0x01),
-		.dpad_down = !!(data[2] & 0x02),
-		.dpad_left = !!(data[2] & 0x04),
-		.dpad_right = !!(data[2] & 0x08),
+	auto b = reinterpret_cast<const uint8_t*>(&data);
+	uint16_t btn1 = b[0] | (b[1] << 8);
+	b = reinterpret_cast<const uint8_t*>(&inputData);
+	uint16_t btn2 = b[0] | (b[1] << 8);
+	InputMask changed = btn1 ^ btn2;
+	changed[Input::trig_left] = !compare(data.trig_left, inputData.trig_left);
+	changed[Input::trig_right] = !compare(data.trig_right, inputData.trig_right);
+	changed[Input::stick_left_x] = !compare(data.stick_left_x, inputData.stick_left_x);
+	changed[Input::stick_left_y] = !compare(data.stick_left_y, inputData.stick_left_y);
+	changed[Input::stick_right_x] = !compare(data.stick_right_x, inputData.stick_right_x);
+	changed[Input::stick_right_y] = !compare(data.stick_right_y, inputData.stick_right_y);
 
-		/* start/back buttons */
-		.btn_start = !!(data[2] & BIT(4)),
-		.btn_back = !!(data[2] & BIT(5)),
+	inputData = data;
 
-		/* stick press left/right */
-		.btn_stick_left = bool(data[2] & BIT(6)),
-		.btn_stick_right = bool(data[2] & BIT(7)),
-
-		/* buttons A,B,X,Y,TL,TR and MODE */
-		.btn_a = !!(data[3] & BIT(4)),
-		.btn_b = !!(data[3] & BIT(5)),
-		.btn_x = !!(data[3] & BIT(6)),
-		.btn_y = !!(data[3] & BIT(7)),
-		.btn_trig_left = !!(data[3] & BIT(0)),
-		.btn_trig_right = !!(data[3] & BIT(1)),
-		.btn_mode = !!(data[3] & BIT(2)),
-
-		/* triggers left/right */
-		.trig_left = data[4],
-		.trig_right = data[5],
-
-		/* left stick */
-		.stick_left_x = int16_t(data[6] | (data[7] << 8)),
-		.stick_left_y = int16_t(~(data[8] | (data[9] << 8))),
-
-		/* right stick */
-		.stick_right_x = int16_t(data[10] | (data[11] << 8)),
-		.stick_right_y = int16_t(~(data[12] | (data[13] << 8))),
-	};
-
-#define XX(tag, ...)                                                                                                   \
-	if(!compare(inputs.tag, prevInputs.tag)) {                                                                         \
-		Serial << #tag ": " << inputs.tag << endl;                                                                     \
+	if(inputChangeCallback) {
+		inputChangeCallback(changed);
 	}
-	XBOX360_INPUT_MAP(XX)
-#undef XX
-	prevInputs = inputs;
 }
 
 bool Xbox::output(const void* data, uint8_t length)
