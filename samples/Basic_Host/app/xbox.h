@@ -81,8 +81,7 @@ public:
 		blink_once,			   //  15: blink once, then previous setting
 	};
 
-	static bool probe(uint8_t dev_addr);
-	bool begin(const Instance& inst, DescriptorEnum itf);
+	bool begin(const Instance& inst, const Config& cfg);
 	void end() override;
 	bool read();
 	bool setled(LedCommand cmd);
@@ -104,6 +103,7 @@ public:
 	bool transferComplete(const Transfer& txfr) override;
 
 private:
+	bool parseInterface(DescriptorEnum itf);
 	bool control(tusb_request_recipient_t recipient, uint16_t value, uint16_t length);
 	void control_cb(tuh_xfer_t* xfer);
 	void process_packet();
@@ -121,8 +121,8 @@ private:
 	uint8_t buffer[bufSize];
 	uint8_t output_buffer[8];
 	uint8_t daddr;
-	uint8_t ep_in{0x81};
-	uint8_t ep_out{0x01};
+	uint8_t ep_in;
+	uint8_t ep_out;
 	uint8_t state{0};
 };
 

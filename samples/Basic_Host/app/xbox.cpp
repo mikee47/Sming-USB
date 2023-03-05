@@ -12,18 +12,14 @@
 
 namespace USB::VENDOR
 {
-bool Xbox::probe(uint8_t dev_addr)
+bool Xbox::begin(const Instance& inst, const Config& cfg)
 {
-	uint16_t vid{};
-	uint16_t pid{};
-	tuh_vid_pid_get(dev_addr, &vid, &pid);
-	return vid == 0x045e && pid == 0x028e;
-}
-
-bool Xbox::begin(const Instance& inst, DescriptorEnum itf)
-{
-	if(!probe(inst.dev_addr)) {
+	if(cfg.vid != 0x045e || cfg.pid != 0x028e) {
 		debug_d("[XBOX] Not an xbox 360 controller");
+		return false;
+	}
+
+	if(!parseInterface(cfg.itf)) {
 		return false;
 	}
 
@@ -40,8 +36,46 @@ bool Xbox::begin(const Instance& inst, DescriptorEnum itf)
 	return true;
 }
 
+bool Xbox::parseInterface(DescriptorEnum e)
+{
+	auto desc = e.next();
+	if(!desc || desc->type != TUSB_DESC_INTERFACE) {
+		return false;
+	}
+	auto itf = desc->as<tusb_desc_interface_t>();
+	if(itf->bInterfaceSubClass != 93 || itf->bInterfaceProtocol != 1) {
+		return false;
+	}
+	desc = e.next();
+	if(!desc || desc->type != TUSB_DESC_CS_DEVICE) {
+		return false;
+	}
+	desc = e.next();
+	if(!desc || desc->type != TUSB_DESC_ENDPOINT) {
+		return false;
+	}
+	ep_in = desc->as<tusb_desc_endpoint_t>()->bEndpointAddress;
+	desc = e.next();
+	if(!desc || desc->type != TUSB_DESC_ENDPOINT) {
+		return false;
+	}
+	ep_out = desc->as<tusb_desc_endpoint_t>()->bEndpointAddress;
+	if(ep_out & TUSB_DIR_IN_MASK) {
+		std::swap(ep_in, ep_out);
+	}
+
+	debug_i("ep-in 0x%02x, ep-out 0x%02x", ep_in, ep_out);
+
+	return true;
+}
+
 bool Xbox::setConfig(uint8_t itf_num)
 {
+	if(itf_num != 0) {
+		debug_e("[XBOX] itf %u not supported", itf_num);
+		return false;
+	}
+
 	tusb_desc_endpoint_t ep_desc = {
 		.bLength = sizeof(tusb_desc_endpoint_t),
 		.bDescriptorType = TUSB_DESC_ENDPOINT,

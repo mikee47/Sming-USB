@@ -8,6 +8,12 @@ namespace USB::VENDOR
 class HostDevice : public HostInterface
 {
 public:
+	struct Config {
+		uint16_t vid;
+		uint16_t pid;
+		DescriptorEnum itf;
+	};
+
 	struct Transfer {
 		uint8_t dev_addr;
 		uint8_t ep_addr;
@@ -21,7 +27,7 @@ public:
 	using HostInterface::HostInterface;
 };
 
-using MountCallback = Delegate<HostDevice*(const HostInterface::Instance& inst, DescriptorEnum itf)>;
+using MountCallback = Delegate<HostDevice*(const HostInterface::Instance& inst, const HostDevice::Config& cfg)>;
 using UnmountCallback = Delegate<void(HostDevice& dev)>;
 
 void onMount(MountCallback callback);

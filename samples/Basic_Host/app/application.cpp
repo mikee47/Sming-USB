@@ -221,7 +221,7 @@ void init()
 #endif
 
 #if CFG_TUH_VENDOR
-	USB::VENDOR::onMount([](auto& inst, auto itf) { return xbox.begin(inst, itf) ? &xbox : nullptr; });
+	USB::VENDOR::onMount([](auto inst, auto cfg) { return xbox.begin(inst, cfg) ? &xbox : nullptr; });
 	xbox.onChange([](auto changed) {
 		using Input = decltype(xbox)::Input;
 		for(unsigned i = 0; i < unsigned(Input::MAX); ++i) {
