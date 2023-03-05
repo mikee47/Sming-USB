@@ -23,7 +23,7 @@ public:
 		this->inst = inst;
 	}
 
-	void end()
+	virtual void end()
 	{
 		inst.dev_addr = 255;
 		inst.idx = 255;

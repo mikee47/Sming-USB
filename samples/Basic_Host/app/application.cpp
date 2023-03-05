@@ -108,7 +108,7 @@ void parse_xbox360()
 }
 #endif
 
-Xbox xbox;
+USB::VENDOR::Xbox xbox;
 
 } // namespace
 
@@ -118,9 +118,6 @@ void tuh_mount_cb(uint8_t dev_addr)
 	uint16_t pid{};
 	tuh_vid_pid_get(dev_addr, &vid, &pid);
 	debug_i("A device with address %u is mounted, %04x:%04x", dev_addr, vid, pid);
-
-	// XBOX 360 controller
-	xbox.init(dev_addr);
 }
 
 void tuh_umount_cb(uint8_t dev_addr)
@@ -221,6 +218,10 @@ void init()
 			// USB::cdc0.write(buf, n);
 		}
 	});
+#endif
+
+#if CFG_TUH_VENDOR
+	USB::VENDOR::onMount([](auto& inst, auto itf) { return xbox.begin(inst, itf) ? &xbox : nullptr; });
 #endif
 
 #ifdef ARCH_HOST

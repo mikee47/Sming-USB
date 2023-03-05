@@ -30,16 +30,6 @@ struct Descriptor {
 	uint8_t type;   ///< e.g. TUSB_DESC_STRING
 	// uint8_t content[];
 
-	const uint8_t* data() const
-	{
-		return &length + 2;
-	}
-
-	unsigned dataLength() const
-	{
-		return (length < 2) ? 0 : length - 2;
-	}
-
 	template <typename T> const T* as() const
 	{
 		return reinterpret_cast<const T*>(this);

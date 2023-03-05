@@ -10,6 +10,8 @@
 #include "xbox.h"
 #include <host/usbh_classdriver.h>
 
+namespace USB::VENDOR
+{
 bool Xbox::probe(uint8_t dev_addr)
 {
 	uint16_t vid{};
@@ -18,16 +20,28 @@ bool Xbox::probe(uint8_t dev_addr)
 	return vid == 0x045e && pid == 0x028e;
 }
 
-bool Xbox::init(uint8_t dev_addr)
+bool Xbox::begin(const Instance& inst, DescriptorEnum itf)
 {
-	if(!probe(dev_addr)) {
-		debug_w("Not an xbox 360 controller");
+	if(!probe(inst.dev_addr)) {
+		debug_d("[XBOX] Not an xbox 360 controller");
 		return false;
 	}
 
-	daddr = dev_addr;
+	debug_i("[XBOX] Found controller");
+
+	if(daddr) {
+		debug_w("[XBOX] Already initialised");
+		return false;
+	}
+
+	daddr = inst.dev_addr;
 	state = 0;
 
+	return true;
+}
+
+bool Xbox::setConfig(uint8_t itf_num)
+{
 	tusb_desc_endpoint_t ep_desc = {
 		.bLength = sizeof(tusb_desc_endpoint_t),
 		.bDescriptorType = TUSB_DESC_ENDPOINT,
@@ -45,12 +59,15 @@ bool Xbox::init(uint8_t dev_addr)
 	ep_desc.bEndpointAddress = ep_out;
 	TU_ASSERT(tuh_edpt_open(daddr, &ep_desc));
 
-	control(TUSB_REQ_RCPT_INTERFACE, 0x100, 20);
-
-	return true;
+	return control(TUSB_REQ_RCPT_INTERFACE, 0x100, 20);
 }
 
-void Xbox::control(tusb_request_recipient_t recipient, uint16_t value, uint16_t length)
+void Xbox::end()
+{
+	daddr = 0;
+}
+
+bool Xbox::control(tusb_request_recipient_t recipient, uint16_t value, uint16_t length)
 {
 	static uint8_t buffer[20]{};
 	const tusb_control_request_t request = {
@@ -70,7 +87,7 @@ void Xbox::control(tusb_request_recipient_t recipient, uint16_t value, uint16_t 
 		.user_data = uintptr_t(this),
 	};
 
-	tuh_control_xfer(&xfer);
+	return tuh_control_xfer(&xfer);
 }
 
 void Xbox::control_cb(tuh_xfer_t* xfer)
@@ -89,18 +106,19 @@ void Xbox::control_cb(tuh_xfer_t* xfer)
 	}
 }
 
+bool Xbox::transferComplete(const Transfer& txfr)
+{
+	debug_hex(DBG, "RX", buffer, txfr.xferred_bytes);
+	process_packet();
+	read();
+	return true;
+}
+
 bool Xbox::read()
 {
 	TU_VERIFY(usbh_edpt_claim(daddr, ep_in));
 
-	auto callback = [](tuh_xfer_t* xfer) {
-		auto self = reinterpret_cast<Xbox*>(xfer->user_data);
-		debug_hex(DBG, "RX", self->buffer, xfer->actual_len);
-		self->process_packet();
-		self->read();
-	};
-
-	if(!usbh_edpt_xfer_with_callback(daddr, ep_in, buffer, bufSize, callback, uintptr_t(this))) {
+	if(!usbh_edpt_xfer(daddr, ep_in, buffer, bufSize)) {
 		usbh_edpt_release(daddr, ep_in);
 		return false;
 	}
@@ -171,10 +189,8 @@ bool Xbox::output(const void* data, uint8_t length)
 {
 	TU_VERIFY(usbh_edpt_claim(daddr, ep_out));
 
-	auto callback = [](tuh_xfer_t* xfer) {};
-
 	memcpy(output_buffer, data, length);
-	if(!usbh_edpt_xfer_with_callback(daddr, ep_out, output_buffer, length, callback, uintptr_t(this))) {
+	if(!usbh_edpt_xfer(daddr, ep_out, output_buffer, length)) {
 		usbh_edpt_release(daddr, ep_out);
 		return false;
 	}
@@ -200,3 +216,5 @@ bool Xbox::rumble(uint8_t strong, uint8_t weak)
 
 	return output(data, ARRAY_SIZE(data));
 }
+
+} // namespace USB::VENDOR

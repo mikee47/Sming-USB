@@ -26,7 +26,9 @@
 	XX(stick_right_x, int16_t)                                                                                         \
 	XX(stick_right_y, int16_t)
 
-class Xbox
+namespace USB::VENDOR
+{
+class Xbox : public HostDevice
 {
 public:
 	struct Inputs {
@@ -55,13 +57,17 @@ public:
 	};
 
 	static bool probe(uint8_t dev_addr);
-	bool init(uint8_t dev_addr);
+	bool begin(const Instance& inst, DescriptorEnum itf);
+	void end() override;
 	bool read();
 	bool setled(LedCommand cmd);
 	bool rumble(uint8_t strong, uint8_t weak);
 
+	bool setConfig(uint8_t itf_num) override;
+	bool transferComplete(const Transfer& txfr) override;
+
 private:
-	void control(tusb_request_recipient_t recipient, uint16_t value, uint16_t length);
+	bool control(tusb_request_recipient_t recipient, uint16_t value, uint16_t length);
 	void control_cb(tuh_xfer_t* xfer);
 	void process_packet();
 	bool output(const void* data, uint8_t length);
@@ -81,3 +87,5 @@ private:
 	uint8_t ep_out{0x01};
 	uint8_t state{0};
 };
+
+} // namespace USB::VENDOR

@@ -190,7 +190,7 @@ index 65223fbca..0c81222b1 100644
  
  #ifdef __cplusplus
 diff --git a/src/host/usbh.c b/src/host/usbh.c
-index 12b0ed203..5f09ccca0 100644
+index 12b0ed203..672ced3a1 100644
 --- a/src/host/usbh.c
 +++ b/src/host/usbh.c
 @@ -182,8 +182,9 @@ static usbh_class_driver_t const usbh_class_drivers[] =
@@ -205,6 +205,21 @@ index 12b0ed203..5f09ccca0 100644
        .close      = cush_close
      }
    #endif
+@@ -294,12 +295,12 @@ bool tuh_vid_pid_get(uint8_t dev_addr, uint16_t* vid, uint16_t* pid)
+   *vid = *pid = 0;
+ 
+   usbh_device_t const* dev = get_device(dev_addr);
+-  TU_VERIFY(dev && dev->configured);
++  TU_VERIFY(dev);
+ 
+   *vid = dev->vid;
+   *pid = dev->pid;
+ 
+-  return true;
++  return dev->configured;
+ }
+ 
+ tusb_speed_t tuh_speed_get (uint8_t dev_addr)
 diff --git a/src/portable/espressif/esp32sx/dcd_esp32sx.c b/src/portable/espressif/esp32sx/dcd_esp32sx.c
 index 41240f737..6516403e4 100644
 --- a/src/portable/espressif/esp32sx/dcd_esp32sx.c

@@ -59,7 +59,6 @@ ${device_classes}
 
 #define CFG_TUH_ENABLED ${host_enabled}
 #define CFG_TUH_HUB 1
-#define CFG_TUH_API_EDPT_XFER 1
 
 // Host interface classes
 ${host_classes}
