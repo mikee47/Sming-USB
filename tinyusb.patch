@@ -233,3 +233,15 @@ index 41240f737..6516403e4 100644
  #include "freertos/xtensa_api.h"
  #include "esp_intr_alloc.h"
  #include "esp_log.h"
+diff --git a/src/portable/raspberrypi/rp2040/dcd_rp2040.c b/src/portable/raspberrypi/rp2040/dcd_rp2040.c
+index 8df7bef2b..e08300725 100644
+--- a/src/portable/raspberrypi/rp2040/dcd_rp2040.c
++++ b/src/portable/raspberrypi/rp2040/dcd_rp2040.c
+@@ -30,6 +30,7 @@
+ 
+ #include "pico.h"
+ #include "rp2040_usb.h"
++#include "pico/sync.h"
+ 
+ #if TUD_OPT_RP2040_USB_DEVICE_ENUMERATION_FIX
+ #include "pico/fix/rp2040_usb_device_enumeration.h"
