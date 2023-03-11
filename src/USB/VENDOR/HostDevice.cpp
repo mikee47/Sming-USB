@@ -6,7 +6,7 @@ namespace USB::VENDOR
 {
 MountCallback mountCallback;
 UnmountCallback unmountCallback;
-HostDevice* host_devices[CFG_TUH_DEVICE_MAX][CFG_TUH_VENDOR];
+HostDevice* host_devices[CFG_TUH_VENDOR];
 
 void onMount(MountCallback callback)
 {
@@ -20,10 +20,8 @@ void onUnmount(UnmountCallback callback)
 
 HostDevice* getDeviceByInterface(uint8_t dev_addr, uint8_t itf_num)
 {
-	unsigned dev_idx = dev_addr - 1;
-	TU_ASSERT(dev_idx < CFG_TUH_DEVICE_MAX, nullptr);
-	for(auto dev : host_devices[dev_idx]) {
-		if(*dev == HostInterface::Instance{dev_addr, itf_num}) {
+	for(auto dev : host_devices) {
+		if(dev && *dev == HostInterface::Instance{dev_addr, itf_num}) {
 			return dev;
 		}
 	}
@@ -32,10 +30,8 @@ HostDevice* getDeviceByInterface(uint8_t dev_addr, uint8_t itf_num)
 
 HostDevice* getDeviceByEndpoint(uint8_t dev_addr, uint8_t ep_addr)
 {
-	unsigned dev_idx = dev_addr - 1;
-	TU_ASSERT(dev_idx < CFG_TUH_DEVICE_MAX, nullptr);
-	for(auto dev : host_devices[dev_idx]) {
-		if(dev && dev->ownsEndpoint(ep_addr)) {
+	for(auto dev : host_devices) {
+		if(dev && dev->getAddress() == dev_addr && dev->ownsEndpoint(ep_addr)) {
 			return dev;
 		}
 	}
@@ -54,7 +50,8 @@ void cush_init(void)
 
 bool cush_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const* itf_desc, uint16_t max_len)
 {
-	debug_d("%s(rhport %u, dev_addr %u, max_len %u)", __FUNCTION__, rhport, dev_addr, max_len);
+	debug_d("%s(rhport %u, dev_addr %u, itf_num %u, max_len %u)", __FUNCTION__, rhport, dev_addr,
+			itf_desc->bInterfaceNumber, max_len);
 
 	if(!mountCallback) {
 		return false;
@@ -64,7 +61,7 @@ bool cush_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const* it
 	TU_ASSERT(dev_idx < CFG_TUH_DEVICE_MAX, false);
 
 	auto getFreeDevice = [&]() -> HostDevice** {
-		for(auto& dev : host_devices[dev_idx]) {
+		for(auto& dev : host_devices) {
 			if(!dev) {
 				return &dev;
 			}
@@ -108,12 +105,8 @@ void cush_close(uint8_t dev_addr)
 {
 	debug_d("%s(dev_addr %u)", __FUNCTION__, dev_addr);
 
-	unsigned idx = dev_addr - 1;
-	if(idx >= CFG_TUH_DEVICE_MAX) {
-		return;
-	}
-	for(auto& dev : host_devices[idx]) {
-		if(dev) {
+	for(auto& dev : host_devices) {
+		if(dev && dev->getAddress() == dev_addr) {
 			dev->end();
 			dev = nullptr;
 		}
