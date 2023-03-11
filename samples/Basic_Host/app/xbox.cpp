@@ -86,9 +86,9 @@ bool Xbox::control(tusb_request_recipient_t recipient, uint16_t value, uint16_t 
 	return tuh_control_xfer(&xfer);
 }
 
-void Xbox::control_cb(tuh_xfer_t* xfer)
+void Xbox::control_cb(tuh_xfer_t& xfer)
 {
-	debug_i("%s(%u)", __FUNCTION__, xfer->user_data);
+	debug_i("%s(%u)", __FUNCTION__, xfer.user_data);
 	switch(state++) {
 	case 0:
 		control(TUSB_REQ_RCPT_INTERFACE, 0, 8);

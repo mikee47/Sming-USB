@@ -108,14 +108,14 @@ public:
 private:
 	bool parseInterface(DescriptorList list);
 	bool control(tusb_request_recipient_t recipient, uint16_t value, uint16_t length);
-	void control_cb(tuh_xfer_t* xfer);
+	void control_cb(tuh_xfer_t& xfer);
 	void process_packet();
 	bool output(const void* data, uint8_t length);
 
 	static void static_control_cb(tuh_xfer_t* xfer)
 	{
 		auto self = reinterpret_cast<Xbox*>(xfer->user_data);
-		self->control_cb(xfer);
+		self->control_cb(*xfer);
 	}
 
 	static constexpr size_t bufSize{64};
