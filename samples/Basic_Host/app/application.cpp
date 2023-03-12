@@ -7,65 +7,6 @@ namespace
 {
 #ifdef ARCH_HOST
 
-#define DESC_TYPE_MAP(XX)                                                                                              \
-	XX(DEVICE, 0x01)                                                                                                   \
-	XX(CONFIGURATION, 0x02)                                                                                            \
-	XX(STRING, 0x03)                                                                                                   \
-	XX(INTERFACE, 0x04)                                                                                                \
-	XX(ENDPOINT, 0x05)                                                                                                 \
-	XX(DEVICE_QUALIFIER, 0x06)                                                                                         \
-	XX(OTHER_SPEED_CONFIG, 0x07)                                                                                       \
-	XX(INTERFACE_POWER, 0x08)                                                                                          \
-	XX(OTG, 0x09)                                                                                                      \
-	XX(DEBUG, 0x0A)                                                                                                    \
-	XX(INTERFACE_ASSOCIATION, 0x0B)                                                                                    \
-	XX(BOS, 0x0F)                                                                                                      \
-	XX(DEVICE_CAPABILITY, 0x10)                                                                                        \
-	XX(CS_DEVICE, 0x21)                                                                                                \
-	XX(CS_CONFIGURATION, 0x22)                                                                                         \
-	XX(CS_STRING, 0x23)                                                                                                \
-	XX(CS_INTERFACE, 0x24)                                                                                             \
-	XX(CS_ENDPOINT, 0x25)                                                                                              \
-	XX(SUPERSPEED_ENDPOINT_COMPANION, 0x30)                                                                            \
-	XX(SUPERSPEED_ISO_ENDPOINT_COMPANION, 0x31)
-
-const char* getDescTypeName(uint8_t type)
-{
-	switch(type) {
-#define XX(name, value)                                                                                                \
-	case value:                                                                                                        \
-		return #name;
-		DESC_TYPE_MAP(XX)
-#undef XX
-	}
-	switch(USB::Descriptor::Type{type}.type) {
-	case TUSB_REQ_TYPE_STANDARD:
-		return "STANDARD";
-	case TUSB_REQ_TYPE_CLASS:
-		return "CLASS";
-	case TUSB_REQ_TYPE_VENDOR:
-		return "VENDOR";
-	case TUSB_REQ_TYPE_INVALID:
-		return "RESERVED";
-	}
-}
-
-const char* getXferTypeName(uint8_t type)
-{
-	switch(type) {
-	case TUSB_XFER_CONTROL:
-		return "CTRL";
-	case TUSB_XFER_ISOCHRONOUS:
-		return "ISO";
-	case TUSB_XFER_BULK:
-		return "BULK";
-	case TUSB_XFER_INTERRUPT:
-		return "INT";
-	default:
-		return "?";
-	}
-}
-
 const uint8_t xbox360_desc_data[]{
 	0x09, 0x02, 0x99, 0x00, 0x04, 0x01, 0x00, 0xA0, 0xFA, 0x09, 0x04, 0x00, 0x00, 0x02, 0xFF, 0x5D, 0x01,
 	0x00, 0x11, 0x21, 0x00, 0x01, 0x01, 0x25, 0x81, 0x14, 0x00, 0x00, 0x00, 0x00, 0x13, 0x01, 0x08, 0x00,
@@ -81,29 +22,7 @@ void parse_xbox360()
 {
 	using namespace USB;
 	DescriptorList list{reinterpret_cast<const Descriptor*>(xbox360_desc_data), ARRAY_SIZE(xbox360_desc_data)};
-
-	for(auto desc : list) {
-		// Serial << "DESC " << desc->type.value << ' ' << ", length " << desc->length << endl;
-		m_printHex(getDescTypeName(desc->type), desc, desc->length, -1, 32);
-		switch(desc->type) {
-		case TUSB_DESC_INTERFACE: {
-			auto itf = desc->as<tusb_desc_interface_t>();
-			Serial << "  #" << itf->bInterfaceNumber << ", class " << itf->bInterfaceClass << ", subclass "
-				   << itf->bInterfaceSubClass << ", protocol " << itf->bInterfaceProtocol << endl;
-			break;
-		}
-
-		case TUSB_DESC_ENDPOINT: {
-			auto ep = desc->as<tusb_desc_endpoint_t>();
-			Serial << "  Addr " << String(ep->bEndpointAddress, HEX, 2) << ", xfer " << ep->bmAttributes.xfer << ' '
-				   << getXferTypeName(ep->bmAttributes.xfer) << ", sync " << ep->bmAttributes.sync << ", usage "
-				   << ep->bmAttributes.usage << ", MaxPacketSize " << ep->wMaxPacketSize << ", interval "
-				   << ep->bInterval << endl;
-		}
-
-		default:;
-		}
-	}
+	Serial.print(list);
 }
 #endif
 

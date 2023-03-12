@@ -3,6 +3,7 @@
 #include <tusb.h>
 #include <Delegate.h>
 #include <WString.h>
+#include <Print.h>
 #if CFG_TUD_ENABLED
 #include <usb_descriptors.h>
 #endif
@@ -34,6 +35,8 @@ struct Descriptor {
 	{
 		return reinterpret_cast<const T*>(this);
 	}
+
+	size_t printTo(Print& p) const;
 };
 
 /**
@@ -121,6 +124,8 @@ struct DescriptorList {
 	}
 
 	/** @} */
+
+	size_t printTo(Print& p) const;
 };
 
 /**
