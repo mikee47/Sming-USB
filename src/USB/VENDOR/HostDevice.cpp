@@ -8,6 +8,11 @@ MountCallback mountCallback;
 UnmountCallback unmountCallback;
 HostDevice* host_devices[CFG_TUH_VENDOR];
 
+uint8_t getEpIndex(uint8_t ep_addr)
+{
+	return (ep_addr & 0x0f) | ((ep_addr & 0x80) >> 3);
+}
+
 void onMount(MountCallback callback)
 {
 	mountCallback = callback;
@@ -36,6 +41,18 @@ HostDevice* getDeviceByEndpoint(uint8_t dev_addr, uint8_t ep_addr)
 		}
 	}
 	return nullptr;
+}
+
+bool HostDevice::ownsEndpoint(uint8_t ep_addr)
+{
+	return ep_mask[getEpIndex(ep_addr)];
+}
+
+bool HostDevice::openEndpoint(const tusb_desc_endpoint_t& ep_desc)
+{
+	TU_ASSERT(tuh_edpt_open(inst.dev_addr, &ep_desc));
+	ep_mask.set(getEpIndex(ep_desc.bEndpointAddress));
+	return true;
 }
 
 } // namespace USB::VENDOR

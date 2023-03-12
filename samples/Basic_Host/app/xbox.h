@@ -99,10 +99,6 @@ public:
 	static const char* getInputName(Xbox::Input input);
 
 	bool setConfig(uint8_t itf_num) override;
-	bool ownsEndpoint(uint8_t ep) override
-	{
-		return ep == ep_in || ep == ep_out;
-	}
 	bool transferComplete(const Transfer& txfr) override;
 
 private:
@@ -121,8 +117,9 @@ private:
 	static constexpr size_t bufSize{64};
 	InputData inputData{};
 	InputChange inputChangeCallback;
-	uint8_t buffer[bufSize];
-	uint8_t output_buffer[8];
+	uint8_t controlBuffer[20]{};
+	uint8_t dataBuffer[bufSize];
+	uint8_t outputBuffer[8];
 	uint8_t ep_in{0};
 	uint8_t ep_out{0};
 	uint8_t state{0};
