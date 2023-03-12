@@ -42,36 +42,85 @@ struct Descriptor {
 struct DescriptorList {
 	const Descriptor* desc;
 	size_t length;
-};
 
-class DescriptorEnum
-{
-public:
-	DescriptorEnum(DescriptorList list) : list(list)
+	/**
+	 * @name Iterator support (forward only)
+	 * @{
+	 */
+	class Iterator
 	{
-	}
+	public:
+		Iterator() = default;
+		Iterator(const Iterator&) = default;
 
-	void reset()
-	{
-		offset = 0;
-	}
-
-	const Descriptor* next()
-	{
-		if(offset >= list.length) {
-			return nullptr;
+		Iterator(const DescriptorList* list, uint16_t offset) : mList(list), mOffset(offset)
+		{
 		}
 
-		auto ptr = reinterpret_cast<const uint8_t*>(list.desc);
-		ptr += offset;
-		auto desc = reinterpret_cast<const Descriptor*>(ptr);
-		offset += desc->length;
-		return (offset <= list.length) ? desc : nullptr;
+		operator bool() const
+		{
+			return mList != nullptr && mOffset < mList->length;
+		}
+
+		bool operator==(const Iterator& rhs) const
+		{
+			return mList == rhs.mList && mOffset == rhs.mOffset;
+		}
+
+		bool operator!=(const Iterator& rhs) const
+		{
+			return !operator==(rhs);
+		}
+
+		const Descriptor* operator*() const
+		{
+			if(!*this) {
+				return nullptr;
+			}
+
+			auto ptr = reinterpret_cast<const uint8_t*>(mList->desc);
+			return reinterpret_cast<const Descriptor*>(ptr + mOffset);
+		}
+
+		Iterator& operator++()
+		{
+			next();
+			return *this;
+		}
+
+		Iterator operator++(int)
+		{
+			Iterator tmp(*this);
+			next();
+			return tmp;
+		}
+
+		void next()
+		{
+			if(!*this) {
+				return;
+			}
+			mOffset += operator*()->length;
+		}
+
+		using const_iterator = Iterator;
+
+	private:
+		const DescriptorList* mList{nullptr};
+		uint16_t mOffset{0};
+	};
+
+	Iterator begin() const
+	{
+		return Iterator(this, 0);
 	}
 
-private:
-	DescriptorList list;
-	size_t offset{0};
+	Iterator end() const
+	{
+		return Iterator(this, length);
+	}
+
+	/** @} */
 };
 
 /**

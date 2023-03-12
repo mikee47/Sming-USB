@@ -82,8 +82,7 @@ void parse_xbox360()
 	using namespace USB;
 	DescriptorList list{reinterpret_cast<const Descriptor*>(xbox360_desc_data), ARRAY_SIZE(xbox360_desc_data)};
 
-	DescriptorEnum e(list);
-	while(auto desc = e.next()) {
+	for(auto desc : list) {
 		// Serial << "DESC " << desc->type.value << ' ' << ", length " << desc->length << endl;
 		m_printHex(getDescTypeName(desc->type), desc, desc->length, -1, 32);
 		switch(desc->type) {

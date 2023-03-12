@@ -35,8 +35,7 @@ bool Xbox::begin(const Instance& inst, const Config& cfg)
 bool Xbox::parseInterface(DescriptorList list)
 {
 	ep_in = ep_out = 0;
-	DescriptorEnum e(list);
-	while(auto desc = e.next()) {
+	for(auto desc : list) {
 		if(desc->type != TUSB_DESC_ENDPOINT) {
 			continue;
 		}
