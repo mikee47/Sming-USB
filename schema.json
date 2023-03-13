@@ -1,290 +1,273 @@
 {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "type": "object",
-    "properties": {
-        "devices": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$ref": "#/definitions/Config",
+    "definitions": {
+        "UsbConfig": {
+            "title": "USB Configuration",
+            "description": "",
             "type": "object",
+            "additionalProperties": false,
             "properties": {
-                "device0": {
+                "devices": {
+                    "$ref": "#/definitions/Devices"
+                }
+            },
+            "properties": {
+                "host": {
+                    "title": "Host Interfaces",
+                    "description": "Number of interfaces of each class required",
                     "type": "object",
-                    "properties": {
-                        "class": {
-                            "type": "string"
-                        },
-                        "subclass": {
-                            "type": "string"
-                        },
-                        "protocol": {
-                            "type": "string"
-                        },
-                        "vendor_id": {
-                            "type": "string"
-                        },
-                        "product_id": {
-                            "type": "string"
-                        },
-                        "version": {
-                            "type": "string"
-                        },
-                        "manufacturer": {
-                            "type": "string"
-                        },
-                        "product": {
-                            "type": "string"
-                        },
-                        "serial": {
-                            "type": "string"
-                        },
-                        "configs": {
-                            "type": "object",
-                            "properties": {
-                                "config0": {
-                                    "type": "object",
-                                    "properties": {
-                                        "description": {
-                                            "type": "string"
-                                        },
-                                        "attributes": {
-                                            "type": "array",
-                                            "items": [
-                                                {
-                                                    "type": "string"
-                                                }
-                                            ]
-                                        },
-                                        "power": {
-                                            "type": "integer"
-                                        },
-                                        "interfaces": {
-                                            "type": "object",
-                                            "properties": {
-                                                "hid0": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "description": {
-                                                            "type": "string"
-                                                        },
-                                                        "template": {
-                                                            "type": "string"
-                                                        },
-                                                        "protocol": {
-                                                            "type": "string"
-                                                        },
-                                                        "bufsize": {
-                                                            "type": "integer"
-                                                        },
-                                                        "poll-interval": {
-                                                            "type": "integer"
-                                                        },
-                                                        "reports": {
-                                                            "type": "array",
-                                                            "items": [
-                                                                {
-                                                                    "type": "string"
-                                                                },
-                                                                {
-                                                                    "type": "string"
-                                                                },
-                                                                {
-                                                                    "type": "string"
-                                                                },
-                                                                {
-                                                                    "type": "string"
-                                                                }
-                                                            ]
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "description",
-                                                        "template",
-                                                        "protocol",
-                                                        "bufsize",
-                                                        "poll-interval",
-                                                        "reports"
-                                                    ]
-                                                },
-                                                "hid1": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "description": {
-                                                            "type": "string"
-                                                        },
-                                                        "template": {
-                                                            "type": "string"
-                                                        },
-                                                        "protocol": {
-                                                            "type": "string"
-                                                        },
-                                                        "bufsize": {
-                                                            "type": "integer"
-                                                        },
-                                                        "poll-interval": {
-                                                            "type": "integer"
-                                                        },
-                                                        "reports": {
-                                                            "type": "array",
-                                                            "items": [
-                                                                {
-                                                                    "type": "string"
-                                                                },
-                                                                {
-                                                                    "type": "string"
-                                                                }
-                                                            ]
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "description",
-                                                        "template",
-                                                        "protocol",
-                                                        "bufsize",
-                                                        "poll-interval",
-                                                        "reports"
-                                                    ]
-                                                },
-                                                "cdc0": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "description": {
-                                                            "type": "string"
-                                                        },
-                                                        "template": {
-                                                            "type": "string"
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "description",
-                                                        "template"
-                                                    ]
-                                                },
-                                                "cdc1": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "description": {
-                                                            "type": "string"
-                                                        },
-                                                        "template": {
-                                                            "type": "string"
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "description",
-                                                        "template"
-                                                    ]
-                                                },
-                                                "msc0": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "description": {
-                                                            "type": "string"
-                                                        },
-                                                        "template": {
-                                                            "type": "string"
-                                                        },
-                                                        "vendor": {
-                                                            "type": "string"
-                                                        },
-                                                        "product": {
-                                                            "type": "string"
-                                                        },
-                                                        "version": {
-                                                            "type": "string"
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "description",
-                                                        "template",
-                                                        "vendor",
-                                                        "product",
-                                                        "version"
-                                                    ]
-                                                },
-                                                "midi0": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "description": {
-                                                            "type": "string"
-                                                        },
-                                                        "template": {
-                                                            "type": "string"
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "description",
-                                                        "template"
-                                                    ]
-                                                },
-                                                "dfu0": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "template": {
-                                                            "type": "string"
-                                                        },
-                                                        "alternates": {
-                                                            "type": "array",
-                                                            "items": [
-                                                                {
-                                                                    "type": "string"
-                                                                },
-                                                                {
-                                                                    "type": "string"
-                                                                },
-                                                                {
-                                                                    "type": "string"
-                                                                }
-                                                            ]
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "template",
-                                                        "alternates"
-                                                    ]
-                                                }
-                                            },
-                                            "required": [
-                                                "hid0",
-                                                "hid1",
-                                                "cdc0",
-                                                "cdc1",
-                                                "msc0",
-                                                "midi0",
-                                                "dfu0"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "description",
-                                        "attributes",
-                                        "power",
-                                        "interfaces"
-                                    ]
-                                }
-                            },
-                            "required": [
-                                "config0"
-                            ]
-                        }
-                    },
-                    "required": [
-                        "class",
-                        "subclass",
-                        "protocol",
-                        "vendor_id",
-                        "product_id",
-                        "version",
-                        "manufacturer",
-                        "product",
-                        "serial",
-                        "configs"
-                    ]
+                    ""
+                }
+            }
+        },
+        "Devices": {
+            "title": "Devices",
+            "type": "object",
+            "additionalProperties": false,
+			"patternProperties": {
+				"^[A-Za-z_][A-Za-z0-9_]*$": {
+					"type": "object",
+					"$ref": "#/definitions/Device"
+				}
+			}
+        },
+        "Device": {
+            "title": "Device",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "class": {
+                    "type": "string"
+                },
+                "subclass": {
+                    "type": "string"
+                },
+                "protocol": {
+                    "type": "string"
+                },
+                "vendor_id": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                },
+                "manufacturer": {
+                    "type": "string"
+                },
+                "product": {
+                    "type": "string"
+                },
+                "serial": {
+                    "type": "string",
+                    "format": "integer"
+                },
+                "configs": {
+                    "$ref": "#/definitions/Configs"
                 }
             },
             "required": [
-                "device0"
+                "class",
+                "configs",
+                "manufacturer",
+                "product",
+                "product_id",
+                "protocol",
+                "serial",
+                "subclass",
+                "vendor_id",
+                "version"
             ]
+        },
+        "Configs": {
+            "type": "object",
+            "additionalProperties": false,
+            "patternProperties": {
+                "^[A-Za-z_][A-Za-z0-9_]*$": {
+                    "type": "object",
+                    "$ref": "#/definitions/Config"
+                }
+            }
+        "properties": {
+                "config0": {
+                    "$ref": "#/definitions/Config0"
+                }
+            },
+            "required": [
+                "config0"
+            ],
+            "title": "Configs"
+        },
+        "Config0": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "attributes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "power": {
+                    "type": "integer"
+                },
+                "interfaces": {
+                    "$ref": "#/definitions/Interfaces"
+                }
+            },
+            "required": [
+                "attributes",
+                "description",
+                "interfaces",
+                "power"
+            ],
+            "title": "Config0"
+        },
+        "Interfaces": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "hid0": {
+                    "$ref": "#/definitions/HID"
+                },
+                "hid1": {
+                    "$ref": "#/definitions/HID"
+                },
+                "cdc0": {
+                    "$ref": "#/definitions/Cdc0"
+                },
+                "cdc1": {
+                    "$ref": "#/definitions/Cdc0"
+                },
+                "msc0": {
+                    "$ref": "#/definitions/Msc0"
+                },
+                "midi0": {
+                    "$ref": "#/definitions/Cdc0"
+                },
+                "dfu0": {
+                    "$ref": "#/definitions/Dfu0"
+                }
+            },
+            "required": [
+                "cdc0",
+                "cdc1",
+                "dfu0",
+                "hid0",
+                "hid1",
+                "midi0",
+                "msc0"
+            ],
+            "title": "Interfaces"
+        },
+        "Cdc0": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "template": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "description",
+                "template"
+            ],
+            "title": "Cdc0"
+        },
+        "Dfu0": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "template": {
+                    "type": "string"
+                },
+                "alternates": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "alternates",
+                "template"
+            ],
+            "title": "Dfu0"
+        },
+        "HID": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "template": {
+                    "type": "string"
+                },
+                "protocol": {
+                    "type": "string"
+                },
+                "bufsize": {
+                    "type": "integer"
+                },
+                "poll-interval": {
+                    "type": "integer"
+                },
+                "reports": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "bufsize",
+                "description",
+                "poll-interval",
+                "protocol",
+                "reports",
+                "template"
+            ],
+            "title": "HID"
+        },
+        "Msc0": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "template": {
+                    "type": "string"
+                },
+                "vendor": {
+                    "type": "string"
+                },
+                "product": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string",
+                    "format": "integer"
+                }
+            },
+            "required": [
+                "description",
+                "product",
+                "template",
+                "vendor",
+                "version"
+            ],
+            "title": "Msc0"
         }
-    },
-    "required": [
-        "devices"
-    ]
+    }
 }
