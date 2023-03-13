@@ -41,8 +41,11 @@ def write_file(dirname, filename, content):
         f.write(content)
 
 
+def resolve_path(name):
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), name)
+
 def readTemplate(name, vars):
-    pathname = os.path.join(os.path.dirname(os.path.abspath(__file__)), f'templates/{name}')
+    pathname = resolve_path(f'templates/{name}')
     with open(pathname) as f:
         tmpl = string.Template(f.read())
     return tmpl.substitute(vars)
@@ -63,7 +66,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         cfg_vars['hid_ep_bufsize'] = 0
         return
 
-    templates = json_load(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'interfaces.json'))
+    templates = json_load(resolve_path('interfaces.json'))
 
     cfg_vars['device_enabled'] = 1
 
@@ -276,6 +279,23 @@ def parse_host(config, cfg_vars, classdefs, output_dir):
     cfg_vars['host_classes'] = classes
 
 
+def validate_config(config):
+    # Validate configuration against schema
+    try:
+        from jsonschema import Draft7Validator
+        schema = json_load(resolve_path('schema.json'))
+        v = Draft7Validator(schema)
+        errors = v.iter_errors(config)
+        print(list(errors))
+        errors = sorted(errors, key=lambda e: e.path)
+        if errors != []:
+            for e in errors:
+                critical("%s @ %s" % (e.message, e.path))
+            sys.exit(3)
+    except ImportError as err:
+        critical("\n** WARNING! %s: Cannot validate '%s', please run `make python-requirements **\n\n" % (str(err), args.input))
+
+
 def main():
     parser = argparse.ArgumentParser(description='Sming USB configuration utility')
 
@@ -288,6 +308,7 @@ def main():
     common.quiet = args.quiet
 
     config = json_load(args.input)
+    validate_config(config)
 
     cfg_vars = {}
     classdefs = []

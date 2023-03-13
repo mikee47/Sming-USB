@@ -1,0 +1,269 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$ref": "#/definitions/UsbConfig",
+    "definitions": {
+        "UsbConfig": {
+            "title": "USB Configuration",
+            "description": "",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "devices": {
+                    "$ref": "#/definitions/Devices"
+                },
+                "host": {
+                    "title": "Host Interfaces",
+                    "description": "Number of interfaces of each class required",
+                    "type": "object",
+                    "$ref": "#/definitions/HostInterface"
+                }
+            }
+        },
+        "HostInterface": {
+            "title": "Host Interface definition",
+            "type": "number"
+        },
+        "Devices": {
+            "title": "Devices",
+            "type": "object",
+            "additionalProperties": false,
+			"patternProperties": {
+				"^[A-Za-z_][A-Za-z0-9_]*$": {
+					"type": "object",
+					"$ref": "#/definitions/Device"
+				}
+			}
+        },
+        "Device": {
+            "title": "Device",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "class": {
+                    "type": "string"
+                },
+                "subclass": {
+                    "type": "string"
+                },
+                "protocol": {
+                    "type": "string"
+                },
+                "vendor_id": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                },
+                "manufacturer": {
+                    "type": "string"
+                },
+                "product": {
+                    "type": "string"
+                },
+                "serial": {
+                    "type": "string",
+                    "format": "integer"
+                },
+                "configs": {
+                    "$ref": "#/definitions/Configs"
+                }
+            },
+            "required": [
+                "class",
+                "configs",
+                "manufacturer",
+                "product",
+                "product_id",
+                "protocol",
+                "serial",
+                "subclass",
+                "vendor_id",
+                "version"
+            ]
+        },
+        "Configs": {
+            "title": "Configs",
+            "type": "object",
+            "additionalProperties": false,
+            "patternProperties": {
+                "^[A-Za-z_][A-Za-z0-9_]*$": {
+                    "type": "object",
+                    "$ref": "#/definitions/Config"
+                }
+            }
+        },
+        "Config": {
+            "title": "Config",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "attributes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "power": {
+                    "type": "integer"
+                },
+                "interfaces": {
+                    "$ref": "#/definitions/Interfaces"
+                }
+            },
+            "required": [
+                "attributes",
+                "description",
+                "interfaces",
+                "power"
+            ]
+        },
+        "Interfaces": {
+            "title": "Interfaces",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "hid": {
+                    "$ref": "#/definitions/HID"
+                },
+                "cdc": {
+                    "$ref": "#/definitions/CDC"
+                },
+                "msc": {
+                    "$ref": "#/definitions/MSC"
+                },
+                "midi": {
+                    "$ref": "#/definitions/MIDI"
+                },
+                "dfu": {
+                    "$ref": "#/definitions/DFU"
+                }
+            }
+        },
+        "CDC": {
+            "title": "CDC",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "template": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "description",
+                "template"
+            ]
+        },
+        "DFU": {
+            "title": "DFU",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "template": {
+                    "type": "string"
+                },
+                "alternates": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "alternates",
+                "template"
+            ]
+        },
+        "HID": {
+            "title": "HID",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "template": {
+                    "type": "string"
+                },
+                "protocol": {
+                    "type": "string"
+                },
+                "bufsize": {
+                    "type": "integer"
+                },
+                "poll-interval": {
+                    "type": "integer"
+                },
+                "reports": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "bufsize",
+                "description",
+                "poll-interval",
+                "protocol",
+                "reports",
+                "template"
+            ]
+        },
+        "MIDI": {
+            "title": "MIDI",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "template": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "description",
+                "template"
+            ]
+        },
+        "MSC": {
+            "title": "MSC",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "template": {
+                    "type": "string"
+                },
+                "vendor": {
+                    "type": "string"
+                },
+                "product": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string",
+                    "format": "integer"
+                }
+            },
+            "required": [
+                "description",
+                "product",
+                "template",
+                "vendor",
+                "version"
+            ]
+        }
+    }
+}
