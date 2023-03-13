@@ -27,21 +27,17 @@ static unsigned charIndex;
 
 void sendChar()
 {
+	hid_keyboard_report_t report{};
 	char c = testText[charIndex];
 	if(c == lastChar) {
 		lastChar = '\0';
-		hid_keyboard_report_t report{};
-		USB::hid0.sendReport(REPORT_ID_KEYBOARD, &report, sizeof(report), sendChar);
-		return;
+	} else {
+		++charIndex;
+		lastChar = c;
+		auto& entry = conv_table[unsigned(c)];
+		report.modifier = entry[0] ? KEYBOARD_MODIFIER_LEFTSHIFT : 0;
+		report.keycode[0] = entry[1];
 	}
-	++charIndex;
-	lastChar = c;
-	auto& entry = conv_table[unsigned(c)];
-	hid_keyboard_report_t report{
-		uint8_t(entry[0] ? KEYBOARD_MODIFIER_LEFTSHIFT : 0),
-		.reserved = 0,
-		.keycode = {entry[1]},
-	};
 
 	USB::hid0.sendReport(REPORT_ID_KEYBOARD, &report, sizeof(report), c ? sendChar : nullptr);
 }
@@ -82,7 +78,8 @@ void init()
 	USB::onGetDescriptorSting([](uint8_t index) -> const USB::Descriptor* {
 		switch(index) {
 		case STRING_INDEX_DEVICE0_SERIAL: {
-			static USB::StringDescriptor<8> desc = String(system_get_chip_id(), HEX, 8);
+			static USB::StringDescriptor<8> desc;
+			desc = String(system_get_chip_id(), HEX, 8);
 			return &desc;
 		}
 
@@ -92,25 +89,17 @@ void init()
 	});
 
 #if CFG_TUD_CDC
-	USB::cdc0.systemDebugOutput(true);
+	// USB::cdc0.systemDebugOutput(true);
 	USB::cdc0.onDataReceived([](Stream& stream, char arrivedChar, unsigned short availableCharsCount) {
 		char buf[availableCharsCount];
 		auto n = stream.readBytes(buf, availableCharsCount);
 		Serial.write(buf, n);
 	});
 	Serial.onDataReceived([](Stream& stream, char arrivedChar, unsigned short availableCharsCount) {
-		Serial.read();
-		System.queueCallback([](uint32_t param) { Serial.write(char(param)); }, arrivedChar);
-		return;
-		for(;;) {
-			char buf[512];
-			auto n = stream.readBytes(buf, sizeof(buf));
-			if(n == 0) {
-				break;
-			}
-			Serial.write(buf, n);
-			// USB::cdc0.write(buf, n);
-		}
+		char buf[availableCharsCount];
+		auto n = stream.readBytes(buf, availableCharsCount);
+		Serial.write(buf, n);
+		USB::cdc1.write(buf, n);
 	});
 #endif
 
