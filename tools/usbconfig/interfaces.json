@@ -2,6 +2,39 @@
     "hid": {
         "class": "hid",
         "description": "HID Input only descriptor",
+        "schema": {
+            "properties": {
+                "protocol": {
+                    "default": "none",
+                    "enum": [
+                        "none",
+                        "keyboard",
+                        "mouse"
+                    ]
+                },
+                "bufsize": {
+                    "type": "integer",
+                    "default": "HID_DEFAULT_EP_BUFSIZE",
+                    "minimum": 4,
+                    "maximum": 512
+                },
+                "poll-interval": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                },
+                "reports": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "poll-interval",
+                "reports"
+            ]
+        },
         "fields": {
             "description": "${itf.get('description', '')}",
             "Protocol": "HID_ITF_PROTOCOL_{make_id(itf.get('protocol', 'none'))}",
@@ -14,6 +47,41 @@
     "hid-inout": {
         "class": "hid",
         "description": "HID Input & Output descriptor",
+        "schema": {
+            "properties": {
+                "protocol": {
+                    "default": "none",
+                    "enum": [
+                        "none",
+                        "keyboard",
+                        "mouse"
+                    ]
+                },
+                "bufsize": {
+                    "type": "integer",
+                    "default": "HID_DEFAULT_EP_BUFSIZE",
+                    "minimum": 4,
+                    "maximum": 512
+                },
+                "poll-interval": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                },
+                "reports": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "bufsize",
+                "poll-interval",
+                "protocol",
+                "reports"
+            ]
+        },
         "fields": {
             "description": "${itf.get('description', '')}",
             "Protocol": "HID_ITF_PROTOCOL_{make_id(itf.get('protocol', 'none'))}",
@@ -27,6 +95,7 @@
     "cdc": {
         "class": "cdc",
         "description": "CDC Descriptor Template",
+        "schema": {},
         "fields": {
             "description": "${itf.get('description', '')}",
             "EP notify IN": "@",
@@ -44,6 +113,7 @@
             " - 1 Embedded Jack In connected to 1 External Jack Out",
             " - 1 Embedded Jack out connected to 1 External Jack In"
         ],
+        "schema": {},
         "fields": {
             "description": "${itf.get('description', '')}",
             "EP Out": "@",
@@ -55,6 +125,25 @@
     "msc": {
         "class": "msc",
         "description": "MSC Descriptor Template",
+        "schema": {
+            "properties": {
+                "vendor": {
+                    "type": "string"
+                },
+                "product": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string",
+                    "format": "integer"
+                }
+            },
+            "required": [
+                "product",
+                "vendor",
+                "version"
+            ]
+        },
         "fields": {
             "description": "${itf.get('description', '')}",
             "EP Out": "@",
@@ -68,6 +157,7 @@
             "AUDIO simple descriptor (UAC2) for 1 microphone input",
             " - 1 Input Terminal, 1 Feature Unit (Mute and Volume Control), 1 Output Terminal, 1 Clock Source"
         ],
+        "schema": {},
         "fields": {
             "description": "${itf.get('description', '')}",
             "Bytes Per Sample": "{itf['bytes-per-sample']}",
@@ -83,6 +173,7 @@
             "AUDIO simple descriptor (UAC2) for 4 microphone input",
             " - 1 Input Terminal, 1 Feature Unit (Mute and Volume Control), 1 Output Terminal, 1 Clock Source"
         ],
+        "schema": {},
         "fields": {
             "description": "${itf.get('description', '')}",
             "Bytes Per Sample": "{itf['bytes-per-sample']}",
@@ -98,6 +189,7 @@
             "AUDIO simple descriptor (UAC2) for mono speaker",
             " - 1 Input Terminal, 2 Feature Unit (Mute and Volume Control), 3 Output Terminal, 4 Clock Source"
         ],
+        "schema": {},
         "fields": {
             "description": "${itf.get('description', '')}",
             "Bytes Per Sample": "{itf['bytes-per-sample']}",
@@ -111,6 +203,7 @@
     "vendor": {
         "class": "vendor",
         "description": "Vendor Descriptor Template",
+        "schema": {},
         "fields": {
             "description": "${itf.get('description', '')}",
             "EP OUT": "@",
@@ -121,6 +214,7 @@
     "dfu_rt": {
         "class": "dfu",
         "description": "DFU runtime descriptor",
+        "schema": {},
         "fields": {
             "description": "${itf.get('description', '')}",
             "Attributes": "{itf['attributes']}",
@@ -131,6 +225,19 @@
     "dfu": {
         "class": "dfu",
         "description": "DFU Descriptor Template",
+        "schema": {
+            "properties": {
+                "alternates": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "alternates"
+            ]
+        },
         "fields": {
             "Alternate count": "{len(itf['alternates'])}",
             "description": "${itf['alternates']}",
@@ -143,6 +250,7 @@
     "cdc-ecm": {
         "class": "ecm-rndis",
         "description": "CDC-ECM Descriptor Template",
+        "schema": {},
         "fields": {
             "description": "${itf.get('description', '')}",
             "MAC address": "$",
@@ -158,6 +266,7 @@
     "rndis": {
         "class": "ecm-rndis",
         "description": "RNDIS Descriptor Template",
+        "schema": {},
         "fields": {
             "description": "${itf.get('description', '')}",
             "EP Notify IN": "@",
@@ -171,6 +280,7 @@
     "cdc-ncm": {
         "class": "ncm",
         "description": "CDC-ECM Descriptor Template",
+        "schema": {},
         "fields": {
             "description": "${itf.get('description', '')}",
             "MAC address": "$",

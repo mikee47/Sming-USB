@@ -284,6 +284,22 @@ def validate_config(config):
     try:
         from jsonschema import Draft7Validator
         schema = json_load(resolve_path('schema.json'))
+        itf_defs = schema['definitions']['Interfaces']['patternProperties']
+        itf_defs = next(iter(itf_defs.values()))
+        itf_defs = next(iter(itf_defs.values()))
+        print(json.dumps(itf_defs))
+        interfaces = json_load(resolve_path('interfaces.json'))
+        for tag, itf in interfaces.items():
+            tmpl_schema = itf['schema']
+            tmpl_schema['type'] = 'object'
+            tmpl_schema['additionalProperties'] = False
+            props = tmpl_schema.setdefault('properties', {})
+            props['description'] ={ "type": "string"}
+            props['template'] = { "enum": [tag] }
+            props.setdefault('required', []).append('template')
+            print(tag, json.dumps(tmpl_schema))
+            itf_defs.append(tmpl_schema)
+        print(to_json(itf_defs))
         v = Draft7Validator(schema)
         errors = sorted(v.iter_errors(config), key=lambda e: e.path)
         if errors != []:
