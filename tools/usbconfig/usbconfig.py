@@ -285,9 +285,7 @@ def validate_config(config):
         from jsonschema import Draft7Validator
         schema = json_load(resolve_path('schema.json'))
         v = Draft7Validator(schema)
-        errors = v.iter_errors(config)
-        print(list(errors))
-        errors = sorted(errors, key=lambda e: e.path)
+        errors = sorted(v.iter_errors(config), key=lambda e: e.path)
         if errors != []:
             for e in errors:
                 critical("%s @ %s" % (e.message, e.path))

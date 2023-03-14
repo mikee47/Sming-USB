@@ -4,9 +4,5 @@
         "cdc": 2,
         "msc": 1,
         "vendor": 4
-        // "midi0": {
-        //     "description": "TinyUSB MIDI device",
-        //     "class": "midi"
-        // }
     }
 }

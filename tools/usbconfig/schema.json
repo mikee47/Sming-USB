@@ -21,18 +21,37 @@
         },
         "HostInterface": {
             "title": "Host Interface definition",
-            "type": "number"
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "hid": {
+                    "type": "integer",
+                    "min": 0
+                },
+                "cdc": {
+                    "type": "integer",
+                    "min": 0
+                },
+                "msc": {
+                    "type": "integer",
+                    "min": 0
+                },
+                "vendor": {
+                    "type": "integer",
+                    "min": 0
+                }
+            }
         },
         "Devices": {
             "title": "Devices",
             "type": "object",
             "additionalProperties": false,
-			"patternProperties": {
-				"^[A-Za-z_][A-Za-z0-9_]*$": {
-					"type": "object",
-					"$ref": "#/definitions/Device"
-				}
-			}
+            "patternProperties": {
+                "^[A-Za-z_][A-Za-z0-9_]*$": {
+                    "type": "object",
+                    "$ref": "#/definitions/Device"
+                }
+            }
         },
         "Device": {
             "title": "Device",
@@ -127,21 +146,30 @@
             "title": "Interfaces",
             "type": "object",
             "additionalProperties": false,
-            "properties": {
-                "hid": {
-                    "$ref": "#/definitions/HID"
-                },
-                "cdc": {
-                    "$ref": "#/definitions/CDC"
-                },
-                "msc": {
-                    "$ref": "#/definitions/MSC"
-                },
-                "midi": {
-                    "$ref": "#/definitions/MIDI"
-                },
-                "dfu": {
-                    "$ref": "#/definitions/DFU"
+            "patternProperties": {
+                "^[A-Za-z_][A-Za-z0-9_]*$": {
+                    "anyOf": [
+                        {
+                            "type": "object",
+                            "$ref": "#/definitions/HID"
+                        },
+                        {
+                            "type": "object",
+                            "$ref": "#/definitions/CDC"
+                        },
+                        {
+                            "type": "object",
+                            "$ref": "#/definitions/MSC"
+                        },
+                        {
+                            "type": "object",
+                            "$ref": "#/definitions/MIDI"
+                        },
+                        {
+                            "type": "object",
+                            "$ref": "#/definitions/DFU"
+                        }
+                    ]
                 }
             }
         },
@@ -154,7 +182,9 @@
                     "type": "string"
                 },
                 "template": {
-                    "type": "string"
+                    "enum": [
+                        "cdc"
+                    ]
                 }
             },
             "required": [
@@ -168,7 +198,9 @@
             "additionalProperties": false,
             "properties": {
                 "template": {
-                    "type": "string"
+                    "enum": [
+                        "dfu"
+                    ]
                 },
                 "alternates": {
                     "type": "array",
@@ -191,16 +223,22 @@
                     "type": "string"
                 },
                 "template": {
-                    "type": "string"
+                    "enum": [
+                        "hid"
+                    ]
                 },
                 "protocol": {
                     "type": "string"
                 },
                 "bufsize": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 4,
+                    "maximum": 512
                 },
                 "poll-interval": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
                 },
                 "reports": {
                     "type": "array",
@@ -227,7 +265,9 @@
                     "type": "string"
                 },
                 "template": {
-                    "type": "string"
+                    "enum": [
+                        "midi"
+                    ]
                 }
             },
             "required": [
@@ -244,7 +284,9 @@
                     "type": "string"
                 },
                 "template": {
-                    "type": "string"
+                    "enum": [
+                        "msc"
+                    ]
                 },
                 "vendor": {
                     "type": "string"
