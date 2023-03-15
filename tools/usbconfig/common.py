@@ -26,7 +26,7 @@ def critical(msg):
 
 
 def json_loads(s):
-    return json.loads(jsmin(s), object_pairs_hook=OrderedDict)
+    return json.loads(jsmin(s))
 
 
 def json_load(filename):

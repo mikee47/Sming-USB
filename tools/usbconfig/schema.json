@@ -83,8 +83,7 @@
                     "type": "string"
                 },
                 "serial": {
-                    "type": "string",
-                    "format": "integer"
+                    "type": "string"
                 },
                 "configs": {
                     "$ref": "#/definitions/Configs"
@@ -148,7 +147,7 @@
             "additionalProperties": false,
             "patternProperties": {
                 "^[A-Za-z_][A-Za-z0-9_]*$": {
-                    "anyOf": []
+                    "oneOf": []
                 }
             }
         }

@@ -20,6 +20,7 @@
                 },
                 "poll-interval": {
                     "type": "integer",
+                    "default": 10,
                     "minimum": 0,
                     "maximum": 255
                 },
@@ -31,17 +32,16 @@
                 }
             },
             "required": [
-                "poll-interval",
                 "reports"
             ]
         },
         "fields": {
-            "description": "${itf.get('description', '')}",
-            "Protocol": "HID_ITF_PROTOCOL_{make_id(itf.get('protocol', 'none'))}",
-            "Report descriptor len": "sizeof(desc_{itf_tag}_report)",
+            "description": "${properties['description']}",
+            "Protocol": "HID_ITF_PROTOCOL_{make_id(properties['protocol'])}",
+            "Report descriptor len": "sizeof(desc_{properties['tag']}_report)",
             "EP IN": "@",
-            "Size": "{itf.get('bufsize', 'HID_DEFAULT_EP_BUFSIZE')}",
-            "Polling interval": "{itf['poll-interval']}"
+            "Size": "{properties['bufsize']}",
+            "Polling interval": "{properties['poll-interval']}"
         }
     },
     "hid-inout": {
@@ -65,6 +65,7 @@
                 },
                 "poll-interval": {
                     "type": "integer",
+                    "default": 10,
                     "minimum": 0,
                     "maximum": 255
                 },
@@ -76,20 +77,17 @@
                 }
             },
             "required": [
-                "bufsize",
-                "poll-interval",
-                "protocol",
                 "reports"
             ]
         },
         "fields": {
-            "description": "${itf.get('description', '')}",
-            "Protocol": "HID_ITF_PROTOCOL_{make_id(itf.get('protocol', 'none'))}",
+            "description": "${properties['description']}",
+            "Protocol": "HID_ITF_PROTOCOL_{make_id(properties['protocol'])}",
             "Report descriptor len": "sizeof(desc_{itf_tag}_report)",
             "EP OUT": "@",
             "EP IN": "@",
-            "Size": "{itf.get('bufsize', 'HID_DEFAULT_EP_BUFSIZE')}",
-            "Polling interval": "{itf['poll-interval']}"
+            "Size": "{properties['bufsize']}",
+            "Polling interval": "{properties['poll-interval']}"
         }
     },
     "cdc": {
@@ -97,7 +95,7 @@
         "description": "CDC Descriptor Template",
         "schema": {},
         "fields": {
-            "description": "${itf.get('description', '')}",
+            "description": "${properties['description']}",
             "EP notify IN": "@",
             "EP notify size": 8,
             "EP data OUT": "@",
@@ -115,7 +113,7 @@
         ],
         "schema": {},
         "fields": {
-            "description": "${itf.get('description', '')}",
+            "description": "${properties['description']}",
             "EP Out": "@",
             "EP In": "@",
             "EP size": "TUD_OPT_HIGH_SPEED ? 512 : 64"
@@ -134,18 +132,17 @@
                     "type": "string"
                 },
                 "version": {
-                    "type": "string",
-                    "format": "integer"
+                    "type": "string"
                 }
             },
             "required": [
-                "product",
                 "vendor",
+                "product",
                 "version"
             ]
         },
         "fields": {
-            "description": "${itf.get('description', '')}",
+            "description": "${properties['description']}",
             "EP Out": "@",
             "EP In": "@",
             "EP Size": 64
@@ -157,11 +154,24 @@
             "AUDIO simple descriptor (UAC2) for 1 microphone input",
             " - 1 Input Terminal, 1 Feature Unit (Mute and Volume Control), 1 Output Terminal, 1 Clock Source"
         ],
-        "schema": {},
+        "schema": {
+            "properties": {
+                "bytes-per-sample": {
+                    "type": "integer",
+                    "default": 2,
+                    "minimum": 1
+                },
+                "bits-used-per-sample": {
+                    "type": "integer",
+                    "default": 16,
+                    "minimum": 1
+                }
+            }
+        },
         "fields": {
-            "description": "${itf.get('description', '')}",
-            "Bytes Per Sample": "{itf['bytes-per-sample']}",
-            "Bits Used Per Sample": "{itf['bits-used-per-sample']}",
+            "description": "${properties['description']}",
+            "Bytes Per Sample": "{properties['bytes-per-sample']}",
+            "Bits Used Per Sample": "{properties['bits-used-per-sample']}",
             "EP IN": "@",
             "EP Size": "CFG_TUD_AUDIO_EP_SZ_IN"
         },
@@ -173,11 +183,24 @@
             "AUDIO simple descriptor (UAC2) for 4 microphone input",
             " - 1 Input Terminal, 1 Feature Unit (Mute and Volume Control), 1 Output Terminal, 1 Clock Source"
         ],
-        "schema": {},
+        "schema": {
+            "properties": {
+                "bytes-per-sample": {
+                    "type": "integer",
+                    "default": 2,
+                    "minimum": 1
+                },
+                "bits-used-per-sample": {
+                    "type": "integer",
+                    "default": 16,
+                    "minimum": 1
+                }
+            }
+        },
         "fields": {
-            "description": "${itf.get('description', '')}",
-            "Bytes Per Sample": "{itf['bytes-per-sample']}",
-            "Bits Used Per Sample": "{itf['bits-used-per-sample']}",
+            "description": "${properties['description']}",
+            "Bytes Per Sample": "{properties['bytes-per-sample']}",
+            "Bits Used Per Sample": "{properties['bits-used-per-sample']}",
             "EP IN": "@",
             "EP Size": "CFG_TUD_AUDIO_EP_SZ_IN"
         },
@@ -189,11 +212,24 @@
             "AUDIO simple descriptor (UAC2) for mono speaker",
             " - 1 Input Terminal, 2 Feature Unit (Mute and Volume Control), 3 Output Terminal, 4 Clock Source"
         ],
-        "schema": {},
+        "schema": {
+            "properties": {
+                "bytes-per-sample": {
+                    "type": "integer",
+                    "default": 2,
+                    "minimum": 1
+                },
+                "bits-used-per-sample": {
+                    "type": "integer",
+                    "default": 16,
+                    "minimum": 1
+                }
+            }
+        },
         "fields": {
-            "description": "${itf.get('description', '')}",
-            "Bytes Per Sample": "{itf['bytes-per-sample']}",
-            "Bits Used Per Sample": "{itf['bits-used-per-sample']}",
+            "description": "${properties['description']}",
+            "Bytes Per Sample": "{properties['bytes-per-sample']}",
+            "Bits Used Per Sample": "{properties['bits-used-per-sample']}",
             "EP OUT": "@",
             "EP Size": "CFG_TUD_AUDIO_EP_SZ_OUT",
             "EP FB IN": "@"
@@ -203,23 +239,48 @@
     "vendor": {
         "class": "vendor",
         "description": "Vendor Descriptor Template",
-        "schema": {},
+        "schema": {
+            "properties": {
+                "bufsize": {
+                    "type": "integer",
+                    "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                    "minimum": 4,
+                    "maximum": 512
+                }
+            }
+        },
         "fields": {
-            "description": "${itf.get('description', '')}",
+            "description": "${properties['description']}",
             "EP OUT": "@",
             "EP IN": "@",
-            "EP Size": "TUD_OPT_HIGH_SPEED ? 512 : 64"
+            "EP Size": "{properties['bufsize']}"
         }
     },
     "dfu_rt": {
         "class": "dfu",
         "description": "DFU runtime descriptor",
-        "schema": {},
+        "schema": {
+            "properties": {
+                "attributes": {
+                    "type": "integer",
+                    "default": 0
+                },
+                "detach-timeout": {
+                    "type": "integer",
+                    "default": 1000
+                },
+                "transfer-size": {
+                    "type": "integer",
+                    "default": 4096,
+                    "min": 1
+                }
+            }
+        },
         "fields": {
-            "description": "${itf.get('description', '')}",
-            "Attributes": "{itf['attributes']}",
-            "Detach Timeout": "{itf['detach-timeout']}",
-            "Transfer Size": "{itf['transfer-size']}"
+            "description": "${properties['description']}",
+            "Attributes": "{properties['attributes']}",
+            "Detach Timeout": "{properties['detach-timeout']}",
+            "Transfer Size": "{properties['transfer-size']}"
         }
     },
     "dfu": {
@@ -232,6 +293,26 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "attributes": {
+                    "type": "array",
+                    "default": [
+                        "can-upload",
+                        "can-download",
+                        "manifestation-tolerant"
+                    ],
+                    "items": {
+                        "enum": [
+                            "will-detach",
+                            "manifestation-tolerant",
+                            "can-upload",
+                            "can-dnload"
+                        ]
+                    }
+                },
+                "detach-timeout": {
+                    "type": "integer",
+                    "default": 1000
                 }
             },
             "required": [
@@ -239,20 +320,20 @@
             ]
         },
         "fields": {
-            "Alternate count": "{len(itf['alternates'])}",
-            "description": "${itf['alternates']}",
-            "Attributes": "{' | '.join(f'DFU_ATTR_{make_id(a)}' for a in itf.get('attributes', DFU_DEFAULT_ATTR))}",
-            "Detach timeout": 1000,
+            "Alternate count": "{len(properties['alternates'])}",
+            "description": "${properties['alternates']}",
+            "Attributes": "{' | '.join(f'DFU_ATTR_{make_id(a)}' for a in properties['attributes'])}",
+            "Detach timeout": "{properties['detach-timeout']}",
             "Transfer size": "CFG_TUD_DFU_XFER_BUFSIZE"
         },
-        "desc-len": "TUD_DFU_DESC_LEN({len(itf['alternates'])})"
+        "desc-len": "TUD_DFU_DESC_LEN({len(properties['alternates'])})"
     },
     "cdc-ecm": {
         "class": "ecm-rndis",
         "description": "CDC-ECM Descriptor Template",
         "schema": {},
         "fields": {
-            "description": "${itf.get('description', '')}",
+            "description": "${properties['description']}",
             "MAC address": "$",
             "EP Notify IN": "@",
             "EP Notify Size": 64,
@@ -268,7 +349,7 @@
         "description": "RNDIS Descriptor Template",
         "schema": {},
         "fields": {
-            "description": "${itf.get('description', '')}",
+            "description": "${properties['description']}",
             "EP Notify IN": "@",
             "EP Notify Size": 64,
             "EP Data OUT": "@",
@@ -282,7 +363,7 @@
         "description": "CDC-ECM Descriptor Template",
         "schema": {},
         "fields": {
-            "description": "${itf.get('description', '')}",
+            "description": "${properties['description']}",
             "MAC address": "$",
             "EP Notify IN": "@",
             "EP Notify Size": 64,

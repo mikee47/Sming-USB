@@ -15,11 +15,6 @@ TUSB_DESC_STRING = 3
 
 HID_DEFAULT_EP_BUFSIZE = 64
 
-DFU_DEFAULT_ATTR = [
-    'can-upload',
-    'can-download',
-    'manifestation-tolerant'
-]
 
 @dataclass
 class ClassItem:
@@ -43,6 +38,7 @@ def write_file(dirname, filename, content):
 
 def resolve_path(name):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), name)
+
 
 def readTemplate(name, vars):
     pathname = resolve_path(f'templates/{name}')
@@ -167,6 +163,12 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
             for itf_tag, itf in cfg['interfaces'].items():
                 template_tag = itf['template']
                 template = templates[template_tag]
+                properties = {
+                    'tag': itf_tag,
+                    'description': itf.get('description', ''),
+                }
+                for prop_tag, prop in template['schema'].get('properties', {}).items():
+                    properties[prop_tag] = itf.get(prop_tag, prop.get('default'))
                 itf_class = template['class']
                 itf_id = make_id(itf_tag)
                 itfnum_defs.append((itf_id, itf_num))
@@ -279,27 +281,29 @@ def parse_host(config, cfg_vars, classdefs, output_dir):
     cfg_vars['host_classes'] = classes
 
 
+def load_schema():
+    schema = json_load(resolve_path('schema.json'))
+    itf_defs = schema['definitions']['Interfaces']['patternProperties']
+    itf_defs = next(iter(itf_defs.values()))
+    itf_defs = itf_defs['oneOf']
+    interfaces = json_load(resolve_path('interfaces.json'))
+    for tag, itf in interfaces.items():
+        tmpl_schema = itf['schema']
+        tmpl_schema['type'] = 'object'
+        tmpl_schema['additionalProperties'] = False
+        props = tmpl_schema.setdefault('properties', {})
+        props['description'] = {"type": "string"}
+        props['template'] = {"enum": [tag]}
+        props.setdefault('required', []).append('template')
+        itf_defs.append(tmpl_schema)
+    return schema
+
+
 def validate_config(config):
     # Validate configuration against schema
     try:
         from jsonschema import Draft7Validator
-        schema = json_load(resolve_path('schema.json'))
-        itf_defs = schema['definitions']['Interfaces']['patternProperties']
-        itf_defs = next(iter(itf_defs.values()))
-        itf_defs = next(iter(itf_defs.values()))
-        print(json.dumps(itf_defs))
-        interfaces = json_load(resolve_path('interfaces.json'))
-        for tag, itf in interfaces.items():
-            tmpl_schema = itf['schema']
-            tmpl_schema['type'] = 'object'
-            tmpl_schema['additionalProperties'] = False
-            props = tmpl_schema.setdefault('properties', {})
-            props['description'] ={ "type": "string"}
-            props['template'] = { "enum": [tag] }
-            props.setdefault('required', []).append('template')
-            print(tag, json.dumps(tmpl_schema))
-            itf_defs.append(tmpl_schema)
-        print(to_json(itf_defs))
+        schema = load_schema()
         v = Draft7Validator(schema)
         errors = sorted(v.iter_errors(config), key=lambda e: e.path)
         if errors != []:
@@ -307,7 +311,8 @@ def validate_config(config):
                 critical("%s @ %s" % (e.message, e.path))
             sys.exit(3)
     except ImportError as err:
-        critical("\n** WARNING! %s: Cannot validate '%s', please run `make python-requirements **\n\n" % (str(err), args.input))
+        critical("\n** WARNING! %s: Cannot validate '%s', please run `make python-requirements **\n\n" %
+                 (str(err), args.input))
 
 
 def main():
