@@ -36,12 +36,12 @@
             ]
         },
         "fields": {
-            "description": "${properties['description']}",
-            "Protocol": "HID_ITF_PROTOCOL_{make_id(properties['protocol'])}",
-            "Report descriptor len": "sizeof(desc_{properties['tag']}_report)",
+            "description": "!$description",
+            "Protocol": "HID_ITF_PROTOCOL_${protocol.id}",
+            "Report descriptor len": "sizeof(desc_${tag}_report)",
             "EP IN": "@",
-            "Size": "{properties['bufsize']}",
-            "Polling interval": "{properties['poll-interval']}"
+            "Size": "$bufsize",
+            "Polling interval": "$poll-interval"
         }
     },
     "hid-inout": {
@@ -81,13 +81,13 @@
             ]
         },
         "fields": {
-            "description": "${properties['description']}",
-            "Protocol": "HID_ITF_PROTOCOL_{make_id(properties['protocol'])}",
-            "Report descriptor len": "sizeof(desc_{itf_tag}_report)",
+            "description": "!$description",
+            "Protocol": "HID_ITF_PROTOCOL_${protocol.id}",
+            "Report descriptor len": "sizeof(desc_${tag}_report)",
             "EP OUT": "@",
             "EP IN": "@",
-            "Size": "{properties['bufsize']}",
-            "Polling interval": "{properties['poll-interval']}"
+            "Size": "$bufsize",
+            "Polling interval": "$poll-interval"
         }
     },
     "cdc": {
@@ -95,7 +95,7 @@
         "description": "CDC Descriptor Template",
         "schema": {},
         "fields": {
-            "description": "${properties['description']}",
+            "description": "!$description",
             "EP notify IN": "@",
             "EP notify size": 8,
             "EP data OUT": "@",
@@ -113,7 +113,7 @@
         ],
         "schema": {},
         "fields": {
-            "description": "${properties['description']}",
+            "description": "!$description",
             "EP Out": "@",
             "EP In": "@",
             "EP size": "TUD_OPT_HIGH_SPEED ? 512 : 64"
@@ -142,7 +142,7 @@
             ]
         },
         "fields": {
-            "description": "${properties['description']}",
+            "description": "!$description",
             "EP Out": "@",
             "EP In": "@",
             "EP Size": 64
@@ -169,9 +169,9 @@
             }
         },
         "fields": {
-            "description": "${properties['description']}",
-            "Bytes Per Sample": "{properties['bytes-per-sample']}",
-            "Bits Used Per Sample": "{properties['bits-used-per-sample']}",
+            "description": "!$description",
+            "Bytes Per Sample": "$bytes-per-sample",
+            "Bits Used Per Sample": "$bits-used-per-sample",
             "EP IN": "@",
             "EP Size": "CFG_TUD_AUDIO_EP_SZ_IN"
         },
@@ -198,9 +198,9 @@
             }
         },
         "fields": {
-            "description": "${properties['description']}",
-            "Bytes Per Sample": "{properties['bytes-per-sample']}",
-            "Bits Used Per Sample": "{properties['bits-used-per-sample']}",
+            "description": "!$description",
+            "Bytes Per Sample": "$bytes-per-sample",
+            "Bits Used Per Sample": "$bits-used-per-sample",
             "EP IN": "@",
             "EP Size": "CFG_TUD_AUDIO_EP_SZ_IN"
         },
@@ -227,9 +227,9 @@
             }
         },
         "fields": {
-            "description": "${properties['description']}",
-            "Bytes Per Sample": "{properties['bytes-per-sample']}",
-            "Bits Used Per Sample": "{properties['bits-used-per-sample']}",
+            "description": "!$description",
+            "Bytes Per Sample": "$bytes-per-sample",
+            "Bits Used Per Sample": "$bits-used-per-sample",
             "EP OUT": "@",
             "EP Size": "CFG_TUD_AUDIO_EP_SZ_OUT",
             "EP FB IN": "@"
@@ -250,10 +250,10 @@
             }
         },
         "fields": {
-            "description": "${properties['description']}",
+            "description": "!$description",
             "EP OUT": "@",
             "EP IN": "@",
-            "EP Size": "{properties['bufsize']}"
+            "EP Size": "$bufsize"
         }
     },
     "dfu_rt": {
@@ -277,10 +277,10 @@
             }
         },
         "fields": {
-            "description": "${properties['description']}",
-            "Attributes": "{properties['attributes']}",
-            "Detach Timeout": "{properties['detach-timeout']}",
-            "Transfer Size": "{properties['transfer-size']}"
+            "description": "!$description",
+            "Attributes": "$attributes",
+            "Detach Timeout": "$detach-timeout",
+            "Transfer Size": "$transfer-size"
         }
     },
     "dfu": {
@@ -308,7 +308,8 @@
                             "can-upload",
                             "can-dnload"
                         ]
-                    }
+                    },
+                    "mask": "DFU_ATTR_"
                 },
                 "detach-timeout": {
                     "type": "integer",
@@ -320,20 +321,20 @@
             ]
         },
         "fields": {
-            "Alternate count": "{len(properties['alternates'])}",
-            "description": "${properties['alternates']}",
-            "Attributes": "{' | '.join(f'DFU_ATTR_{make_id(a)}' for a in properties['attributes'])}",
-            "Detach timeout": "{properties['detach-timeout']}",
+            "Alternate count": "$alternates.length",
+            "description": "!$alternates",
+            "Attributes": "$attributes.mask",
+            "Detach timeout": "$detach-timeout",
             "Transfer size": "CFG_TUD_DFU_XFER_BUFSIZE"
         },
-        "desc-len": "TUD_DFU_DESC_LEN({len(properties['alternates'])})"
+        "desc-len": "TUD_DFU_DESC_LEN($alternates.length)"
     },
     "cdc-ecm": {
         "class": "ecm-rndis",
         "description": "CDC-ECM Descriptor Template",
         "schema": {},
         "fields": {
-            "description": "${properties['description']}",
+            "description": "!$description",
             "MAC address": "$",
             "EP Notify IN": "@",
             "EP Notify Size": 64,
@@ -349,7 +350,7 @@
         "description": "RNDIS Descriptor Template",
         "schema": {},
         "fields": {
-            "description": "${properties['description']}",
+            "description": "!$description",
             "EP Notify IN": "@",
             "EP Notify Size": 64,
             "EP Data OUT": "@",
@@ -363,7 +364,7 @@
         "description": "CDC-ECM Descriptor Template",
         "schema": {},
         "fields": {
-            "description": "${properties['description']}",
+            "description": "!$description",
             "MAC address": "$",
             "EP Notify IN": "@",
             "EP Notify Size": 64,

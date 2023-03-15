@@ -8,6 +8,7 @@ import argparse
 import os
 import json
 import string
+import ast
 from common import *
 from dataclasses import dataclass
 
@@ -26,6 +27,10 @@ class ClassItem:
 
     def namespace(self):
         return make_id(self.dev_class)
+
+
+class Template(string.Template):
+    idpattern = r'(?a:[_a-z][_\.-a-z0-9]*)'
 
 
 def write_file(dirname, filename, content):
@@ -166,17 +171,31 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                 properties = {
                     'tag': itf_tag,
                     'description': itf.get('description', ''),
+                    'template.id': make_id(template_tag),
                 }
                 for prop_tag, prop in template['schema'].get('properties', {}).items():
-                    properties[prop_tag] = itf.get(prop_tag, prop.get('default'))
+                    prop_type = prop.get('type', 'string')
+                    value = itf.get(prop_tag, prop.get('default'))
+                    properties[prop_tag] = value
+                    if prop_type == 'string':
+                        properties[f"{prop_tag}.id"] = make_id(value)
+                    if prop_type == 'array':
+                        properties[f"{prop_tag}.length"] = len(value)
+                        mask = prop.get('mask')
+                        if mask:
+                            properties[f"{prop_tag}.mask"] = ' | '.join(f'{mask}{make_id(a)}' for a in value)
+
+                def evaluate(value):
+                    tmpl = Template(value)
+                    return tmpl.substitute(properties)
+
                 itf_class = template['class']
                 itf_id = make_id(itf_tag)
                 itfnum_defs.append((itf_id, itf_num))
                 desc_fields = [
                     ('Interface number', f"ITF_NUM_{itf_id}"),
                 ]
-                config_total_len += " + " + eval('f"' + template.get('desc-len',
-                                                 'TUD_{make_id(template_tag)}_DESC_LEN') + '"')
+                config_total_len += " + " + evaluate(template.get('desc-len', 'TUD_${template.id}_DESC_LEN'))
                 for name, value in template['fields'].items():
                     if value == '@':  # Endpoint number
                         uname = name.upper()
@@ -196,17 +215,18 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                         value = f"EPNUM_{itf_id}_{uname[3:].replace(' ', '_')}"
                         epnum_defs.append((value, ep))
                     elif isinstance(value, str):
-                        if value.startswith('$'):  # String index
-                            value = eval('f"' + value[1:] + '"')
+                        if value.startswith('!'):  # String index
+                            value = evaluate(value[1:])
                             if value.startswith('['):
-                                for i, s in enumerate(eval(value)):
+                                value = ast.literal_eval(value)
+                                for i, s in enumerate(value):
                                     id = add_string(itf_tag, f"{name}{i}", s)
                                     if i == 0:
                                         value = id
                             else:
                                 value = add_string(itf_tag, name, value)
                         else:
-                            value = eval('f"' + value + '"')
+                            value = evaluate(value)
                     desc_fields.append((name, value))
 
                 descriptors.append((f'TUD_{make_id(template_tag)}_DESCRIPTOR', desc_fields))
