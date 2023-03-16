@@ -20,10 +20,16 @@ SimpleTimer timer;
 
 #if CFG_TUD_HID
 
-static const uint8_t conv_table[128][2] = {HID_ASCII_TO_KEYCODE};
-static const char* testText = "\x1b echo This should be harmless enough... Rrrrepeatinggggg.\n";
-static char lastChar;
-static unsigned charIndex;
+// Use provided TinyUSB table to convert ASCII codes to HID codes.
+// Note that this conversion table does not account for all keyboard layout differences.
+const uint8_t conv_table[128][2] = {HID_ASCII_TO_KEYCODE};
+
+// String of text to 'type out' on the HID keyboard
+const char* testText = "\x1b echo This should be harmless enough... Rrrrepeatinggggg.\n";
+
+// State variables
+char lastChar;
+unsigned charIndex;
 
 void sendChar()
 {
@@ -119,6 +125,7 @@ void init()
 
 	timer.initializeMs<3000>(InterruptCallback([]() {
 		debug_i("Alive");
+		// Un-comment this to demonstrated how to send keystrokes to the connected PC!
 		// sendText();
 	}));
 	timer.start();
