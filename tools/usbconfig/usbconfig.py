@@ -129,6 +129,10 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                 itf_class = templates[template_tag]['class']
                 itf_counts[itf_class] = itf_counts.get(itf_class, 0) + 1
                 classdefs.append(ClassItem(itf_class, 'Device', itf_tag, False))
+                # Fill out default property values
+                template = templates[itf['template']]
+                for prop_tag, prop in template['properties'].items():
+                    itf.setdefault(prop_tag, prop.get('default'))
 
             # Emit HID report descriptors
             hid_inst = 0
@@ -141,8 +145,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                 itf_class = templates[template_tag]['class']
                 if itf_class != 'hid':
                     continue
-                # TODO: Read schema
-                bufsize = itf.get('bufsize', HID_DEFAULT_EP_BUFSIZE)
+                bufsize = itf['bufsize']
                 hid_ep_bufsize = max(hid_ep_bufsize, bufsize)
                 report_name = f"desc_{itf_tag}_report"
                 hid_report += f'static const uint8_t {report_name}[] = {{\n'
@@ -195,7 +198,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                 }
                 for prop_tag, prop in template['properties'].items():
                     prop_type = prop.get('type', 'string')
-                    value = itf.get(prop_tag, prop.get('default'))
+                    value = itf[prop_tag]
                     properties[prop_tag] = value
                     if prop_type == 'string':
                         properties[f"{prop_tag}.id"] = make_id(value)
