@@ -29,6 +29,21 @@ class ClassItem:
         return make_id(self.dev_class)
 
 
+@dataclass
+class StringItem:
+    """Contains an entry in the string table"""
+    def __init__(self, id: str, value: str):
+        self.id = id # Enumerated string ID
+        self.value = value # UTF-8 string value
+        self.data = value.encode('utf-16le') if value else ""
+
+    def data_str(self):
+        if not self.value:
+            return 'NULL'
+        desc_array = bytes([2 + len(self.data), TUSB_DESC_STRING]) + self.data
+        return '"' + "".join(f"\\x{c:02x}" for c in desc_array) + '"'
+
+
 class Template(string.Template):
     idpattern = r'(?a:[_a-z][_\.-a-z0-9]*)'
 
@@ -72,14 +87,14 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
     cfg_vars['device_enabled'] = 1
 
     # Build list of descriptor strings
-    strings = []
+    strings = OrderedDict()
 
     def add_string(itf_tag: str, name: str, value):
         if isinstance(value, dict):
             value = value.get(name, "")
         """Add a string to the descriptor list and return its index identifier"""
         id = f'STRING_INDEX_{itf_tag.upper()}_{make_id(name)}'
-        strings.append((id, value))
+        strings[id] = StringItem(id, value)
         return id
 
     desc_c = ""
@@ -251,23 +266,10 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
             }
             desc_c += readTemplate('device/interface.c', vars)
 
-        max_string_len = 0
-        string_ids = []
-        string_data = []
-        for tag, value in strings:
-            string_ids.append(f'{tag},')
-            if value:
-                encoded = value.encode('utf-16le')
-                max_string_len = max(max_string_len, len(encoded))
-                desc_array = bytes([2 + len(encoded), TUSB_DESC_STRING]) + encoded
-                string_data.append('"' + "".join(f"\\x{c:02x}" for c in desc_array) + '"')
-            else:
-                string_data.append('NULL')
-
         vars = {
-            'max_string_len': max_string_len,
-            'string_data': ",\n".join(f'  // {tag}: "{value}"\n'
-                                      f'  {data}' for (tag, value), data in zip(strings, string_data)),
+            'max_string_len': max(len(item.data) for item in strings.values()),
+            'string_data': ",\n".join(f'  // {item.id}: "{item.value}"\n'
+                                      f'  {item.data_str()}' for item in strings.values()),
         }
         desc_c += readTemplate('device/string.c', vars)
 
@@ -278,7 +280,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         cfg_vars['hid_ep_bufsize'] = hid_ep_bufsize
 
         vars = {
-            'string_ids': indent(string_ids),
+            'string_ids': indent([f'{id},' for id in strings]),
             'hid_report_ids': indent(hid_report_ids),
         }
         desc_h = readTemplate('device/desc.h', vars)
