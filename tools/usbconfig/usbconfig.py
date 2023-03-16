@@ -314,7 +314,7 @@ def load_schema():
         props = tmpl_schema.setdefault('properties', {})
         props['description'] = {"type": "string"}
         props['template'] = {"enum": [tag]}
-        props.setdefault('required', []).append('template')
+        tmpl_schema.setdefault('required', []).append('template')
         itf_defs.append(tmpl_schema)
     return schema
 
@@ -324,6 +324,7 @@ def validate_config(config):
     try:
         from jsonschema import Draft7Validator
         schema = load_schema()
+        json_save(schema, resolve_path('../../schema.json'))
         v = Draft7Validator(schema)
         errors = sorted(v.iter_errors(config), key=lambda e: e.path)
         if errors != []:
