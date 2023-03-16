@@ -1,7 +1,7 @@
 {
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "$ref": "#/definitions/UsbConfig",
-    "definitions": {
+    "$schema": "http://json-schema.org/draft/2020-12/schema#",
+    "$ref": "#/$defs/UsbConfig",
+    "$defs": {
         "UsbConfig": {
             "title": "USB Configuration",
             "description": "",
@@ -9,13 +9,13 @@
             "additionalProperties": false,
             "properties": {
                 "devices": {
-                    "$ref": "#/definitions/Devices"
+                    "$ref": "#/$defs/Devices"
                 },
                 "host": {
                     "title": "Host Interfaces",
                     "description": "Number of interfaces of each class required",
                     "type": "object",
-                    "$ref": "#/definitions/HostInterface"
+                    "$ref": "#/$defs/HostInterface"
                 }
             }
         },
@@ -49,7 +49,7 @@
             "patternProperties": {
                 "^[A-Za-z_][A-Za-z0-9_]*$": {
                     "type": "object",
-                    "$ref": "#/definitions/Device"
+                    "$ref": "#/$defs/Device"
                 }
             }
         },
@@ -86,7 +86,7 @@
                     "type": "string"
                 },
                 "configs": {
-                    "$ref": "#/definitions/Configs"
+                    "$ref": "#/$defs/Configs"
                 }
             },
             "required": [
@@ -109,7 +109,7 @@
             "patternProperties": {
                 "^[A-Za-z_][A-Za-z0-9_]*$": {
                     "type": "object",
-                    "$ref": "#/definitions/Config"
+                    "$ref": "#/$defs/Config"
                 }
             }
         },
@@ -131,7 +131,14 @@
                     "type": "integer"
                 },
                 "interfaces": {
-                    "$ref": "#/definitions/Interfaces"
+                    "title": "Interfaces",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "patternProperties": {
+                        "^[A-Za-z_][A-Za-z0-9_]*$": {
+                            "$ref": "#/$defs/Interfaces"
+                        }
+                    }
                 }
             },
             "required": [
@@ -142,14 +149,7 @@
             ]
         },
         "Interfaces": {
-            "title": "Interfaces",
-            "type": "object",
-            "additionalProperties": false,
-            "patternProperties": {
-                "^[A-Za-z_][A-Za-z0-9_]*$": {
-                    "oneOf": []
-                }
-            }
+            "oneOf": []
         }
     }
 }

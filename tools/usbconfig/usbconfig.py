@@ -67,7 +67,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         cfg_vars['hid_ep_bufsize'] = 0
         return
 
-    templates = json_load(resolve_path('interfaces.json'))
+    templates = json_load(resolve_path('schema/interfaces.json'))
 
     cfg_vars['device_enabled'] = 1
 
@@ -307,27 +307,20 @@ def parse_host(config, cfg_vars, classdefs, output_dir):
 
 
 def load_schema():
-    schema = json_load(resolve_path('schema.json'))
-    itf_defs = schema['definitions']['Interfaces']['patternProperties']
-    itf_defs = next(iter(itf_defs.values()))
-    itf_defs = itf_defs['oneOf']
-    interfaces = json_load(resolve_path('interfaces.json'))
+    schema = json_load(resolve_path('schema/base.json'))
+    itf_defs = schema['$defs']['Interfaces']['oneOf']
+    interfaces = json_load(resolve_path('schema/interfaces.json'))
     for tmpl_tag, tmpl in interfaces.items():
-        tmpl_schema = tmpl.get('schema', {})
-        dst_schema = {
-            "title": tmpl['title'],
-            "comments": tmpl.get('comments', []),
-            "properties": {
-                "template": {"const": tmpl_tag},
-                "description": {"type": "string"},
-            },
-            "required": ["template"] + [tag for tag, prop in tmpl['properties'].items() if 'default'  not in prop],
-            "class": tmpl['class'],
+        tmpl.update({
             "type": "object",
             "additionalProperties": False,
-        }
-        dst_schema['properties'].update(tmpl['properties'])
-        itf_defs.append(dst_schema)
+            "required": ["template"] + [tag for tag, prop in tmpl['properties'].items() if 'default' not in prop],
+        })
+        tmpl["properties"].update({
+            "template": {"const": tmpl_tag},
+            "description": {"type": "string"}
+        })
+        itf_defs.append(tmpl)
     return schema
 
 
@@ -349,53 +342,53 @@ def validate_config(config):
 
 
 def main():
-    parser=argparse.ArgumentParser(description='Sming USB configuration utility')
+    parser = argparse.ArgumentParser(description='Sming USB configuration utility')
 
     parser.add_argument('--quiet', '-q', help="Don't print non-critical status messages to stderr", action='store_true')
     parser.add_argument('input', help='Path to configuration file')
     parser.add_argument('output', help='Output directory')
 
-    args=parser.parse_args()
+    args = parser.parse_args()
 
-    common.quiet=args.quiet
+    common.quiet = args.quiet
 
-    config=json_load(args.input)
+    config = json_load(args.input)
     validate_config(config)
 
-    cfg_vars={}
-    classdefs=[]
+    cfg_vars = {}
+    classdefs = []
     parse_devices(config, cfg_vars, classdefs, args.output)
     parse_host(config, cfg_vars, classdefs, args.output)
 
-    code_classes=set(f'{item.namespace()}/{item.code_class}' for item in classdefs)
-    vars={
+    code_classes = set(f'{item.namespace()}/{item.code_class}' for item in classdefs)
+    vars = {
         'includes': "\n".join(f'#include <USB/{c}.h>' for c in code_classes),
         'classdefs': "\n".join(f'extern {item.namespace()}::{item.code_class} {item.tag};' for item in classdefs if not item.is_host),
     }
-    classdefs_h=readTemplate('classdefs.h', vars)
+    classdefs_h = readTemplate('classdefs.h', vars)
     write_file(args.output, 'usb_classdefs.h', classdefs_h)
 
-    class_types={}
+    class_types = {}
     for item in classdefs:
         if not item.is_host:
             class_types.setdefault(item.namespace(), []).append(item)
     if class_types:
-        txt=""
+        txt = ""
         for ns, items in class_types.items():
             for inst, item in enumerate(items):
                 txt += f'{ns}::{item.code_class} {item.tag}({inst}, "{item.tag}");\n'
             txt += f'namespace {ns} {{\n'
-            devices=", ".join(f'&{item.tag}' for item in items)
+            devices = ", ".join(f'&{item.tag}' for item in items)
             if devices:
                 txt += f'  void* devices[] {{{devices}}};\n'
             txt += '}\n'
-        vars={
+        vars = {
             'classdefs': txt
         }
-        classdefs_cpp=readTemplate('classdefs.cpp', vars)
+        classdefs_cpp = readTemplate('classdefs.cpp', vars)
         write_file(args.output, 'usb_classdefs.cpp', classdefs_cpp)
 
-    config_h=readTemplate('config.h', cfg_vars)
+    config_h = readTemplate('config.h', cfg_vars)
     write_file(args.output, 'tusb_config.h', config_h)
 
 
