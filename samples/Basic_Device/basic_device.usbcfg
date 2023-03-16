@@ -1,21 +1,13 @@
 {
     "devices": {
         "device0": {
-            "class": "misc",
-            "subclass": "common",
-            "protocol": "iad",
             "vendor_id": "0xcafe",
-            "product_id": "USB_PID", // Unique for any class type combination
-            "version": "1.0",
             "manufacturer": "TinyUSB",
             "product": "Удобное устройство",
             "serial": "123456", // Allow this to be auto-generated at runtime, e.g. from chip ID
             "configs": {
                 "config0": {
                     "description": "default", // optional
-                    "attributes": [
-                        "remote-wakeup"
-                    ],
                     "power": 100,
                     "interfaces": {
                         "hid0": {

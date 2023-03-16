@@ -32,9 +32,10 @@ class ClassItem:
 @dataclass
 class StringItem:
     """Contains an entry in the string table"""
+
     def __init__(self, id: str, value: str):
-        self.id = id # Enumerated string ID
-        self.value = value # UTF-8 string value
+        self.id = id  # Enumerated string ID
+        self.value = value  # UTF-8 string value
         self.data = value.encode('utf-16le') if value else ""
 
     def data_str(self):
@@ -82,6 +83,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         cfg_vars['hid_ep_bufsize'] = 0
         return
 
+    defs = json_load(resolve_path('schema/base.json'))['$defs']
     templates = json_load(resolve_path('schema/interfaces.json'))
 
     cfg_vars['device_enabled'] = 1
@@ -101,13 +103,17 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
     # Device descriptors
 
     for tag, dev in config['devices'].items():
+        # Fill out default property values
+        for prop_tag, prop in defs['Device']['properties'].items():
+            dev.setdefault(prop_tag, prop.get('default'))
+
         vars = dict([(key, value) for key, value in dev.items() if not isinstance(value, dict)])
         vars['device_tag'] = tag
-        vars['class_id'] = f"TUSB_CLASS_{make_id(dev.get('class', 'unspecified'))}"
-        clsid = make_id(dev.get('class', 'unspecified'))
-        subclass = dev.get('subclass')
+        clsid = make_id(dev['class'])
+        vars['class_id'] = f"TUSB_CLASS_{clsid}"
+        subclass = dev['subclass']
         vars['subclass_id'] = f"{clsid}_SUBCLASS_{make_id(subclass)}" if subclass else 0
-        protocol = dev.get('protocol')
+        protocol = dev['protocol']
         vars['protocol_id'] = f"{clsid}_PROTOCOL_{make_id(protocol)}" if protocol else 0
         ver = round(float(dev['version']) * 100)
         vars['version_bcd'] = f"0x{ver:04}"
@@ -122,6 +128,9 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
     for dev in config['devices'].values():
         cfg_num = 1
         for cfg_tag, cfg in dev['configs'].items():
+            # Fill out default property values
+            for prop_tag, prop in defs['Config']['properties'].items():
+                cfg.setdefault(prop_tag, prop.get('default'))
             # Count instances of each class type
             itf_counts = {}
             for itf_tag, itf in cfg['interfaces'].items():

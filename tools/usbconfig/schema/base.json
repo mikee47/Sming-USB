@@ -21,6 +21,7 @@
         },
         "HostInterface": {
             "title": "Host Interface definition",
+            "description": "Defines how many interface instances each class type supports",
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -55,26 +56,32 @@
         },
         "Device": {
             "title": "Device",
+            "description": "Standard device information fields",
             "type": "object",
             "additionalProperties": false,
             "properties": {
                 "class": {
-                    "type": "string"
+                    "type": "string",
+                    "default": "misc"
                 },
                 "subclass": {
-                    "type": "string"
+                    "type": "string",
+                    "default": "common"
                 },
                 "protocol": {
-                    "type": "string"
+                    "type": "string",
+                    "default": "iad"
                 },
                 "vendor_id": {
                     "type": "string"
                 },
                 "product_id": {
-                    "type": "string"
+                    "type": "string",
+                    "default": "USB_PID"
                 },
                 "version": {
-                    "type": "string"
+                    "type": "string",
+                    "default": "1.0"
                 },
                 "manufacturer": {
                     "type": "string"
@@ -90,16 +97,11 @@
                 }
             },
             "required": [
-                "class",
-                "configs",
+                "vendor_id",
                 "manufacturer",
                 "product",
-                "product_id",
-                "protocol",
                 "serial",
-                "subclass",
-                "vendor_id",
-                "version"
+                "configs"
             ]
         },
         "Configs": {
@@ -119,13 +121,20 @@
             "additionalProperties": false,
             "properties": {
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "default": ""
                 },
                 "attributes": {
                     "type": "array",
                     "items": {
-                        "type": "string"
-                    }
+                        "enum": [
+                            "remote-wakeup",
+                            "self-powered"
+                        ]
+                    },
+                    "default": [
+                        "remote-wakeup"
+                    ]
                 },
                 "power": {
                     "type": "integer"
@@ -142,8 +151,6 @@
                 }
             },
             "required": [
-                "attributes",
-                "description",
                 "interfaces",
                 "power"
             ]
