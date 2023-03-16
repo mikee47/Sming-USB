@@ -126,13 +126,18 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                 itf_class = templates[template_tag]['class']
                 if itf_class != 'hid':
                     continue
-                hid_ep_bufsize = max(hid_ep_bufsize, itf.get('bufsize', HID_DEFAULT_EP_BUFSIZE))
+                # TODO: Read schema
+                bufsize = itf.get('bufsize', HID_DEFAULT_EP_BUFSIZE)
+                hid_ep_bufsize = max(hid_ep_bufsize, bufsize)
                 report_name = f"desc_{itf_tag}_report"
                 hid_report += f'static const uint8_t {report_name}[] = {{\n'
                 for r in itf['reports']:
                     id = make_id(r)
                     hid_report_ids.add(f"REPORT_ID_{id},")
-                    hid_report += indent(f"TUD_HID_REPORT_DESC_{id} (HID_REPORT_ID(REPORT_ID_{id}) ),")
+                    args = [f"HID_REPORT_ID(REPORT_ID_{id})"]
+                    if id in ['GENERIC_INOUT', 'FIDO_U2F']:
+                        args.insert(0, bufsize)
+                    hid_report += indent(f"TUD_HID_REPORT_DESC_{id} ({', '.join(str(a) for a in args)}),")
                 hid_report += '};\n\n'
                 hid_report_list.append(report_name)
                 hid_inst += 1
@@ -173,7 +178,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                     'description': itf.get('description', ''),
                     'template.id': make_id(template_tag),
                 }
-                for prop_tag, prop in template['schema'].get('properties', {}).items():
+                for prop_tag, prop in template['properties'].items():
                     prop_type = prop.get('type', 'string')
                     value = itf.get(prop_tag, prop.get('default'))
                     properties[prop_tag] = value
@@ -307,15 +312,22 @@ def load_schema():
     itf_defs = next(iter(itf_defs.values()))
     itf_defs = itf_defs['oneOf']
     interfaces = json_load(resolve_path('interfaces.json'))
-    for tag, itf in interfaces.items():
-        tmpl_schema = itf['schema']
-        tmpl_schema['type'] = 'object'
-        tmpl_schema['additionalProperties'] = False
-        props = tmpl_schema.setdefault('properties', {})
-        props['description'] = {"type": "string"}
-        props['template'] = {"enum": [tag]}
-        tmpl_schema.setdefault('required', []).append('template')
-        itf_defs.append(tmpl_schema)
+    for tmpl_tag, tmpl in interfaces.items():
+        tmpl_schema = tmpl.get('schema', {})
+        dst_schema = {
+            "title": tmpl['title'],
+            "comments": tmpl.get('comments', []),
+            "properties": {
+                "template": {"const": tmpl_tag},
+                "description": {"type": "string"},
+            },
+            "required": ["template"] + [tag for tag, prop in tmpl['properties'].items() if 'default'  not in prop],
+            "class": tmpl['class'],
+            "type": "object",
+            "additionalProperties": False,
+        }
+        dst_schema['properties'].update(tmpl['properties'])
+        itf_defs.append(dst_schema)
     return schema
 
 
@@ -337,53 +349,53 @@ def validate_config(config):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Sming USB configuration utility')
+    parser=argparse.ArgumentParser(description='Sming USB configuration utility')
 
     parser.add_argument('--quiet', '-q', help="Don't print non-critical status messages to stderr", action='store_true')
     parser.add_argument('input', help='Path to configuration file')
     parser.add_argument('output', help='Output directory')
 
-    args = parser.parse_args()
+    args=parser.parse_args()
 
-    common.quiet = args.quiet
+    common.quiet=args.quiet
 
-    config = json_load(args.input)
+    config=json_load(args.input)
     validate_config(config)
 
-    cfg_vars = {}
-    classdefs = []
+    cfg_vars={}
+    classdefs=[]
     parse_devices(config, cfg_vars, classdefs, args.output)
     parse_host(config, cfg_vars, classdefs, args.output)
 
-    code_classes = set(f'{item.namespace()}/{item.code_class}' for item in classdefs)
-    vars = {
+    code_classes=set(f'{item.namespace()}/{item.code_class}' for item in classdefs)
+    vars={
         'includes': "\n".join(f'#include <USB/{c}.h>' for c in code_classes),
         'classdefs': "\n".join(f'extern {item.namespace()}::{item.code_class} {item.tag};' for item in classdefs if not item.is_host),
     }
-    classdefs_h = readTemplate('classdefs.h', vars)
+    classdefs_h=readTemplate('classdefs.h', vars)
     write_file(args.output, 'usb_classdefs.h', classdefs_h)
 
-    class_types = {}
+    class_types={}
     for item in classdefs:
         if not item.is_host:
             class_types.setdefault(item.namespace(), []).append(item)
     if class_types:
-        txt = ""
+        txt=""
         for ns, items in class_types.items():
             for inst, item in enumerate(items):
                 txt += f'{ns}::{item.code_class} {item.tag}({inst}, "{item.tag}");\n'
             txt += f'namespace {ns} {{\n'
-            devices = ", ".join(f'&{item.tag}' for item in items)
+            devices=", ".join(f'&{item.tag}' for item in items)
             if devices:
                 txt += f'  void* devices[] {{{devices}}};\n'
             txt += '}\n'
-        vars = {
+        vars={
             'classdefs': txt
         }
-        classdefs_cpp = readTemplate('classdefs.cpp', vars)
+        classdefs_cpp=readTemplate('classdefs.cpp', vars)
         write_file(args.output, 'usb_classdefs.cpp', classdefs_cpp)
 
-    config_h = readTemplate('config.h', cfg_vars)
+    config_h=readTemplate('config.h', cfg_vars)
     write_file(args.output, 'tusb_config.h', config_h)
 
 

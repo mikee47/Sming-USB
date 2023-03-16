@@ -1,39 +1,42 @@
 {
     "hid": {
         "class": "hid",
-        "description": "HID Input only descriptor",
-        "schema": {
-            "properties": {
-                "protocol": {
-                    "default": "none",
-                    "enum": [
-                        "none",
-                        "keyboard",
-                        "mouse"
-                    ]
-                },
-                "bufsize": {
-                    "type": "integer",
-                    "default": "HID_DEFAULT_EP_BUFSIZE",
-                    "minimum": 4,
-                    "maximum": 512
-                },
-                "poll-interval": {
-                    "type": "integer",
-                    "default": 10,
-                    "minimum": 0,
-                    "maximum": 255
-                },
-                "reports": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
+        "title": "HID Input only descriptor",
+        "properties": {
+            "protocol": {
+                "default": "none",
+                "enum": [
+                    "none",
+                    "keyboard",
+                    "mouse"
+                ]
             },
-            "required": [
-                "reports"
-            ]
+            "bufsize": {
+                "type": "integer",
+                "default": "HID_DEFAULT_EP_BUFSIZE",
+                "minimum": 4,
+                "maximum": 512
+            },
+            "poll-interval": {
+                "type": "integer",
+                "default": 10,
+                "minimum": 0,
+                "maximum": 255
+            },
+            "reports": {
+                "type": "array",
+                "items": {
+                    "enum": [
+                        "keyboard",
+                        "mouse",
+                        "consumer",
+                        "system-control",
+                        "gamepad",
+                        "fido-u2f",
+                        "generic-inout"
+                    ]
+                }
+            }
         },
         "fields": {
             "description": "!$description",
@@ -46,39 +49,42 @@
     },
     "hid-inout": {
         "class": "hid",
-        "description": "HID Input & Output descriptor",
-        "schema": {
-            "properties": {
-                "protocol": {
-                    "default": "none",
-                    "enum": [
-                        "none",
-                        "keyboard",
-                        "mouse"
-                    ]
-                },
-                "bufsize": {
-                    "type": "integer",
-                    "default": "HID_DEFAULT_EP_BUFSIZE",
-                    "minimum": 4,
-                    "maximum": 512
-                },
-                "poll-interval": {
-                    "type": "integer",
-                    "default": 10,
-                    "minimum": 0,
-                    "maximum": 255
-                },
-                "reports": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
+        "title": "HID Input & Output descriptor",
+        "properties": {
+            "protocol": {
+                "default": "none",
+                "enum": [
+                    "none",
+                    "keyboard",
+                    "mouse"
+                ]
             },
-            "required": [
-                "reports"
-            ]
+            "bufsize": {
+                "type": "integer",
+                "default": "HID_DEFAULT_EP_BUFSIZE",
+                "minimum": 4,
+                "maximum": 512
+            },
+            "poll-interval": {
+                "type": "integer",
+                "default": 10,
+                "minimum": 0,
+                "maximum": 255
+            },
+            "reports": {
+                "type": "array",
+                "items": {
+                    "enum": [
+                        "keyboard",
+                        "mouse",
+                        "consumer",
+                        "system-control",
+                        "gamepad",
+                        "fido-u2f",
+                        "generic-inout"
+                    ]
+                }
+            }
         },
         "fields": {
             "description": "!$description",
@@ -92,8 +98,8 @@
     },
     "cdc": {
         "class": "cdc",
-        "description": "CDC Descriptor Template",
-        "schema": {},
+        "title": "CDC Descriptor Template",
+        "properties": {},
         "fields": {
             "description": "!$description",
             "EP notify IN": "@",
@@ -106,12 +112,12 @@
     },
     "midi": {
         "class": "midi",
-        "description": [
-            "MIDI simple descriptor",
-            " - 1 Embedded Jack In connected to 1 External Jack Out",
-            " - 1 Embedded Jack out connected to 1 External Jack In"
+        "title": "MIDI simple descriptor",
+        "comments": [
+            "1 Embedded Jack In connected to 1 External Jack Out",
+            "1 Embedded Jack out connected to 1 External Jack In"
         ],
-        "schema": {},
+        "properties": {},
         "fields": {
             "description": "!$description",
             "EP Out": "@",
@@ -122,24 +128,17 @@
     },
     "msc": {
         "class": "msc",
-        "description": "MSC Descriptor Template",
-        "schema": {
-            "properties": {
-                "vendor": {
-                    "type": "string"
-                },
-                "product": {
-                    "type": "string"
-                },
-                "version": {
-                    "type": "string"
-                }
+        "title": "MSC Descriptor Template",
+        "properties": {
+            "vendor": {
+                "type": "string"
             },
-            "required": [
-                "vendor",
-                "product",
-                "version"
-            ]
+            "product": {
+                "type": "string"
+            },
+            "version": {
+                "type": "string"
+            }
         },
         "fields": {
             "description": "!$description",
@@ -150,22 +149,23 @@
     },
     "audio-mic-one-ch": {
         "class": "audio",
-        "description": [
-            "AUDIO simple descriptor (UAC2) for 1 microphone input",
-            " - 1 Input Terminal, 1 Feature Unit (Mute and Volume Control), 1 Output Terminal, 1 Clock Source"
+        "title": "AUDIO simple descriptor (UAC2) for 1 microphone input",
+        "comments": [
+            "1 Input Terminal",
+            "1 Feature Unit (Mute and Volume Control)",
+            "1 Output Terminal",
+            "1 Clock Source"
         ],
-        "schema": {
-            "properties": {
-                "bytes-per-sample": {
-                    "type": "integer",
-                    "default": 2,
-                    "minimum": 1
-                },
-                "bits-used-per-sample": {
-                    "type": "integer",
-                    "default": 16,
-                    "minimum": 1
-                }
+        "properties": {
+            "bytes-per-sample": {
+                "type": "integer",
+                "default": 2,
+                "minimum": 1
+            },
+            "bits-used-per-sample": {
+                "type": "integer",
+                "default": 16,
+                "minimum": 1
             }
         },
         "fields": {
@@ -179,22 +179,23 @@
     },
     "audio-mic-four-ch": {
         "class": "audio",
-        "description": [
-            "AUDIO simple descriptor (UAC2) for 4 microphone input",
-            " - 1 Input Terminal, 1 Feature Unit (Mute and Volume Control), 1 Output Terminal, 1 Clock Source"
+        "title": "AUDIO simple descriptor (UAC2) for 4 microphone inputs",
+        "comments": [
+            "1 Input Terminal",
+            "1 Feature Unit (Mute and Volume Control)",
+            "1 Output Terminal",
+            "1 Clock Source"
         ],
-        "schema": {
-            "properties": {
-                "bytes-per-sample": {
-                    "type": "integer",
-                    "default": 2,
-                    "minimum": 1
-                },
-                "bits-used-per-sample": {
-                    "type": "integer",
-                    "default": 16,
-                    "minimum": 1
-                }
+        "properties": {
+            "bytes-per-sample": {
+                "type": "integer",
+                "default": 2,
+                "minimum": 1
+            },
+            "bits-used-per-sample": {
+                "type": "integer",
+                "default": 16,
+                "minimum": 1
             }
         },
         "fields": {
@@ -208,22 +209,23 @@
     },
     "audio-speaker-mono-fb": {
         "class": "audio",
-        "description": [
-            "AUDIO simple descriptor (UAC2) for mono speaker",
-            " - 1 Input Terminal, 2 Feature Unit (Mute and Volume Control), 3 Output Terminal, 4 Clock Source"
+        "title": "AUDIO simple descriptor (UAC2) for mono speaker",
+        "comments": [
+            "1 Input Terminal",
+            "2 Feature Unit (Mute and Volume Control)",
+            "3 Output Terminal",
+            "4 Clock Source"
         ],
-        "schema": {
-            "properties": {
-                "bytes-per-sample": {
-                    "type": "integer",
-                    "default": 2,
-                    "minimum": 1
-                },
-                "bits-used-per-sample": {
-                    "type": "integer",
-                    "default": 16,
-                    "minimum": 1
-                }
+        "properties": {
+            "bytes-per-sample": {
+                "type": "integer",
+                "default": 2,
+                "minimum": 1
+            },
+            "bits-used-per-sample": {
+                "type": "integer",
+                "default": 16,
+                "minimum": 1
             }
         },
         "fields": {
@@ -238,15 +240,13 @@
     },
     "vendor": {
         "class": "vendor",
-        "description": "Vendor Descriptor Template",
-        "schema": {
-            "properties": {
-                "bufsize": {
-                    "type": "integer",
-                    "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
-                    "minimum": 4,
-                    "maximum": 512
-                }
+        "title": "Vendor Descriptor Template",
+        "properties": {
+            "bufsize": {
+                "type": "integer",
+                "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                "minimum": 4,
+                "maximum": 512
             }
         },
         "fields": {
@@ -258,22 +258,20 @@
     },
     "dfu_rt": {
         "class": "dfu",
-        "description": "DFU runtime descriptor",
-        "schema": {
-            "properties": {
-                "attributes": {
-                    "type": "integer",
-                    "default": 0
-                },
-                "detach-timeout": {
-                    "type": "integer",
-                    "default": 1000
-                },
-                "transfer-size": {
-                    "type": "integer",
-                    "default": 4096,
-                    "min": 1
-                }
+        "title": "DFU runtime descriptor",
+        "properties": {
+            "attributes": {
+                "type": "integer",
+                "default": 0
+            },
+            "detach-timeout": {
+                "type": "integer",
+                "default": 1000
+            },
+            "transfer-size": {
+                "type": "integer",
+                "default": 4096,
+                "min": 1
             }
         },
         "fields": {
@@ -285,40 +283,35 @@
     },
     "dfu": {
         "class": "dfu",
-        "description": "DFU Descriptor Template",
-        "schema": {
-            "properties": {
-                "alternates": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "attributes": {
-                    "type": "array",
-                    "default": [
-                        "can-upload",
-                        "can-download",
-                        "manifestation-tolerant"
-                    ],
-                    "items": {
-                        "enum": [
-                            "will-detach",
-                            "manifestation-tolerant",
-                            "can-upload",
-                            "can-dnload"
-                        ]
-                    },
-                    "mask": "DFU_ATTR_"
-                },
-                "detach-timeout": {
-                    "type": "integer",
-                    "default": 1000
+        "title": "DFU Descriptor Template",
+        "properties": {
+            "alternates": {
+                "type": "array",
+                "items": {
+                    "type": "string"
                 }
             },
-            "required": [
-                "alternates"
-            ]
+            "attributes": {
+                "type": "array",
+                "default": [
+                    "can-upload",
+                    "can-download",
+                    "manifestation-tolerant"
+                ],
+                "items": {
+                    "enum": [
+                        "will-detach",
+                        "manifestation-tolerant",
+                        "can-upload",
+                        "can-dnload"
+                    ]
+                },
+                "mask": "DFU_ATTR_"
+            },
+            "detach-timeout": {
+                "type": "integer",
+                "default": 1000
+            }
         },
         "fields": {
             "Alternate count": "$alternates.length",
@@ -331,8 +324,8 @@
     },
     "cdc-ecm": {
         "class": "ecm-rndis",
-        "description": "CDC-ECM Descriptor Template",
-        "schema": {},
+        "title": "CDC-ECM Descriptor Template",
+        "properties": {},
         "fields": {
             "description": "!$description",
             "MAC address": "$",
@@ -347,8 +340,8 @@
     },
     "rndis": {
         "class": "ecm-rndis",
-        "description": "RNDIS Descriptor Template",
-        "schema": {},
+        "title": "RNDIS Descriptor Template",
+        "properties": {},
         "fields": {
             "description": "!$description",
             "EP Notify IN": "@",
@@ -361,8 +354,8 @@
     },
     "cdc-ncm": {
         "class": "ncm",
-        "description": "CDC-ECM Descriptor Template",
-        "schema": {},
+        "title": "CDC-ECM Descriptor Template",
+        "properties": {},
         "fields": {
             "description": "!$description",
             "MAC address": "$",
