@@ -1,6 +1,7 @@
 #include <SmingCore.h>
 #include <USB.h>
 #include <Storage/SpiFlash.h>
+#include <FlashString/Vector.hpp>
 
 void tuh_mount_cb(uint8_t dev_addr)
 {
@@ -55,7 +56,7 @@ void sendText()
 	sendChar();
 }
 
-#endif
+#endif // CFG_TUD_HID
 
 #if CFG_TUD_MIDI
 
@@ -66,6 +67,103 @@ const char* midiCodes[] = {
 	"PROGRAM_CHANGE", "CHANNEL_PRESSURE", "PITCH_BEND_CHANGE", "1BYTE_DATA",
 };
 
+#endif
+
+#if CFG_TUD_DFU
+
+DEFINE_FSTR(image1, "Hello world from TinyUSB DFU! - Partition 0")
+DEFINE_FSTR(image2, "Hello world from TinyUSB DFU! - Partition 1")
+DEFINE_FSTR(image3, "Hello world from TinyUSB DFU! - Partition 2")
+DEFINE_FSTR_VECTOR(upload_images, FlashString, &image1, &image2, &image3)
+
+class DfuCallbacks : public USB::DFU::Callbacks
+{
+public:
+	uint32_t getTimeout(Alternate alt, dfu_state_t state) override
+	{
+		if(state == DFU_DNBUSY) {
+			// For this example, EEPROM is slow (100ms), FLASH and RAM are fast (1ms)
+			return (alt == DFU_ALTERNATE_EEPROM) ? 100 : 1;
+		}
+
+		if(state == DFU_MANIFEST) {
+			// since we don't buffer entire image and do any flashing in manifest stage
+			return 0;
+		}
+
+		return 0;
+	}
+
+	void download(Alternate alt, uint32_t offset, const void* data, uint16_t length) override
+	{
+		debug_i("[DFU] Download alt %u, offset %u, length %u", alt, offset, length);
+
+		auto status = DFU_STATUS_OK;
+
+		switch(alt) {
+		case DFU_ALTERNATE_FLASH: {
+			auto part = Storage::findPartition("flash0");
+			if(!part) {
+				status = DFU_STATUS_ERR_TARGET;
+				break;
+			}
+			auto blockSize = part.getBlockSize();
+			if(offset % blockSize == 0) {
+				if(!part.erase_range(offset, blockSize)) {
+					status = DFU_STATUS_ERR_ERASE;
+					break;
+				}
+			}
+			if(!part.write(offset, data, length)) {
+				status = DFU_STATUS_ERR_WRITE;
+			}
+			break;
+		}
+
+		default:
+			debug_hex(INFO, "DFU", data, length);
+		}
+
+		USB::dfu0.complete(status);
+	}
+
+	void manifest(Alternate alt) override
+	{
+		debug_i("[DFU] Alt %u download complete, enter manifestation", alt);
+
+		// flashing op for manifest is complete without error
+		// Application can perform checksum, should it fail, use appropriate status such as errVERIFY.
+		USB::dfu0.complete(DFU_STATUS_OK);
+	}
+
+	uint16_t upload(Alternate alt, uint32_t offset, void* data, uint16_t length) override
+	{
+		uint16_t res{0};
+		switch(alt) {
+		case DFU_ALTERNATE_FLASH: {
+			auto part = Storage::findPartition("flash0");
+			res = part.read(offset, data, length) ? length : 0;
+			break;
+		}
+		default:
+			res = upload_images[alt].read(offset, reinterpret_cast<char*>(data), length);
+		}
+		debug_i("[DFU] Upload alt %u, offset %u, length %u; returning %u bytes", alt, offset, length, res);
+		return res;
+	}
+
+	void abort(Alternate alt) override
+	{
+		debug_w("[DFU] Host aborted transfer, alt %u", alt);
+	}
+
+	void detach() override
+	{
+		debug_i("[DFU] Host detach, we should probably reboot");
+	}
+};
+
+DfuCallbacks dfuCallbacks;
 #endif
 
 } // namespace
@@ -81,10 +179,13 @@ void init()
 	bool res = USB::begin();
 	debug_i("USB::begin(): %u", res);
 
+	/* Return unique serial number for this SoC */
 	USB::onGetDescriptorSting([](uint8_t index) -> const USB::Descriptor* {
+		// MUST use a persistent buffer!
+		static USB::StringDescriptor<8> desc;
+
 		switch(index) {
 		case STRING_INDEX_DEVICE0_SERIAL: {
-			static USB::StringDescriptor<8> desc;
 			desc = String(system_get_chip_id(), HEX, 8);
 			return &desc;
 		}
@@ -121,6 +222,10 @@ void init()
 					pkt.m2);
 		}
 	});
+#endif
+
+#if CFG_TUD_DFU
+	USB::dfu0.begin(dfuCallbacks);
 #endif
 
 	timer.initializeMs<3000>(InterruptCallback([]() {

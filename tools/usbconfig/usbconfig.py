@@ -143,31 +143,33 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                 for prop_tag, prop in template['properties'].items():
                     itf.setdefault(prop_tag, prop.get('default'))
 
-            # Emit HID report descriptors
+            # Emit HID report descriptors and build list of DFU alternate IDs
             hid_inst = 0
             hid_report = ""
             hid_report_list = []
             hid_report_ids = set()
             hid_ep_bufsize = 0
+            dfu_alternate_ids = []
             for itf_tag, itf in cfg['interfaces'].items():
                 template_tag = itf['template']
                 itf_class = templates[template_tag]['class']
-                if itf_class != 'hid':
-                    continue
-                bufsize = itf['bufsize']
-                hid_ep_bufsize = max(hid_ep_bufsize, bufsize)
-                report_name = f"desc_{itf_tag}_report"
-                hid_report += f'static const uint8_t {report_name}[] = {{\n'
-                for r in itf['reports']:
-                    id = make_id(r)
-                    hid_report_ids.add(f"REPORT_ID_{id},")
-                    args = [f"HID_REPORT_ID(REPORT_ID_{id})"]
-                    if id in ['GENERIC_INOUT', 'FIDO_U2F']:
-                        args.insert(0, bufsize)
-                    hid_report += indent(f"TUD_HID_REPORT_DESC_{id} ({', '.join(str(a) for a in args)}),")
-                hid_report += '};\n\n'
-                hid_report_list.append(report_name)
-                hid_inst += 1
+                if itf_class == 'dfu':
+                    dfu_alternate_ids = [f"DFU_ALTERNATE_{make_id(a)}," for a in itf['alternates']]
+                elif itf_class == 'hid':
+                    bufsize = itf['bufsize']
+                    hid_ep_bufsize = max(hid_ep_bufsize, bufsize)
+                    report_name = f"desc_{itf_tag}_report"
+                    hid_report += f'static const uint8_t {report_name}[] = {{\n'
+                    for r in itf['reports']:
+                        id = make_id(r)
+                        hid_report_ids.add(f"REPORT_ID_{id},")
+                        args = [f"HID_REPORT_ID(REPORT_ID_{id})"]
+                        if id in ['GENERIC_INOUT', 'FIDO_U2F']:
+                            args.insert(0, bufsize)
+                        hid_report += indent(f"TUD_HID_REPORT_DESC_{id} ({', '.join(str(a) for a in args)}),")
+                    hid_report += '};\n\n'
+                    hid_report_list.append(report_name)
+                    hid_inst += 1
 
             if hid_inst:
                 vars = {
@@ -294,6 +296,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         vars = {
             'string_ids': indent([f'{id},' for id in strings]),
             'hid_report_ids': indent(hid_report_ids),
+            'dfu_alternate_ids': indent(dfu_alternate_ids),
         }
         desc_h = readTemplate('device/desc.h', vars)
 
