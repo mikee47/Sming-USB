@@ -13,6 +13,11 @@ enum class Event {
 	line_break,
 };
 
+/**
+ * @brief Base class for both device and host serial port modes
+ * @todo We *could* inherit from HardwareSerial here, or preferably provide an abstract base class
+ * for all serial devices.
+ */
 class UsbSerial : public ReadWriteStream
 {
 public:
@@ -53,11 +58,6 @@ public:
 	}
 
 	bool seek(int len) override
-	{
-		return false;
-	}
-
-	bool isFinished() override
 	{
 		return false;
 	}

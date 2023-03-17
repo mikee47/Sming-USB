@@ -1,14 +1,15 @@
 #pragma once
 
-#include "UsbSerial.h"
+#include "../CDC/UsbSerial.h"
 #include "../DeviceInterface.h"
 
-namespace USB::CDC
+namespace USB::VENDOR
 {
 /**
- * @brief Serial device implementation, in ACM mode
+ * @brief The TinyUSB vendor API is very much like a serial port.
+ * Each instance corresponds to a bi-directional interface.
  */
-class Device : public DeviceInterface, public UsbSerial
+class Device : public DeviceInterface, public USB::CDC::UsbSerial
 {
 public:
 	Device(uint8_t idx, const char* name);
@@ -25,43 +26,44 @@ public:
 
 	int available() override
 	{
-		return tud_cdc_n_available(inst);
+		return tud_vendor_n_available(inst);
 	}
 
 	bool isFinished() override
 	{
-		return !tud_cdc_n_connected(inst);
+		return !tud_vendor_n_mounted(inst);
 	}
 
 	int read() override
 	{
-		return tud_cdc_n_read_char(inst);
+		char c;
+		return tud_vendor_n_read(inst, &c, sizeof(c)) ? c : -1;
 	}
 
 	size_t readBytes(char* buffer, size_t length) override
 	{
-		return tud_cdc_n_read(inst, buffer, length);
+		return tud_vendor_n_read(inst, buffer, length);
 	}
 
 	int peek() override
 	{
 		uint8_t c;
-		return tud_cdc_n_peek(inst, &c) ? c : -1;
+		return tud_vendor_n_peek(inst, &c) ? c : -1;
 	}
 
 	void clear(SerialMode mode = SERIAL_FULL) override
 	{
 		if(mode != SerialMode::TxOnly) {
-			tud_cdc_n_read_flush(inst);
+			tud_vendor_n_read_flush(inst);
 		}
 		if(mode != SerialMode::RxOnly) {
-			tud_cdc_n_write_clear(inst);
+			tud_vendor_n_flush(inst); // There's no 'clear' API
 		}
 	}
 
 	void flush() override
 	{
-		tud_cdc_n_write_flush(inst);
+		tud_vendor_n_flush(inst);
 	}
 
 	using Stream::write;
@@ -69,4 +71,4 @@ public:
 	size_t write(const uint8_t* buffer, size_t size) override;
 };
 
-} // namespace USB::CDC
+} // namespace USB::VENDOR

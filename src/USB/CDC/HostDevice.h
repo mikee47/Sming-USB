@@ -5,6 +5,9 @@
 
 namespace USB::CDC
 {
+/**
+ * @brief Implements CDC interface for a connected serial device
+ */
 class HostDevice : public HostInterface, public UsbSerial
 {
 public:
@@ -21,6 +24,11 @@ public:
 	int available() override
 	{
 		return tuh_cdc_read_available(inst.idx);
+	}
+
+	bool isFinished() override
+	{
+		return !tuh_cdc_mounted(inst.idx);
 	}
 
 	int read() override
