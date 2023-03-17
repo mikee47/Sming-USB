@@ -1,3 +1,22 @@
+/****
+ * Descriptors.h
+ *
+ * Copyright 2023 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the Sming USB Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
+ *
+ ****/
+
 #pragma once
 
 #include <tusb.h>
@@ -10,6 +29,14 @@
 
 namespace USB
 {
+/**
+ * @brief Callback to support provision of dynamic device descriptors
+ * @param desc The statically configured device descriptor
+ * @param const tusb_desc_device_t* Application returns a pointer to a statically allocated descriptor to use
+ *
+ * Application typically copies the source descriptor to a statically allocated buffer, then amends
+ * values as required.
+ */
 using GetDeviceDescriptor = Delegate<const tusb_desc_device_t*(const tusb_desc_device_t& desc)>;
 
 /**
@@ -31,6 +58,10 @@ struct Descriptor {
 	uint8_t type;   ///< e.g. TUSB_DESC_STRING
 	// uint8_t content[];
 
+	/**
+	 * @brief Less clumsy way to cast descriptor to a specific type
+	 * @tparam T TinyUSB defines structures beginning with 'tusb_desc_'
+	 */
 	template <typename T> const T* as() const
 	{
 		return reinterpret_cast<const T*>(this);
@@ -41,6 +72,8 @@ struct Descriptor {
 
 /**
  * @brief Buffer containing list of descriptors
+ *
+ * Supports C++ iteration.
  */
 struct DescriptorList {
 	const Descriptor* desc;
@@ -134,10 +167,18 @@ struct DescriptorList {
 template <size_t max_chars> struct StringDescriptor : public Descriptor {
 	uint16_t text[max_chars]; ///< UTF16-LE encoded text (no NUL terminator)
 
+	/**
+	 * @brief Construct an empty string descriptor
+	 */
 	StringDescriptor() : Descriptor{2, TUSB_DESC_STRING}
 	{
 	}
 
+	/**
+	 * @brief Construct a string descriptor containing text
+	 * @param str ASCII text (unicode page #0 only)
+	 * @param charCount Number of characters in string
+	 */
 	StringDescriptor(const char* str, size_t charCount) : StringDescriptor()
 	{
 		charCount = std::min(charCount, max_chars);

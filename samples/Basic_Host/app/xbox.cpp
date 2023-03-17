@@ -67,7 +67,12 @@ bool Xbox::setConfig(uint8_t itf_num)
 bool Xbox::control(tusb_request_recipient_t recipient, uint16_t value, uint16_t length)
 {
 	const tusb_control_request_t request = {
-		.bmRequestType_bit = {.recipient = recipient, .type = TUSB_REQ_TYPE_VENDOR, .direction = TUSB_DIR_IN},
+		.bmRequestType_bit =
+			{
+				.recipient = recipient,
+				.type = TUSB_REQ_TYPE_VENDOR,
+				.direction = TUSB_DIR_IN,
+			},
 		.bRequest = 1,
 		.wValue = tu_htole16(value),
 		.wIndex = tu_htole16(0),
