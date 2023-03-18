@@ -11,7 +11,8 @@
                     "mouse"
                 ]
             },
-            "ep-size": {
+            "ep-bufsize": {
+                "global": true,
                 "type": "integer",
                 "default": 64,
                 "minimum": 4,
@@ -43,7 +44,7 @@
             "Protocol": "HID_ITF_PROTOCOL_${protocol.id}",
             "Report descriptor len": "sizeof(desc_${tag}_report)",
             "EP IN": "@",
-            "EP Size": "$ep-size",
+            "EP Size": "$ep-bufsize",
             "Polling interval": "$poll-interval"
         }
     },

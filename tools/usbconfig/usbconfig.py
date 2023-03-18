@@ -137,9 +137,15 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                 itf_class = templates[template_tag]['class']
                 itf_counts[itf_class] = itf_counts.get(itf_class, 0) + 1
                 classdefs.append(ClassItem(itf_class, 'Device', itf_tag, False))
-                # Fill out default property values
+                # Get maximal global values and fill out default property values
                 template = templates[itf['template']]
                 for prop_tag, prop in template['properties'].items():
+                    if prop.get('global', False) and prop_tag in itf:
+                        value = itf[prop_tag]
+                        global_tag = make_id(f"{template['class']}_{prop_tag}")
+                        cur_value = globals.get(global_tag)
+                        globals[global_tag] = max(value, cur_value) if cur_value else value
+                        print(f"TAG {global_tag}, CUR {cur_value}, VAL {value}")
                     itf.setdefault(prop_tag, prop.get('default'))
 
             # Emit HID report descriptors and build list of DFU alternate IDs
@@ -147,7 +153,6 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
             hid_report = ""
             hid_report_list = []
             hid_report_ids = set()
-            hid_ep_bufsize = 0
             dfu_alternate_ids = []
             for itf_tag, itf in cfg['interfaces'].items():
                 template_tag = itf['template']
@@ -156,8 +161,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                 if itf_class == 'dfu':
                     dfu_alternate_ids = [f"DFU_ALTERNATE_{make_id(a)}," for a in itf['alternates']]
                 elif itf_class == 'hid':
-                    bufsize = itf['ep-size']
-                    hid_ep_bufsize = max(hid_ep_bufsize, bufsize)
+                    bufsize = itf['ep-bufsize']
                     report_name = f"desc_{itf_tag}_report"
                     hid_report += f'static const uint8_t {report_name}[] = {{\n'
                     for r in itf['reports']:
@@ -172,7 +176,6 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                     hid_inst += 1
 
             if hid_inst:
-                globals['HID_EP_BUFSIZE'] = hid_ep_bufsize
                 vars = {
                     'report': hid_report,
                     'report_list': ", ".join(hid_report_list)
@@ -208,6 +211,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                     'description': itf.get('description', ''),
                     'template.id': make_id(template_tag),
                 }
+
                 for prop_tag, prop in template['properties'].items():
                     prop_type = prop.get('type', 'string')
                     value = itf[prop_tag]
@@ -219,10 +223,8 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                         mask = prop.get('mask')
                         if mask:
                             properties[f"{prop_tag}.mask"] = ' | '.join(f'{mask}{make_id(a)}' for a in value)
-                    if prop.get('global', False):
+                    if prop.get('global', False) and prop_tag not in globals:
                         global_tag = make_id(f"{template['class']}_{prop_tag}")
-                        if value != globals.get(global_tag, value):
-                            raise InputError(f"Duplicate global '{prop_tag}' defined for device '{itf_tag}'")
                         globals[global_tag] = value
 
                 def evaluate(value):
@@ -297,7 +299,6 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
             f"#define CFG_TUD_{make_id(name)} {value}" for name, value in itf_counts.items())
         cfg_vars['device_globals'] = "\n".join(
             f"#define CFG_TUD_{make_id(name)} ({value})" for name, value in globals.items())
-        # cfg_vars['hid_ep_bufsize'] = hid_ep_bufsize
 
         vars = {
             'string_ids': indent([f'{id},' for id in strings]),
