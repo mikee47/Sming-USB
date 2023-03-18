@@ -14,6 +14,7 @@ from dataclasses import dataclass
 
 TUSB_DESC_STRING = 3
 
+
 @dataclass
 class ClassItem:
     """Manages device or host interface definition"""
@@ -81,7 +82,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         return
 
     defs = json_load(resolve_path('schema/base.json'))['$defs']
-    templates = json_load(resolve_path('schema/interfaces.json'))
+    templates = json_load(resolve_path('schema/device.json'))
 
     cfg_vars['device_enabled'] = 1
 
@@ -292,8 +293,10 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         }
         desc_c += readTemplate('device/string.c', vars)
 
-        cfg_vars['device_classes'] = "\n".join(f"#define CFG_TUD_{make_id(name)} ({value})" for name, value in itf_counts.items())
-        cfg_vars['device_globals'] = "\n".join(f"#define CFG_TUD_{make_id(name)} ({value})" for name, value in globals.items())
+        cfg_vars['device_classes'] = "\n".join(
+            f"#define CFG_TUD_{make_id(name)} {value}" for name, value in itf_counts.items())
+        cfg_vars['device_globals'] = "\n".join(
+            f"#define CFG_TUD_{make_id(name)} ({value})" for name, value in globals.items())
         # cfg_vars['hid_ep_bufsize'] = hid_ep_bufsize
 
         vars = {
@@ -318,7 +321,7 @@ def parse_host(config, cfg_vars, classdefs, output_dir):
         return
 
     config = config['host']
-    properties = json_load(resolve_path('schema/base.json'))['$defs']['HostInterface']['properties']
+    properties = json_load(resolve_path('schema/host.json'))
     globals = {}
     for dev_class, cfg in config.items():
         classdefs.append(ClassItem(dev_class, 'HostDevice', dev_class, True))
@@ -330,14 +333,17 @@ def parse_host(config, cfg_vars, classdefs, output_dir):
             globals[global_tag] = value
 
     cfg_vars['host_enabled'] = 1
-    cfg_vars['host_classes'] = "\n".join(f"#define CFG_TUH_{make_id(dev_class)} {cfg['count']}" for dev_class, cfg in config.items())
-    cfg_vars['host_globals'] = "\n".join(f"#define CFG_TUH_{make_id(name)} {value}" for name, value in globals.items())
+    cfg_vars['host_classes'] = "\n".join(
+        f"#define CFG_TUH_{make_id(dev_class)} {cfg['count']}" for dev_class, cfg in config.items())
+    cfg_vars['host_globals'] = "\n".join(
+        f"#define CFG_TUH_{make_id(name)} ({value})" for name, value in globals.items())
 
 
 def load_schema():
     schema = json_load(resolve_path('schema/base.json'))
+    # Device
     itf_defs = schema['$defs']['Interfaces']['oneOf']
-    interfaces = json_load(resolve_path('schema/interfaces.json'))
+    interfaces = json_load(resolve_path('schema/device.json'))
     for tmpl_tag, tmpl in interfaces.items():
         tmpl.update({
             "type": "object",
@@ -349,6 +355,17 @@ def load_schema():
             "description": {"type": "string"}
         })
         itf_defs.append(tmpl)
+    # Host
+    itf_defs = schema['$defs']['HostInterfaces']['properties']
+    interfaces = json_load(resolve_path('schema/host.json'))
+    for tmpl_tag, tmpl in interfaces.items():
+        tmpl.update({
+            "type": "object",
+            "additionalProperties": False,
+            "required": [tag for tag, prop in tmpl['properties'].items() if 'default' not in prop],
+        })
+    itf_defs.update(interfaces)
+
     return schema
 
 

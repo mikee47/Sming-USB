@@ -15,105 +15,16 @@
                     "title": "Host Interfaces",
                     "description": "Number of interfaces of each class required",
                     "type": "object",
-                    "$ref": "#/$defs/HostInterface"
+                    "$ref": "#/$defs/HostInterfaces"
                 }
             }
         },
-        "HostInterface": {
-            "title": "Host Interface definition",
-            "description": "Defines how many interface instances each class type supports",
+        "HostInterfaces": {
+            "title": "Host Interface definitions",
             "type": "object",
             "additionalProperties": false,
             "properties": {
-                "hub": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "count": {
-                            "type": "integer",
-                            "default": 1,
-                            "min": 0
-                        }
-                    }
-                },
-                "hid": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "count": {
-                            "type": "integer",
-                            "min": 0
-                        }
-                    },
-                    "required": [
-                        "count"
-                    ]
-                },
-                "cdc": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "count": {
-                            "type": "integer",
-                            "min": 0
-                        },
-                        "line-control-on-enum": {
-                            "title": "Set Line Control state on enumeration/mounted: DTR ( bit 0), RTS (bit 1)",
-                            "global": true,
-                            "type": "integer",
-                            "default": 0,
-                            "min": 0,
-                            "max": 3
-                        },
-                        "rx-bufsize": {
-                            "global": true,
-                            "type": "integer",
-                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
-                            "min": 64
-                        },
-                        "tx-bufsize": {
-                            "global": true,
-                            "type": "integer",
-                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
-                            "min": 64
-                        }
-                    },
-                    "required": [
-                        "count"
-                    ]
-                },
-                "msc": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "count": {
-                            "type": "integer",
-                            "min": 0
-                        },
-                        "ep-bufsize": {
-                            "global": true,
-                            "type": "integer",
-                            "default": 512,
-                            "min": 64
-                        }
-                    },
-                    "required": [
-                        "count"
-                    ]
-                },
-                "vendor": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "count": {
-                            "type": "integer",
-                            "min": 0
-                        }
-                    },
-                    "required": [
-                        "count"
-                    ]
-                }
+                // Filled in from 'host.json'
             }
         },
         "Devices": {
@@ -229,7 +140,9 @@
             ]
         },
         "Interfaces": {
-            "oneOf": []
+            "oneOf": [
+                // Filled in from 'device.json'
+            ]
         }
     }
 }

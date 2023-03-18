@@ -104,13 +104,13 @@
                 "global": true,
                 "type": "integer",
                 "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
-                "min": 64
+                "minimum": 64
             },
             "tx-bufsize": {
                 "global": true,
                 "type": "integer",
                 "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
-                "min": 64
+                "minimum": 64
             }
         },
         "fields": {
@@ -135,13 +135,13 @@
                 "global": true,
                 "type": "integer",
                 "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
-                "min": 64
+                "minimum": 64
             },
             "tx-bufsize": {
                 "global": true,
                 "type": "integer",
                 "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
-                "min": 64
+                "minimum": 64
             }
         },
         "fields": {
@@ -169,7 +169,7 @@
                 "global": true,
                 "type": "integer",
                 "default": 512,
-                "min": 64
+                "minimum": 64
             }
         },
         "fields": {
@@ -313,7 +313,7 @@
             "transfer-size": {
                 "type": "integer",
                 "default": 4096,
-                "min": 1
+                "minimum": 1
             }
         },
         "fields": {
@@ -358,7 +358,7 @@
                 "global": true,
                 "type": "integer",
                 "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
-                "min": 64
+                "minimum": 64
             }
         },
         "fields": {
