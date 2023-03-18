@@ -1,8 +1,16 @@
 {
     "host": {
-        "hid": 4,
-        "cdc": 2,
-        "msc": 1,
-        "vendor": 4
+        "hid": {
+            "count": 4
+        },
+        "cdc": {
+            "count": 2
+        },
+        "msc": {
+            "count": 1
+        },
+        "vendor": {
+            "count": 4
+        }
     }
 }

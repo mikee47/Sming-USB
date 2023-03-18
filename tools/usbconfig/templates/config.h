@@ -27,27 +27,8 @@
 // Device interface classes
 ${device_classes}
 
-// HID buffer size must be sufficient to hold ID (if any) + Data
-#define CFG_TUD_HID_EP_BUFSIZE ${hid_ep_bufsize}
-
-// CDC FIFO size of TX and RX
-#define CFG_TUD_CDC_RX_BUFSIZE (TUD_OPT_HIGH_SPEED ? 512 : 64)
-#define CFG_TUD_CDC_TX_BUFSIZE (TUD_OPT_HIGH_SPEED ? 512 : 64)
-
-// Vendor FIFO size of TX and RX
-// If not configured vendor endpoints will not be buffered
-#define CFG_TUD_VENDOR_RX_BUFSIZE (TUD_OPT_HIGH_SPEED ? 512 : 64)
-#define CFG_TUD_VENDOR_TX_BUFSIZE (TUD_OPT_HIGH_SPEED ? 512 : 64)
-
-// MSC Buffer size of Device Mass storage
-#define CFG_TUD_MSC_EP_BUFSIZE 512
-
-// MIDI FIFO size of TX and RX
-#define CFG_TUD_MIDI_RX_BUFSIZE (TUD_OPT_HIGH_SPEED ? 512 : 64)
-#define CFG_TUD_MIDI_TX_BUFSIZE (TUD_OPT_HIGH_SPEED ? 512 : 64)
-
-// DFU buffer size, it has to be set to the buffer size used in TUD_DFU_DESCRIPTOR
-#define CFG_TUD_DFU_XFER_BUFSIZE  (TUD_OPT_HIGH_SPEED ? 512 : 64)
+// Device defines
+${device_globals}
 
 //--------------------------------------------------------------------
 // HOST CONFIGURATION
@@ -63,8 +44,8 @@ ${device_classes}
 // Host interface classes
 ${host_classes}
 
+// Host defines
+${host_globals}
+
 // max device support (excluding hub device)
 #define CFG_TUH_DEVICE_MAX (CFG_TUH_HUB ? 4 : 1) // hub typically has 4 ports
-
-#define CFG_TUH_CDC_RX_BUFSIZE (TUH_OPT_HIGH_SPEED ? TUSB_EPSIZE_BULK_HS : TUSB_EPSIZE_BULK_FS)
-#define CFG_TUH_CDC_TX_BUFSIZE (TUH_OPT_HIGH_SPEED ? TUSB_EPSIZE_BULK_HS : TUSB_EPSIZE_BULK_FS)

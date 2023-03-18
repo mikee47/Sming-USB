@@ -14,7 +14,7 @@
                             "description": "HID interface", // optional
                             "template": "hid",
                             "protocol": "none",
-                            "bufsize": 16, // Don't require 64 bytes for EP
+                            "ep-size": 16, // Don't require 64 bytes for EP
                             "poll-interval": 5,
                             "reports": [
                                 "keyboard",
@@ -27,7 +27,7 @@
                             "description": "HID interface #2",
                             "template": "hid",
                             "protocol": "none",
-                            "bufsize": 16,
+                            "ep-size": 16,
                             "poll-interval": 5,
                             "reports": [
                                 "keyboard",

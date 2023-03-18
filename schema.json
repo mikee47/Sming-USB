@@ -26,20 +26,82 @@
             "additionalProperties": false,
             "properties": {
                 "hid": {
-                    "type": "integer",
-                    "min": 0
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "count": {
+                            "type": "integer",
+                            "min": 0
+                        }
+                    },
+                    "required": [
+                        "count"
+                    ]
                 },
                 "cdc": {
-                    "type": "integer",
-                    "min": 0
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "count": {
+                            "type": "integer",
+                            "min": 0
+                        },
+                        "line-control-on-enum": {
+                            "title": "Set Line Control state on enumeration/mounted: DTR ( bit 0), RTS (bit 1)",
+                            "global": true,
+                            "type": "integer",
+                            "default": 0,
+                            "min": 0,
+                            "max": 3
+                        },
+                        "rx-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                            "min": 64
+                        },
+                        "tx-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                            "min": 64
+                        }
+                    },
+                    "required": [
+                        "count"
+                    ]
                 },
                 "msc": {
-                    "type": "integer",
-                    "min": 0
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "count": {
+                            "type": "integer",
+                            "min": 0
+                        },
+                        "ep-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": 512,
+                            "min": 64
+                        }
+                    },
+                    "required": [
+                        "count"
+                    ]
                 },
                 "vendor": {
-                    "type": "integer",
-                    "min": 0
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "count": {
+                            "type": "integer",
+                            "min": 0
+                        }
+                    },
+                    "required": [
+                        "count"
+                    ]
                 }
             }
         },
@@ -169,9 +231,9 @@
                                 "mouse"
                             ]
                         },
-                        "bufsize": {
+                        "ep-size": {
                             "type": "integer",
-                            "default": "HID_DEFAULT_EP_BUFSIZE",
+                            "default": 64,
                             "minimum": 4,
                             "maximum": 512
                         },
@@ -207,7 +269,7 @@
                         "Protocol": "HID_ITF_PROTOCOL_${protocol.id}",
                         "Report descriptor len": "sizeof(desc_${tag}_report)",
                         "EP IN": "@",
-                        "Size": "$bufsize",
+                        "EP Size": "$ep-size",
                         "Polling interval": "$poll-interval"
                     },
                     "type": "object",
@@ -229,7 +291,7 @@
                                 "mouse"
                             ]
                         },
-                        "bufsize": {
+                        "ep-size": {
                             "type": "integer",
                             "default": "HID_DEFAULT_EP_BUFSIZE",
                             "minimum": 4,
@@ -268,7 +330,7 @@
                         "Report descriptor len": "sizeof(desc_${tag}_report)",
                         "EP OUT": "@",
                         "EP IN": "@",
-                        "Size": "$bufsize",
+                        "EP Size": "$ep-size",
                         "Polling interval": "$poll-interval"
                     },
                     "type": "object",
@@ -282,6 +344,18 @@
                     "class": "cdc",
                     "title": "CDC Descriptor Template",
                     "properties": {
+                        "rx-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                            "min": 64
+                        },
+                        "tx-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                            "min": 64
+                        },
                         "template": {
                             "const": "cdc"
                         },
@@ -312,6 +386,18 @@
                         "1 Embedded Jack out connected to 1 External Jack In"
                     ],
                     "properties": {
+                        "rx-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                            "min": 64
+                        },
+                        "tx-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                            "min": 64
+                        },
                         "template": {
                             "const": "midi"
                         },
@@ -344,6 +430,12 @@
                         },
                         "version": {
                             "type": "string"
+                        },
+                        "ep-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": 512,
+                            "min": 64
                         },
                         "template": {
                             "const": "msc"
@@ -495,11 +587,21 @@
                     "class": "vendor",
                     "title": "Vendor Descriptor Template",
                     "properties": {
-                        "bufsize": {
+                        "ep-size": {
                             "type": "integer",
                             "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
                             "minimum": 4,
                             "maximum": 512
+                        },
+                        "rx-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64"
+                        },
+                        "tx-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64"
                         },
                         "template": {
                             "const": "vendor"
@@ -512,7 +614,7 @@
                         "description": "!$description",
                         "EP OUT": "@",
                         "EP IN": "@",
-                        "EP Size": "$bufsize"
+                        "EP Size": "$ep-size"
                     },
                     "type": "object",
                     "additionalProperties": false,
@@ -586,6 +688,12 @@
                         "detach-timeout": {
                             "type": "integer",
                             "default": 1000
+                        },
+                        "xfer-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                            "min": 64
                         },
                         "template": {
                             "const": "dfu"

@@ -14,9 +14,6 @@ from dataclasses import dataclass
 
 TUSB_DESC_STRING = 3
 
-HID_DEFAULT_EP_BUFSIZE = 64
-
-
 @dataclass
 class ClassItem:
     """Manages device or host interface definition"""
@@ -79,8 +76,8 @@ def indent(defs):
 def parse_devices(config, cfg_vars, classdefs, output_dir):
     if 'devices' not in config:
         cfg_vars['device_enabled'] = 0
-        cfg_vars['device_classes'] = ''
-        cfg_vars['hid_ep_bufsize'] = 0
+        cfg_vars['device_classes'] = '// none'
+        cfg_vars['device_globals'] = '// none'
         return
 
     defs = json_load(resolve_path('schema/base.json'))['$defs']
@@ -99,6 +96,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         strings[id] = StringItem(id, value)
         return id
 
+    globals = {}
     desc_c = ""
     # Device descriptors
 
@@ -153,10 +151,11 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
             for itf_tag, itf in cfg['interfaces'].items():
                 template_tag = itf['template']
                 itf_class = templates[template_tag]['class']
+
                 if itf_class == 'dfu':
                     dfu_alternate_ids = [f"DFU_ALTERNATE_{make_id(a)}," for a in itf['alternates']]
                 elif itf_class == 'hid':
-                    bufsize = itf['bufsize']
+                    bufsize = itf['ep-size']
                     hid_ep_bufsize = max(hid_ep_bufsize, bufsize)
                     report_name = f"desc_{itf_tag}_report"
                     hid_report += f'static const uint8_t {report_name}[] = {{\n'
@@ -172,6 +171,7 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                     hid_inst += 1
 
             if hid_inst:
+                globals['HID_EP_BUFSIZE'] = hid_ep_bufsize
                 vars = {
                     'report': hid_report,
                     'report_list': ", ".join(hid_report_list)
@@ -218,6 +218,11 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
                         mask = prop.get('mask')
                         if mask:
                             properties[f"{prop_tag}.mask"] = ' | '.join(f'{mask}{make_id(a)}' for a in value)
+                    if prop.get('global', False):
+                        global_tag = make_id(f"{template['class']}_{prop_tag}")
+                        if value != globals.get(global_tag, value):
+                            raise InputError(f"Duplicate global '{prop_tag}' defined for device '{itf_tag}'")
+                        globals[global_tag] = value
 
                 def evaluate(value):
                     tmpl = Template(value)
@@ -287,11 +292,9 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
         }
         desc_c += readTemplate('device/string.c', vars)
 
-        classes = ""
-        for c, n in itf_counts.items():
-            classes += f"#define CFG_TUD_{make_id(c)} {n}\n"
-        cfg_vars['device_classes'] = classes
-        cfg_vars['hid_ep_bufsize'] = hid_ep_bufsize
+        cfg_vars['device_classes'] = "\n".join(f"#define CFG_TUD_{make_id(name)} ({value})" for name, value in itf_counts.items())
+        cfg_vars['device_globals'] = "\n".join(f"#define CFG_TUD_{make_id(name)} ({value})" for name, value in globals.items())
+        # cfg_vars['hid_ep_bufsize'] = hid_ep_bufsize
 
         vars = {
             'string_ids': indent([f'{id},' for id in strings]),
@@ -308,19 +311,27 @@ def parse_devices(config, cfg_vars, classdefs, output_dir):
 
 
 def parse_host(config, cfg_vars, classdefs, output_dir):
-    host_enabled = 0
-    classes = ""
+    if not 'host' in config:
+        cfg_vars['host_enabled'] = 0
+        cfg_vars['host_classes'] = '// none'
+        cfg_vars['host_globals'] = '// none'
+        return
 
-    if 'host' in config:
-        host_enabled = 1
-        class_counts = config['host']
-        for dev_class in class_counts:
-            classdefs.append(ClassItem(dev_class, 'HostDevice', dev_class, True))
-        for c, n in class_counts.items():
-            classes += f"#define CFG_TUH_{make_id(c)} {n}\n"
+    config = config['host']
+    properties = json_load(resolve_path('schema/base.json'))['$defs']['HostInterface']['properties']
+    globals = {}
+    for dev_class, cfg in config.items():
+        classdefs.append(ClassItem(dev_class, 'HostDevice', dev_class, True))
+        for prop_tag, prop in properties[dev_class]['properties'].items():
+            value = cfg.setdefault(prop_tag, prop.get('default'))
+            if not prop.get('global', False):
+                continue
+            global_tag = make_id(f"{dev_class}_{prop_tag}")
+            globals[global_tag] = value
 
-    cfg_vars['host_enabled'] = host_enabled
-    cfg_vars['host_classes'] = classes
+    cfg_vars['host_enabled'] = 1
+    cfg_vars['host_classes'] = "\n".join(f"#define CFG_TUH_{make_id(dev_class)} {cfg['count']}" for dev_class, cfg in config.items())
+    cfg_vars['host_globals'] = "\n".join(f"#define CFG_TUH_{make_id(name)} {value}" for name, value in globals.items())
 
 
 def load_schema():

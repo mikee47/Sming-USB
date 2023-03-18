@@ -25,21 +25,94 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
+                "hub": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "count": {
+                            "type": "integer",
+                            "default": 1,
+                            "min": 0
+                        }
+                    }
+                },
                 "hid": {
-                    "type": "integer",
-                    "min": 0
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "count": {
+                            "type": "integer",
+                            "min": 0
+                        }
+                    },
+                    "required": [
+                        "count"
+                    ]
                 },
                 "cdc": {
-                    "type": "integer",
-                    "min": 0
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "count": {
+                            "type": "integer",
+                            "min": 0
+                        },
+                        "line-control-on-enum": {
+                            "title": "Set Line Control state on enumeration/mounted: DTR ( bit 0), RTS (bit 1)",
+                            "global": true,
+                            "type": "integer",
+                            "default": 0,
+                            "min": 0,
+                            "max": 3
+                        },
+                        "rx-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                            "min": 64
+                        },
+                        "tx-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                            "min": 64
+                        }
+                    },
+                    "required": [
+                        "count"
+                    ]
                 },
                 "msc": {
-                    "type": "integer",
-                    "min": 0
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "count": {
+                            "type": "integer",
+                            "min": 0
+                        },
+                        "ep-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": 512,
+                            "min": 64
+                        }
+                    },
+                    "required": [
+                        "count"
+                    ]
                 },
                 "vendor": {
-                    "type": "integer",
-                    "min": 0
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "count": {
+                            "type": "integer",
+                            "min": 0
+                        }
+                    },
+                    "required": [
+                        "count"
+                    ]
                 }
             }
         },
