@@ -1,0 +1,838 @@
+{
+    "$schema": "http://json-schema.org/draft/2020-12/schema#",
+    "$ref": "#/$defs/UsbConfig",
+    "$defs": {
+        "UsbConfig": {
+            "title": "USB Configuration",
+            "description": "",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "devices": {
+                    "$ref": "#/$defs/Devices"
+                },
+                "host": {
+                    "title": "Host Interfaces",
+                    "description": "Number of interfaces of each class required",
+                    "type": "object",
+                    "$ref": "#/$defs/HostInterfaces"
+                }
+            }
+        },
+        "HostInterfaces": {
+            "title": "Host Interface definitions",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "hub": {
+                    "title": "USB Hub support",
+                    "properties": {
+                        "count": {
+                            "title": "Number of supported hubs",
+                            "type": "integer",
+                            "default": 1,
+                            "minimum": 1
+                        },
+                        "port-count": {
+                            "global": true,
+                            "title": "Total number of ports for all hubs",
+                            "default": 4,
+                            "minimum": 2
+                        }
+                    },
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": []
+                },
+                "hid": {
+                    "title": "Human Interface Device class",
+                    "properties": {
+                        "count": {
+                            "title": "Number of supported interfaces",
+                            "type": "integer",
+                            "default": 4,
+                            "minimum": 1
+                        }
+                    },
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": []
+                },
+                "cdc": {
+                    "title": "Communications Device Class",
+                    "properties": {
+                        "count": {
+                            "title": "Number of supported interfaces",
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "line-control-on-enum": {
+                            "title": "Set Line Control state on enumeration/mounted: DTR ( bit 0), RTS (bit 1)",
+                            "global": true,
+                            "type": "integer",
+                            "default": 0,
+                            "minimum": 0,
+                            "maximum": 3
+                        },
+                        "rx-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                            "minimum": 64
+                        },
+                        "tx-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                            "minimum": 64
+                        }
+                    },
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                        "count"
+                    ]
+                },
+                "msc": {
+                    "title": "Mass Storage Class",
+                    "properties": {
+                        "count": {
+                            "title": "Only one MSC device supported",
+                            "type": "integer",
+                            "default": 1,
+                            "const": 1
+                        },
+                        "maxlun": {
+                            "global": true,
+                            "title": "Maximum number of supported Logical Units",
+                            "type": "integer",
+                            "default": 4,
+                            "minimum": 1
+                        },
+                        "ep-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": 512,
+                            "minimum": 64
+                        }
+                    },
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": []
+                },
+                "vendor": {
+                    "title": "Vendor-specific devices",
+                    "properties": {
+                        "count": {
+                            "title": "Number of supported interfaces",
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                        "count"
+                    ]
+                }
+            }
+        },
+        "Devices": {
+            "title": "Devices",
+            "type": "object",
+            "additionalProperties": false,
+            "patternProperties": {
+                "^[A-Za-z_][A-Za-z0-9_]*$": {
+                    "type": "object",
+                    "$ref": "#/$defs/Device"
+                }
+            }
+        },
+        "Device": {
+            "title": "Device",
+            "description": "Standard device information fields",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "class": {
+                    "type": "string",
+                    "default": "misc"
+                },
+                "subclass": {
+                    "type": "string",
+                    "default": "common"
+                },
+                "protocol": {
+                    "type": "string",
+                    "default": "iad"
+                },
+                "vendor_id": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "string",
+                    "default": "USB_PID"
+                },
+                "version": {
+                    "type": "string",
+                    "default": "1.0"
+                },
+                "manufacturer": {
+                    "type": "string"
+                },
+                "product": {
+                    "type": "string"
+                },
+                "serial": {
+                    "type": "string"
+                },
+                "configs": {
+                    "$ref": "#/$defs/Configs"
+                }
+            },
+            "required": [
+                "vendor_id",
+                "manufacturer",
+                "product",
+                "serial",
+                "configs"
+            ]
+        },
+        "Configs": {
+            "title": "Configs",
+            "type": "object",
+            "additionalProperties": false,
+            "patternProperties": {
+                "^[A-Za-z_][A-Za-z0-9_]*$": {
+                    "type": "object",
+                    "$ref": "#/$defs/Config"
+                }
+            }
+        },
+        "Config": {
+            "title": "Config",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "default": ""
+                },
+                "attributes": {
+                    "type": "array",
+                    "items": {
+                        "enum": [
+                            "remote-wakeup",
+                            "self-powered"
+                        ]
+                    },
+                    "default": [
+                        "remote-wakeup"
+                    ]
+                },
+                "power": {
+                    "type": "integer"
+                },
+                "interfaces": {
+                    "title": "Interfaces",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "patternProperties": {
+                        "^[A-Za-z_][A-Za-z0-9_]*$": {
+                            "$ref": "#/$defs/Interfaces"
+                        }
+                    }
+                }
+            },
+            "required": [
+                "interfaces",
+                "power"
+            ]
+        },
+        "Interfaces": {
+            "oneOf": [
+                {
+                    "class": "hid",
+                    "title": "HID Input only descriptor",
+                    "properties": {
+                        "protocol": {
+                            "default": "none",
+                            "enum": [
+                                "none",
+                                "keyboard",
+                                "mouse"
+                            ]
+                        },
+                        "ep-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": 64,
+                            "minimum": 4,
+                            "maximum": 512
+                        },
+                        "poll-interval": {
+                            "type": "integer",
+                            "default": 10,
+                            "minimum": 0,
+                            "maximum": 255
+                        },
+                        "reports": {
+                            "type": "array",
+                            "items": {
+                                "enum": [
+                                    "keyboard",
+                                    "mouse",
+                                    "consumer",
+                                    "system-control",
+                                    "gamepad",
+                                    "fido-u2f",
+                                    "generic-inout"
+                                ]
+                            }
+                        },
+                        "template": {
+                            "const": "hid"
+                        },
+                        "description": {
+                            "type": "string"
+                        }
+                    },
+                    "fields": {
+                        "description": "!$description",
+                        "Protocol": "HID_ITF_PROTOCOL_${protocol.id}",
+                        "Report descriptor len": "sizeof(desc_${tag}_report)",
+                        "EP IN": "@",
+                        "EP Size": "$ep-bufsize",
+                        "Polling interval": "$poll-interval"
+                    },
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                        "template",
+                        "reports"
+                    ]
+                },
+                {
+                    "class": "hid",
+                    "title": "HID Input & Output descriptor",
+                    "properties": {
+                        "protocol": {
+                            "default": "none",
+                            "enum": [
+                                "none",
+                                "keyboard",
+                                "mouse"
+                            ]
+                        },
+                        "ep-size": {
+                            "type": "integer",
+                            "default": "HID_DEFAULT_EP_BUFSIZE",
+                            "minimum": 4,
+                            "maximum": 512
+                        },
+                        "poll-interval": {
+                            "type": "integer",
+                            "default": 10,
+                            "minimum": 0,
+                            "maximum": 255
+                        },
+                        "reports": {
+                            "type": "array",
+                            "items": {
+                                "enum": [
+                                    "keyboard",
+                                    "mouse",
+                                    "consumer",
+                                    "system-control",
+                                    "gamepad",
+                                    "fido-u2f",
+                                    "generic-inout"
+                                ]
+                            }
+                        },
+                        "template": {
+                            "const": "hid-inout"
+                        },
+                        "description": {
+                            "type": "string"
+                        }
+                    },
+                    "fields": {
+                        "description": "!$description",
+                        "Protocol": "HID_ITF_PROTOCOL_${protocol.id}",
+                        "Report descriptor len": "sizeof(desc_${tag}_report)",
+                        "EP OUT": "@",
+                        "EP IN": "@",
+                        "EP Size": "$ep-size",
+                        "Polling interval": "$poll-interval"
+                    },
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                        "template",
+                        "reports"
+                    ]
+                },
+                {
+                    "class": "cdc",
+                    "title": "CDC Descriptor Template",
+                    "properties": {
+                        "rx-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                            "minimum": 64
+                        },
+                        "tx-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                            "minimum": 64
+                        },
+                        "template": {
+                            "const": "cdc"
+                        },
+                        "description": {
+                            "type": "string"
+                        }
+                    },
+                    "fields": {
+                        "description": "!$description",
+                        "EP notify IN": "@",
+                        "EP notify size": 8,
+                        "EP data OUT": "@",
+                        "EP data IN": "@",
+                        "EP data size": 64
+                    },
+                    "itf_count": 2,
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                        "template"
+                    ]
+                },
+                {
+                    "class": "midi",
+                    "title": "MIDI simple descriptor",
+                    "comments": [
+                        "1 Embedded Jack In connected to 1 External Jack Out",
+                        "1 Embedded Jack out connected to 1 External Jack In"
+                    ],
+                    "properties": {
+                        "rx-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                            "minimum": 64
+                        },
+                        "tx-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                            "minimum": 64
+                        },
+                        "template": {
+                            "const": "midi"
+                        },
+                        "description": {
+                            "type": "string"
+                        }
+                    },
+                    "fields": {
+                        "description": "!$description",
+                        "EP Out": "@",
+                        "EP In": "@",
+                        "EP size": "TUD_OPT_HIGH_SPEED ? 512 : 64"
+                    },
+                    "itf_count": 2,
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                        "template"
+                    ]
+                },
+                {
+                    "class": "msc",
+                    "title": "MSC Descriptor Template",
+                    "properties": {
+                        "vendor": {
+                            "type": "string"
+                        },
+                        "product": {
+                            "type": "string"
+                        },
+                        "version": {
+                            "type": "string"
+                        },
+                        "ep-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": 512,
+                            "minimum": 64
+                        },
+                        "template": {
+                            "const": "msc"
+                        },
+                        "description": {
+                            "type": "string"
+                        }
+                    },
+                    "fields": {
+                        "description": "!$description",
+                        "EP Out": "@",
+                        "EP In": "@",
+                        "EP Size": 64
+                    },
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                        "template",
+                        "vendor",
+                        "product",
+                        "version"
+                    ]
+                },
+                {
+                    "class": "audio",
+                    "title": "AUDIO simple descriptor (UAC2) for 1 microphone input",
+                    "comments": [
+                        "1 Input Terminal",
+                        "1 Feature Unit (Mute and Volume Control)",
+                        "1 Output Terminal",
+                        "1 Clock Source"
+                    ],
+                    "properties": {
+                        "bytes-per-sample": {
+                            "type": "integer",
+                            "default": 2,
+                            "minimum": 1
+                        },
+                        "bits-used-per-sample": {
+                            "type": "integer",
+                            "default": 16,
+                            "minimum": 1
+                        },
+                        "template": {
+                            "const": "audio-mic-one-ch"
+                        },
+                        "description": {
+                            "type": "string"
+                        }
+                    },
+                    "fields": {
+                        "description": "!$description",
+                        "Bytes Per Sample": "$bytes-per-sample",
+                        "Bits Used Per Sample": "$bits-used-per-sample",
+                        "EP IN": "@",
+                        "EP Size": "CFG_TUD_AUDIO_EP_SZ_IN"
+                    },
+                    "itf_count": 2,
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                        "template"
+                    ]
+                },
+                {
+                    "class": "audio",
+                    "title": "AUDIO simple descriptor (UAC2) for 4 microphone inputs",
+                    "comments": [
+                        "1 Input Terminal",
+                        "1 Feature Unit (Mute and Volume Control)",
+                        "1 Output Terminal",
+                        "1 Clock Source"
+                    ],
+                    "properties": {
+                        "bytes-per-sample": {
+                            "type": "integer",
+                            "default": 2,
+                            "minimum": 1
+                        },
+                        "bits-used-per-sample": {
+                            "type": "integer",
+                            "default": 16,
+                            "minimum": 1
+                        },
+                        "template": {
+                            "const": "audio-mic-four-ch"
+                        },
+                        "description": {
+                            "type": "string"
+                        }
+                    },
+                    "fields": {
+                        "description": "!$description",
+                        "Bytes Per Sample": "$bytes-per-sample",
+                        "Bits Used Per Sample": "$bits-used-per-sample",
+                        "EP IN": "@",
+                        "EP Size": "CFG_TUD_AUDIO_EP_SZ_IN"
+                    },
+                    "itf_count": 2,
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                        "template"
+                    ]
+                },
+                {
+                    "class": "audio",
+                    "title": "AUDIO simple descriptor (UAC2) for mono speaker",
+                    "comments": [
+                        "1 Input Terminal",
+                        "2 Feature Unit (Mute and Volume Control)",
+                        "3 Output Terminal",
+                        "4 Clock Source"
+                    ],
+                    "properties": {
+                        "bytes-per-sample": {
+                            "type": "integer",
+                            "default": 2,
+                            "minimum": 1
+                        },
+                        "bits-used-per-sample": {
+                            "type": "integer",
+                            "default": 16,
+                            "minimum": 1
+                        },
+                        "template": {
+                            "const": "audio-speaker-mono-fb"
+                        },
+                        "description": {
+                            "type": "string"
+                        }
+                    },
+                    "fields": {
+                        "description": "!$description",
+                        "Bytes Per Sample": "$bytes-per-sample",
+                        "Bits Used Per Sample": "$bits-used-per-sample",
+                        "EP OUT": "@",
+                        "EP Size": "CFG_TUD_AUDIO_EP_SZ_OUT",
+                        "EP FB IN": "@"
+                    },
+                    "itf_count": 2,
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                        "template"
+                    ]
+                },
+                {
+                    "class": "vendor",
+                    "title": "Vendor Descriptor Template",
+                    "properties": {
+                        "ep-size": {
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                            "minimum": 4,
+                            "maximum": 512
+                        },
+                        "rx-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64"
+                        },
+                        "tx-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64"
+                        },
+                        "template": {
+                            "const": "vendor"
+                        },
+                        "description": {
+                            "type": "string"
+                        }
+                    },
+                    "fields": {
+                        "description": "!$description",
+                        "EP OUT": "@",
+                        "EP IN": "@",
+                        "EP Size": "$ep-size"
+                    },
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                        "template"
+                    ]
+                },
+                {
+                    "class": "dfu",
+                    "title": "DFU runtime descriptor",
+                    "properties": {
+                        "attributes": {
+                            "type": "integer",
+                            "default": 0
+                        },
+                        "detach-timeout": {
+                            "type": "integer",
+                            "default": 1000
+                        },
+                        "transfer-size": {
+                            "type": "integer",
+                            "default": 4096,
+                            "minimum": 1
+                        },
+                        "template": {
+                            "const": "dfu_rt"
+                        },
+                        "description": {
+                            "type": "string"
+                        }
+                    },
+                    "fields": {
+                        "description": "!$description",
+                        "Attributes": "$attributes",
+                        "Detach Timeout": "$detach-timeout",
+                        "Transfer Size": "$transfer-size"
+                    },
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                        "template"
+                    ]
+                },
+                {
+                    "class": "dfu",
+                    "title": "DFU Descriptor Template",
+                    "properties": {
+                        "alternates": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "attributes": {
+                            "type": "array",
+                            "default": [
+                                "can-upload",
+                                "can-download",
+                                "manifestation-tolerant"
+                            ],
+                            "items": {
+                                "enum": [
+                                    "will-detach",
+                                    "manifestation-tolerant",
+                                    "can-upload",
+                                    "can-dnload"
+                                ]
+                            },
+                            "mask": "DFU_ATTR_"
+                        },
+                        "detach-timeout": {
+                            "type": "integer",
+                            "default": 1000
+                        },
+                        "xfer-bufsize": {
+                            "global": true,
+                            "type": "integer",
+                            "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                            "minimum": 64
+                        },
+                        "template": {
+                            "const": "dfu"
+                        },
+                        "description": {
+                            "type": "string"
+                        }
+                    },
+                    "fields": {
+                        "Alternate count": "$alternates.length",
+                        "description": "!$alternates",
+                        "Attributes": "$attributes.mask",
+                        "Detach timeout": "$detach-timeout",
+                        "Transfer size": "CFG_TUD_DFU_XFER_BUFSIZE"
+                    },
+                    "desc-len": "TUD_DFU_DESC_LEN($alternates.length)",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                        "template",
+                        "alternates"
+                    ]
+                },
+                {
+                    "class": "ecm-rndis",
+                    "title": "CDC-ECM Descriptor Template",
+                    "properties": {
+                        "template": {
+                            "const": "cdc-ecm"
+                        },
+                        "description": {
+                            "type": "string"
+                        }
+                    },
+                    "fields": {
+                        "description": "!$description",
+                        "MAC address": "$",
+                        "EP Notify IN": "@",
+                        "EP Notify Size": 64,
+                        "EP Data OUT": "@",
+                        "EP Data IN": "@",
+                        "EP Data Size": "CFG_TUD_NET_ENDPOINT_SIZE",
+                        "Max Segment Size": "CFG_TUD_NET_MTU"
+                    },
+                    "itf-count": 2,
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                        "template"
+                    ]
+                },
+                {
+                    "class": "ecm-rndis",
+                    "title": "RNDIS Descriptor Template",
+                    "properties": {
+                        "template": {
+                            "const": "rndis"
+                        },
+                        "description": {
+                            "type": "string"
+                        }
+                    },
+                    "fields": {
+                        "description": "!$description",
+                        "EP Notify IN": "@",
+                        "EP Notify Size": 64,
+                        "EP Data OUT": "@",
+                        "EP Data IN": "@",
+                        "EP Data Size": "CFG_TUD_NET_ENDPOINT_SIZE"
+                    },
+                    "itf-count": 2,
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                        "template"
+                    ]
+                },
+                {
+                    "class": "ncm",
+                    "title": "CDC-ECM Descriptor Template",
+                    "properties": {
+                        "template": {
+                            "const": "cdc-ncm"
+                        },
+                        "description": {
+                            "type": "string"
+                        }
+                    },
+                    "fields": {
+                        "description": "!$description",
+                        "MAC address": "$",
+                        "EP Notify IN": "@",
+                        "EP Notify Size": 64,
+                        "EP Data OUT": "@",
+                        "EP Data IN": "@",
+                        "EP Data Size": "CFG_TUD_NET_ENDPOINT_SIZE",
+                        "Max Segment Size": "CFG_TUD_NET_MTU"
+                    },
+                    "itf-count": 2,
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                        "template"
+                    ]
+                }
+            ]
+        }
+    }
+}

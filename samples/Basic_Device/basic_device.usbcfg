@@ -1,0 +1,69 @@
+{
+    "devices": {
+        "device0": {
+            "vendor_id": "0xcafe",
+            "manufacturer": "TinyUSB",
+            "product": "Удобное устройство",
+            "serial": "123456", // Allow this to be auto-generated at runtime, e.g. from chip ID
+            "configs": {
+                "config0": {
+                    "description": "default", // optional
+                    "power": 100,
+                    "interfaces": {
+                        "hid0": {
+                            "description": "HID interface", // optional
+                            "template": "hid",
+                            "protocol": "none",
+                            "ep-bufsize": 16, // Don't require 64 bytes for EP
+                            "poll-interval": 5,
+                            "reports": [
+                                "keyboard",
+                                "mouse",
+                                "consumer",
+                                "gamepad"
+                            ]
+                        },
+                        "hid1": {
+                            "description": "HID interface #2",
+                            "template": "hid",
+                            "protocol": "none",
+                            "ep-bufsize": 16,
+                            "poll-interval": 5,
+                            "reports": [
+                                "keyboard",
+                                "system-control"
+                            ]
+                        },
+                        "cdc0": {
+                            "description": "CDC0",
+                            "template": "cdc"
+                        },
+                        "cdc1": {
+                            "description": "CDC1",
+                            "template": "cdc"
+                        },
+                        "msc0": {
+                            "description": "TinyUSB MSC",
+                            "template": "msc",
+                            "vendor": "TinyUSB",
+                            "product": "Mass Storage Device",
+                            "version": "1234"
+                        },
+                        "midi0": {
+                            "description": "TinyUSB MIDI device",
+                            "template": "midi"
+                        },
+                        "dfu0": {
+                            "template": "dfu",
+                            "alternates": [
+                                "FLASH",
+                                "RAM",
+                                "EEPROM"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

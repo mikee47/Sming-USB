@@ -1,0 +1,148 @@
+{
+    "$schema": "http://json-schema.org/draft/2020-12/schema#",
+    "$ref": "#/$defs/UsbConfig",
+    "$defs": {
+        "UsbConfig": {
+            "title": "USB Configuration",
+            "description": "",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "devices": {
+                    "$ref": "#/$defs/Devices"
+                },
+                "host": {
+                    "title": "Host Interfaces",
+                    "description": "Number of interfaces of each class required",
+                    "type": "object",
+                    "$ref": "#/$defs/HostInterfaces"
+                }
+            }
+        },
+        "HostInterfaces": {
+            "title": "Host Interface definitions",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                // Filled in from 'host.json'
+            }
+        },
+        "Devices": {
+            "title": "Devices",
+            "type": "object",
+            "additionalProperties": false,
+            "patternProperties": {
+                "^[A-Za-z_][A-Za-z0-9_]*$": {
+                    "type": "object",
+                    "$ref": "#/$defs/Device"
+                }
+            }
+        },
+        "Device": {
+            "title": "Device",
+            "description": "Standard device information fields",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "class": {
+                    "type": "string",
+                    "default": "misc"
+                },
+                "subclass": {
+                    "type": "string",
+                    "default": "common"
+                },
+                "protocol": {
+                    "type": "string",
+                    "default": "iad"
+                },
+                "vendor_id": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "string",
+                    "default": "USB_PID"
+                },
+                "version": {
+                    "type": "string",
+                    "default": "1.0"
+                },
+                "manufacturer": {
+                    "type": "string"
+                },
+                "product": {
+                    "type": "string"
+                },
+                "serial": {
+                    "type": "string"
+                },
+                "configs": {
+                    "$ref": "#/$defs/Configs"
+                }
+            },
+            "required": [
+                "vendor_id",
+                "manufacturer",
+                "product",
+                "serial",
+                "configs"
+            ]
+        },
+        "Configs": {
+            "title": "Configs",
+            "type": "object",
+            "additionalProperties": false,
+            "patternProperties": {
+                "^[A-Za-z_][A-Za-z0-9_]*$": {
+                    "type": "object",
+                    "$ref": "#/$defs/Config"
+                }
+            }
+        },
+        "Config": {
+            "title": "Config",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "default": ""
+                },
+                "attributes": {
+                    "type": "array",
+                    "items": {
+                        "enum": [
+                            "remote-wakeup",
+                            "self-powered"
+                        ]
+                    },
+                    "default": [
+                        "remote-wakeup"
+                    ]
+                },
+                "power": {
+                    "type": "integer"
+                },
+                "interfaces": {
+                    "title": "Interfaces",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "patternProperties": {
+                        "^[A-Za-z_][A-Za-z0-9_]*$": {
+                            "$ref": "#/$defs/Interfaces"
+                        }
+                    }
+                }
+            },
+            "required": [
+                "interfaces",
+                "power"
+            ]
+        },
+        "Interfaces": {
+            "oneOf": [
+                // Filled in from 'device.json'
+            ]
+        }
+    }
+}

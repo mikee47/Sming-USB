@@ -1,0 +1,20 @@
+{
+    "host": {
+        "hub": {
+            "port-count": 4
+        },
+        "hid": {
+            "count": 4
+        },
+        "cdc": {
+            "count": 2
+        },
+        "msc": {
+            "maxlun": 4,
+            "ep-bufsize": 512
+        },
+        "vendor": {
+            "count": 4
+        }
+    }
+}

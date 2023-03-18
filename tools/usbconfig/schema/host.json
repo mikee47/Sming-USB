@@ -1,0 +1,94 @@
+{
+    "hub": {
+        "title": "USB Hub support",
+        "properties": {
+            "count": {
+                "title": "Number of supported hubs",
+                "type": "integer",
+                "default": 1,
+                "minimum": 1
+            },
+            "port-count": {
+                "global": true,
+                "title": "Total number of ports for all hubs",
+                "default": 4,
+                "minimum": 2
+            }
+        }
+    },
+    "hid": {
+        "title": "Human Interface Device class",
+        "properties": {
+            "count": {
+                "title": "Number of supported interfaces",
+                "type": "integer",
+                "default": 4,
+                "minimum": 1
+            }
+        }
+    },
+    "cdc": {
+        "title": "Communications Device Class",
+        "properties": {
+            "count": {
+                "title": "Number of supported interfaces",
+                "type": "integer",
+                "minimum": 1
+            },
+            "line-control-on-enum": {
+                "title": "Set Line Control state on enumeration/mounted: DTR ( bit 0), RTS (bit 1)",
+                "global": true,
+                "type": "integer",
+                "default": 0,
+                "minimum": 0,
+                "maximum": 3
+            },
+            "rx-bufsize": {
+                "global": true,
+                "type": "integer",
+                "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                "minimum": 64
+            },
+            "tx-bufsize": {
+                "global": true,
+                "type": "integer",
+                "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                "minimum": 64
+            }
+        }
+    },
+    "msc": {
+        "title": "Mass Storage Class",
+        "properties": {
+            "count": {
+                "title": "Only one MSC device supported",
+                "type": "integer",
+                "default": 1,
+                "const": 1
+            },
+            "maxlun": {
+                "global": true,
+                "title": "Maximum number of supported Logical Units",
+                "type": "integer",
+                "default": 4,
+                "minimum": 1
+            },
+            "ep-bufsize": {
+                "global": true,
+                "type": "integer",
+                "default": 512,
+                "minimum": 64
+            }
+        }
+    },
+    "vendor": {
+        "title": "Vendor-specific devices",
+        "properties": {
+            "count": {
+                "title": "Number of supported interfaces",
+                "type": "integer",
+                "minimum": 1
+            }
+        }
+    }
+}

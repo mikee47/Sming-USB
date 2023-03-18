@@ -1,0 +1,420 @@
+{
+    "hid": {
+        "class": "hid",
+        "title": "HID Input only descriptor",
+        "properties": {
+            "protocol": {
+                "default": "none",
+                "enum": [
+                    "none",
+                    "keyboard",
+                    "mouse"
+                ]
+            },
+            "ep-bufsize": {
+                "global": true,
+                "type": "integer",
+                "default": 64,
+                "minimum": 4,
+                "maximum": 512
+            },
+            "poll-interval": {
+                "type": "integer",
+                "default": 10,
+                "minimum": 0,
+                "maximum": 255
+            },
+            "reports": {
+                "type": "array",
+                "items": {
+                    "enum": [
+                        "keyboard",
+                        "mouse",
+                        "consumer",
+                        "system-control",
+                        "gamepad",
+                        "fido-u2f",
+                        "generic-inout"
+                    ]
+                }
+            }
+        },
+        "fields": {
+            "description": "!$description",
+            "Protocol": "HID_ITF_PROTOCOL_${protocol.id}",
+            "Report descriptor len": "sizeof(desc_${tag}_report)",
+            "EP IN": "@",
+            "EP Size": "$ep-bufsize",
+            "Polling interval": "$poll-interval"
+        }
+    },
+    "hid-inout": {
+        "class": "hid",
+        "title": "HID Input & Output descriptor",
+        "properties": {
+            "protocol": {
+                "default": "none",
+                "enum": [
+                    "none",
+                    "keyboard",
+                    "mouse"
+                ]
+            },
+            "ep-size": {
+                "type": "integer",
+                "default": "HID_DEFAULT_EP_BUFSIZE",
+                "minimum": 4,
+                "maximum": 512
+            },
+            "poll-interval": {
+                "type": "integer",
+                "default": 10,
+                "minimum": 0,
+                "maximum": 255
+            },
+            "reports": {
+                "type": "array",
+                "items": {
+                    "enum": [
+                        "keyboard",
+                        "mouse",
+                        "consumer",
+                        "system-control",
+                        "gamepad",
+                        "fido-u2f",
+                        "generic-inout"
+                    ]
+                }
+            }
+        },
+        "fields": {
+            "description": "!$description",
+            "Protocol": "HID_ITF_PROTOCOL_${protocol.id}",
+            "Report descriptor len": "sizeof(desc_${tag}_report)",
+            "EP OUT": "@",
+            "EP IN": "@",
+            "EP Size": "$ep-size",
+            "Polling interval": "$poll-interval"
+        }
+    },
+    "cdc": {
+        "class": "cdc",
+        "title": "CDC Descriptor Template",
+        "properties": {
+            "rx-bufsize": {
+                "global": true,
+                "type": "integer",
+                "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                "minimum": 64
+            },
+            "tx-bufsize": {
+                "global": true,
+                "type": "integer",
+                "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                "minimum": 64
+            }
+        },
+        "fields": {
+            "description": "!$description",
+            "EP notify IN": "@",
+            "EP notify size": 8,
+            "EP data OUT": "@",
+            "EP data IN": "@",
+            "EP data size": 64
+        },
+        "itf_count": 2 // CDC, CDC_DATA
+    },
+    "midi": {
+        "class": "midi",
+        "title": "MIDI simple descriptor",
+        "comments": [
+            "1 Embedded Jack In connected to 1 External Jack Out",
+            "1 Embedded Jack out connected to 1 External Jack In"
+        ],
+        "properties": {
+            "rx-bufsize": {
+                "global": true,
+                "type": "integer",
+                "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                "minimum": 64
+            },
+            "tx-bufsize": {
+                "global": true,
+                "type": "integer",
+                "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                "minimum": 64
+            }
+        },
+        "fields": {
+            "description": "!$description",
+            "EP Out": "@",
+            "EP In": "@",
+            "EP size": "TUD_OPT_HIGH_SPEED ? 512 : 64"
+        },
+        "itf_count": 2 // Audio Control (AC), MIDI Streaming (MS)
+    },
+    "msc": {
+        "class": "msc",
+        "title": "MSC Descriptor Template",
+        "properties": {
+            "vendor": {
+                "type": "string"
+            },
+            "product": {
+                "type": "string"
+            },
+            "version": {
+                "type": "string"
+            },
+            "ep-bufsize": {
+                "global": true,
+                "type": "integer",
+                "default": 512,
+                "minimum": 64
+            }
+        },
+        "fields": {
+            "description": "!$description",
+            "EP Out": "@",
+            "EP In": "@",
+            "EP Size": 64
+        }
+    },
+    "audio-mic-one-ch": {
+        "class": "audio",
+        "title": "AUDIO simple descriptor (UAC2) for 1 microphone input",
+        "comments": [
+            "1 Input Terminal",
+            "1 Feature Unit (Mute and Volume Control)",
+            "1 Output Terminal",
+            "1 Clock Source"
+        ],
+        "properties": {
+            "bytes-per-sample": {
+                "type": "integer",
+                "default": 2,
+                "minimum": 1
+            },
+            "bits-used-per-sample": {
+                "type": "integer",
+                "default": 16,
+                "minimum": 1
+            }
+        },
+        "fields": {
+            "description": "!$description",
+            "Bytes Per Sample": "$bytes-per-sample",
+            "Bits Used Per Sample": "$bits-used-per-sample",
+            "EP IN": "@",
+            "EP Size": "CFG_TUD_AUDIO_EP_SZ_IN"
+        },
+        "itf_count": 2 // Audio Control (AC), Audio Streaming (AS)
+    },
+    "audio-mic-four-ch": {
+        "class": "audio",
+        "title": "AUDIO simple descriptor (UAC2) for 4 microphone inputs",
+        "comments": [
+            "1 Input Terminal",
+            "1 Feature Unit (Mute and Volume Control)",
+            "1 Output Terminal",
+            "1 Clock Source"
+        ],
+        "properties": {
+            "bytes-per-sample": {
+                "type": "integer",
+                "default": 2,
+                "minimum": 1
+            },
+            "bits-used-per-sample": {
+                "type": "integer",
+                "default": 16,
+                "minimum": 1
+            }
+        },
+        "fields": {
+            "description": "!$description",
+            "Bytes Per Sample": "$bytes-per-sample",
+            "Bits Used Per Sample": "$bits-used-per-sample",
+            "EP IN": "@",
+            "EP Size": "CFG_TUD_AUDIO_EP_SZ_IN"
+        },
+        "itf_count": 2 // Audio Control (AC), Audio Streaming (AS)
+    },
+    "audio-speaker-mono-fb": {
+        "class": "audio",
+        "title": "AUDIO simple descriptor (UAC2) for mono speaker",
+        "comments": [
+            "1 Input Terminal",
+            "2 Feature Unit (Mute and Volume Control)",
+            "3 Output Terminal",
+            "4 Clock Source"
+        ],
+        "properties": {
+            "bytes-per-sample": {
+                "type": "integer",
+                "default": 2,
+                "minimum": 1
+            },
+            "bits-used-per-sample": {
+                "type": "integer",
+                "default": 16,
+                "minimum": 1
+            }
+        },
+        "fields": {
+            "description": "!$description",
+            "Bytes Per Sample": "$bytes-per-sample",
+            "Bits Used Per Sample": "$bits-used-per-sample",
+            "EP OUT": "@",
+            "EP Size": "CFG_TUD_AUDIO_EP_SZ_OUT",
+            "EP FB IN": "@"
+        },
+        "itf_count": 2 // Audio Control (AC), Audio Streaming (AS)
+    },
+    "vendor": {
+        "class": "vendor",
+        "title": "Vendor Descriptor Template",
+        "properties": {
+            "ep-size": {
+                "type": "integer",
+                "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                "minimum": 4,
+                "maximum": 512
+            },
+            "rx-bufsize": {
+                "global": true,
+                "type": "integer",
+                "default": "TUD_OPT_HIGH_SPEED ? 512 : 64"
+            },
+            "tx-bufsize": {
+                "global": true,
+                "type": "integer",
+                "default": "TUD_OPT_HIGH_SPEED ? 512 : 64"
+            }
+        },
+        "fields": {
+            "description": "!$description",
+            "EP OUT": "@",
+            "EP IN": "@",
+            "EP Size": "$ep-size"
+        }
+    },
+    "dfu_rt": {
+        "class": "dfu",
+        "title": "DFU runtime descriptor",
+        "properties": {
+            "attributes": {
+                "type": "integer",
+                "default": 0
+            },
+            "detach-timeout": {
+                "type": "integer",
+                "default": 1000
+            },
+            "transfer-size": {
+                "type": "integer",
+                "default": 4096,
+                "minimum": 1
+            }
+        },
+        "fields": {
+            "description": "!$description",
+            "Attributes": "$attributes",
+            "Detach Timeout": "$detach-timeout",
+            "Transfer Size": "$transfer-size"
+        }
+    },
+    "dfu": {
+        "class": "dfu",
+        "title": "DFU Descriptor Template",
+        "properties": {
+            "alternates": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                }
+            },
+            "attributes": {
+                "type": "array",
+                "default": [
+                    "can-upload",
+                    "can-download",
+                    "manifestation-tolerant"
+                ],
+                "items": {
+                    "enum": [
+                        "will-detach",
+                        "manifestation-tolerant",
+                        "can-upload",
+                        "can-dnload"
+                    ]
+                },
+                "mask": "DFU_ATTR_"
+            },
+            "detach-timeout": {
+                "type": "integer",
+                "default": 1000
+            },
+            "xfer-bufsize": {
+                "global": true,
+                "type": "integer",
+                "default": "TUD_OPT_HIGH_SPEED ? 512 : 64",
+                "minimum": 64
+            }
+        },
+        "fields": {
+            "Alternate count": "$alternates.length",
+            "description": "!$alternates",
+            "Attributes": "$attributes.mask",
+            "Detach timeout": "$detach-timeout",
+            "Transfer size": "CFG_TUD_DFU_XFER_BUFSIZE"
+        },
+        "desc-len": "TUD_DFU_DESC_LEN($alternates.length)"
+    },
+    "cdc-ecm": {
+        "class": "ecm-rndis",
+        "title": "CDC-ECM Descriptor Template",
+        "properties": {},
+        "fields": {
+            "description": "!$description",
+            "MAC address": "$",
+            "EP Notify IN": "@",
+            "EP Notify Size": 64,
+            "EP Data OUT": "@",
+            "EP Data IN": "@",
+            "EP Data Size": "CFG_TUD_NET_ENDPOINT_SIZE",
+            "Max Segment Size": "CFG_TUD_NET_MTU"
+        },
+        "itf-count": 2 // CDC Control, CDC Data
+    },
+    "rndis": {
+        "class": "ecm-rndis",
+        "title": "RNDIS Descriptor Template",
+        "properties": {},
+        "fields": {
+            "description": "!$description",
+            "EP Notify IN": "@",
+            "EP Notify Size": 64,
+            "EP Data OUT": "@",
+            "EP Data IN": "@",
+            "EP Data Size": "CFG_TUD_NET_ENDPOINT_SIZE"
+        },
+        "itf-count": 2 // CDC Control, CDC Data
+    },
+    "cdc-ncm": {
+        "class": "ncm",
+        "title": "CDC-ECM Descriptor Template",
+        "properties": {},
+        "fields": {
+            "description": "!$description",
+            "MAC address": "$",
+            "EP Notify IN": "@",
+            "EP Notify Size": 64,
+            "EP Data OUT": "@",
+            "EP Data IN": "@",
+            "EP Data Size": "CFG_TUD_NET_ENDPOINT_SIZE",
+            "Max Segment Size": "CFG_TUD_NET_MTU"
+        },
+        "itf-count": 2 // CDC Control, CDC Data
+    }
+}

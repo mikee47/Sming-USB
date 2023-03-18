@@ -1,0 +1,13 @@
+{
+    "name": "Basic_Device sample",
+    "base_config": "standard",
+    "partitions": {
+        "flash0": {
+            "device": "spiFlash",
+            "address": "0x00100000",
+            "size": "64K",
+            "type": "user",
+            "subtype": 0
+        }
+    }
+}
