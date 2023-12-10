@@ -24,10 +24,6 @@
 #include "Platform/System.h"
 #include <SimpleTimer.h>
 
-#if ENABLE_CMD_EXECUTOR
-#include <Services/CommandProcessing/CommandExecutor.h>
-#endif
-
 namespace USB::CDC
 {
 UsbSerial::UsbSerial()
@@ -38,10 +34,6 @@ UsbSerial::UsbSerial()
 			self->flush();
 		},
 		this);
-}
-
-UsbSerial::~UsbSerial()
-{
 }
 
 void UsbSerial::handleEvent(Event event)
@@ -71,14 +63,6 @@ void UsbSerial::processEvents()
 		if(receiveCallback) {
 			receiveCallback(*this, peek(), available());
 		}
-#if ENABLE_CMD_EXECUTOR
-		if(commandExecutor) {
-			uint8_t ch;
-			while(readBytes(&ch, 1)) {
-				commandExecutor->executorReceive(ch);
-			}
-		}
-#endif
 	}
 
 	if(evt[Event::tx_done]) {
@@ -108,19 +92,6 @@ unsigned UsbSerial::getStatus()
 	// }
 
 	return res;
-}
-
-void UsbSerial::commandProcessing(bool reqEnable)
-{
-#if ENABLE_CMD_EXECUTOR
-	if(reqEnable) {
-		if(!commandExecutor) {
-			commandExecutor.reset(new CommandExecutor(this));
-		}
-	} else {
-		commandExecutor.reset();
-	}
-#endif
 }
 
 } // namespace USB::CDC
