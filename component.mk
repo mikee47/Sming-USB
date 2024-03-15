@@ -59,6 +59,7 @@ endif # USB_CONFIG
 
 COMPONENT_APPCODE += \
 	src \
+	src/Arch/$(SMING_ARCH) \
 	$(USB_CLASS_DIRS) \
 	tinyusb/src \
 	tinyusb/src/common \
