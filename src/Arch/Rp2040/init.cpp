@@ -19,49 +19,12 @@
  *
  ****/
 
-#include "USB.h"
-#include <Platform/System.h>
-
-namespace
-{
-void poll()
-{
-#if CFG_TUD_ENABLED
-	tud_task_ext(0, false);
-#endif
-
-#if CFG_TUH_ENABLED
-	tuh_task_ext(0, false);
-#endif
-
-	System.queueCallback(poll);
-}
-
-} // namespace
+#include <USB.h>
 
 namespace USB
 {
-bool begin()
+void initHardware()
 {
-	extern void initHardware();
-
-	initHardware();
-
-	bool res{true};
-
-#if CFG_TUD_ENABLED
-	res &= tud_init(BOARD_TUD_RHPORT);
-#endif
-
-#if CFG_TUH_ENABLED
-	res &= tuh_init(BOARD_TUH_RHPORT);
-#endif
-
-	if(res) {
-		poll();
-	}
-
-	return res;
 }
 
 } // namespace USB
