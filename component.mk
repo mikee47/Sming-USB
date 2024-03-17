@@ -1,12 +1,8 @@
 COMPONENT_SOC := \
 	host \
-	rp2040
-
-ifneq (v5.2,$(IDF_VERSION))
-COMPONENT_SOC += \
+	rp2040 \
 	esp32s2 \
 	esp32s3
-endif
 
 COMPONENT_SUBMODULES := tinyusb
 COMPONENT_LIBNAME :=
