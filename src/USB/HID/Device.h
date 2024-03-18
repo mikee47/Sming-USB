@@ -30,6 +30,11 @@ public:
 
 	using DeviceInterface::DeviceInterface;
 
+	bool isReady() const
+	{
+		return tud_hid_n_ready(inst);
+	}
+
 	bool sendReport(uint8_t report_id, void const* report, uint16_t len, ReportComplete callback);
 
 protected:
