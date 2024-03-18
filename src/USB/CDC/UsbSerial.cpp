@@ -19,7 +19,7 @@
 
 #include <USB.h>
 
-#if defined(ENABLE_USB_CLASSES)
+#if defined(ENABLE_USB_CLASSES) && (CFG_TUD_CDC || CFG_TUH_CDC)
 
 #include "Platform/System.h"
 #include <SimpleTimer.h>
