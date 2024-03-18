@@ -51,7 +51,7 @@ void Device::set_report(uint8_t report_id, hid_report_type_t report_type, uint8_
 
 bool Device::sendReport(uint8_t report_id, void const* report, uint16_t len, ReportComplete callback)
 {
-	if(reportCompleteCallback) {
+	if(reportCompleteCallback || !isReady()) {
 		return false;
 	}
 	reportCompleteCallback = callback;
