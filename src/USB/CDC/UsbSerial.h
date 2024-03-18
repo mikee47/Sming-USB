@@ -43,8 +43,6 @@ public:
 	using DataReceived = StreamDataReceivedDelegate;
 	using TransmitComplete = Delegate<void(UsbSerial& device)>;
 
-	UsbSerial();
-
 	/**
 	 * @brief Sets receiving buffer size
 	 * @param size requested size
@@ -116,11 +114,13 @@ public:
 
 protected:
 	uart_options_t options{_BV(UART_OPT_TXWAIT)};
-	SimpleTimer flushTimer;
+
+	void queueFlush();
 
 private:
 	void processEvents();
 
+	SimpleTimer flushTimer;
 	DataReceived receiveCallback;
 	TransmitComplete transmitCompleteCallback;
 	uint16_t status{0};

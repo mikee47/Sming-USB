@@ -53,7 +53,7 @@ size_t Device::write(const uint8_t* buffer, size_t size)
 		tud_task_ext(0, true);
 	}
 
-	flushTimer.startOnce();
+	flush();
 
 	return written;
 }
