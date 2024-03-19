@@ -19,23 +19,13 @@
 
 #include <USB.h>
 
-#if defined(ENABLE_USB_CLASSES)
+#if defined(ENABLE_USB_CLASSES) && (CFG_TUD_CDC || CFG_TUH_CDC)
 
 #include "Platform/System.h"
 #include <SimpleTimer.h>
 
 namespace USB::CDC
 {
-UsbSerial::UsbSerial()
-{
-	flushTimer.initializeMs<50>(
-		[](void* param) {
-			auto self = static_cast<UsbSerial*>(param);
-			self->flush();
-		},
-		this);
-}
-
 void UsbSerial::handleEvent(Event event)
 {
 	if(event == Event::line_break) {
@@ -69,6 +59,20 @@ void UsbSerial::processEvents()
 		if(transmitCompleteCallback) {
 			transmitCompleteCallback(*this);
 		}
+	}
+}
+
+void UsbSerial::queueFlush()
+{
+	// Call fails on first call as timer isn't yet initialised
+	if(!flushTimer.startOnce()) {
+		flushTimer.initializeMs<50>(
+			[](void* param) {
+				auto self = static_cast<UsbSerial*>(param);
+				self->flush();
+			},
+			this);
+		flushTimer.startOnce();
 	}
 }
 

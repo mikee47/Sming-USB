@@ -65,7 +65,7 @@ size_t HostDevice::write(const uint8_t* buffer, size_t size)
 		tuh_task_ext(0, true);
 	}
 
-	flushTimer.startOnce();
+	queueFlush();
 
 	return written;
 }

@@ -87,6 +87,8 @@ const char* getXferTypeName(uint8_t type)
 
 } // namespace
 
+#if CFG_TUD_ENABLED
+
 extern "C" {
 const tusb_desc_device_t* tud_get_device_descriptor(void);
 const uint16_t* tud_get_descriptor_string(uint8_t index);
@@ -116,6 +118,8 @@ const uint16_t* tud_descriptor_string_cb(uint8_t index, uint16_t langid)
 
 	return tud_get_descriptor_string(index);
 }
+
+#endif
 
 namespace USB
 {
