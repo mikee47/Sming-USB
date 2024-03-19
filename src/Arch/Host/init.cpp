@@ -1,5 +1,5 @@
 /****
- * HID/Device.cpp
+ * USB.cpp
  *
  * Copyright 2023 mikee47 <mike@sillyhouse.net>
  *
@@ -15,35 +15,16 @@
  * You should have received a copy of the GNU General Public License along with this library.
  * If not, see <https://www.gnu.org/licenses/>.
  *
+ * @author: 2018 - Mikee47 <mike@sillyhouse.net>
+ *
  ****/
 
-#pragma once
+#include <USB.h>
 
-#include "../DeviceInterface.h"
-
-namespace USB::HID
+namespace USB
 {
-class Device : public DeviceInterface
+void initHardware()
 {
-public:
-	using ReportComplete = Delegate<void()>;
+}
 
-	using DeviceInterface::DeviceInterface;
-
-	bool isReady() const
-	{
-		return tud_hid_n_ready(inst);
-	}
-
-	bool sendReport(uint8_t report_id, void const* report, uint16_t len, ReportComplete callback);
-
-protected:
-	uint16_t get_report(uint8_t report_id, hid_report_type_t report_type, uint8_t* buffer, uint16_t reqlen);
-	void set_report(uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize);
-	void report_complete();
-
-private:
-	ReportComplete reportCompleteCallback;
-};
-
-} // namespace USB::HID
+} // namespace USB

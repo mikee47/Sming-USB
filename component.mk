@@ -38,7 +38,7 @@ GLOBAL_CFLAGS += \
 COMPONENT_VARS += USB_CONFIG
 ifdef USB_CONFIG
 
-USBCONFIG_TOOL := $(PYTHON) $(COMPONENT_PATH)/tools/usbconfig/usbconfig.py
+USBCONFIG_TOOL := $(PYTHON) -Xutf8 $(COMPONENT_PATH)/tools/usbconfig/usbconfig.py
 
 USB_OUTPUT_DIR := $(PROJECT_DIR)/$(BUILD_BASE)/USB
 USB_CONFIG_H := $(USB_OUTPUT_DIR)/tusb_config.h
@@ -59,6 +59,7 @@ endif # USB_CONFIG
 
 COMPONENT_APPCODE += \
 	src \
+	src/Arch/$(SMING_ARCH) \
 	$(USB_CLASS_DIRS) \
 	tinyusb/src \
 	tinyusb/src/common \

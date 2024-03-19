@@ -43,9 +43,6 @@ public:
 	using DataReceived = StreamDataReceivedDelegate;
 	using TransmitComplete = Delegate<void(UsbSerial& device)>;
 
-	UsbSerial();
-	~UsbSerial();
-
 	/**
 	 * @brief Sets receiving buffer size
 	 * @param size requested size
@@ -93,13 +90,6 @@ public:
 	 */
 	void systemDebugOutput(bool enabled);
 
-	/** @brief  Configure serial port for command processing
-	 *  @param  reqEnable True to enable command processing
-	 *  @note   Command processing provides a CLI to the system
-	 *  @see    commandHandler
-	 */
-	void commandProcessing(bool reqEnable);
-
 	bool onDataReceived(DataReceived callback)
 	{
 		receiveCallback = callback;
@@ -124,14 +114,15 @@ public:
 
 protected:
 	uart_options_t options{_BV(UART_OPT_TXWAIT)};
-	SimpleTimer flushTimer;
+
+	void queueFlush();
 
 private:
 	void processEvents();
 
+	SimpleTimer flushTimer;
 	DataReceived receiveCallback;
 	TransmitComplete transmitCompleteCallback;
-	std::unique_ptr<CommandExecutor> commandExecutor;
 	uint16_t status{0};
 	BitSet<uint8_t, Event> eventMask;
 };

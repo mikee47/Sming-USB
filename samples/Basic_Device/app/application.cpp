@@ -231,7 +231,9 @@ void init()
 	timer.initializeMs<3000>(InterruptCallback([]() {
 		debug_i("Alive");
 		// Un-comment this to demonstrated how to send keystrokes to the connected PC!
-		// sendText();
+#if CFG_TUD_HID
+		sendText();
+#endif
 	}));
 	timer.start();
 }
