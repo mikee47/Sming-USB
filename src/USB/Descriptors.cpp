@@ -66,6 +66,8 @@ const char* getDescTypeName(uint8_t type)
 		return "VENDOR";
 	case TUSB_REQ_TYPE_INVALID:
 		return "RESERVED";
+	default:
+		return "?";
 	}
 }
 

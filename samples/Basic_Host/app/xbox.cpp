@@ -69,7 +69,7 @@ bool Xbox::control(tusb_request_recipient_t recipient, uint16_t value, uint16_t 
 	const tusb_control_request_t request = {
 		.bmRequestType_bit =
 			{
-				.recipient = recipient,
+				.recipient = uint8_t(recipient),
 				.type = TUSB_REQ_TYPE_VENDOR,
 				.direction = TUSB_DIR_IN,
 			},
