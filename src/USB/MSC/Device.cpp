@@ -50,7 +50,7 @@ void Device::inquiry(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16], 
 
 	memcpy(vendor_id, vid, strlen(vid));
 	String devname = unit.device->getName();
-	memcpy(product_id, devname.c_str(), std::min(devname.length(), 16U));
+	memcpy(product_id, devname.c_str(), std::min(devname.length(), size_t(16U)));
 	memcpy(product_rev, rev, strlen(rev));
 
 	debug_i("%s(%u, \"%s\", \"%s\", \"%s\")", __FUNCTION__, lun, vid, devname.c_str(), rev);
