@@ -96,7 +96,7 @@ void init()
 	USB::MSC::onMount([](auto& inst) {
 		debug_i("MSC mount %u", inst.dev_addr);
 		msc0.begin(inst);
-		msc0.enumerate([](USB::MSC::LogicalUnit& unit, USB::MSC::Inquiry inquiry) {
+		msc0.enumerate([](USB::MSC::LogicalUnit& unit, USB::MSC::Inquiry) {
 			Serial << unit << endl;
 			for(auto part : unit.partitions()) {
 				Serial << part << endl;
@@ -113,7 +113,7 @@ void init()
 		debug_i("CDC mount %u", inst.idx);
 		cdc0.begin(inst);
 		// cdc0.systemDebugOutput(true);
-		cdc0.onDataReceived([](Stream& stream, char arrivedChar, unsigned short availableCharsCount) {
+		cdc0.onDataReceived([](Stream& stream, char, uint16_t availableCharsCount) {
 			char buf[availableCharsCount];
 			auto n = stream.readBytes(buf, availableCharsCount);
 			Serial.write(buf, n);
@@ -122,7 +122,7 @@ void init()
 	});
 	USB::CDC::onUnmount([](USB::CDC::HostDevice& dev) { dev.systemDebugOutput(false); });
 
-	Serial.onDataReceived([](Stream& stream, char arrivedChar, unsigned short availableCharsCount) {
+	Serial.onDataReceived([](Stream& stream, char arrivedChar, uint16_t) {
 		Serial.read();
 		System.queueCallback([](uint32_t param) { Serial.write(char(param)); }, arrivedChar);
 		return;

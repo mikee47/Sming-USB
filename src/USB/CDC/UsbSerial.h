@@ -73,7 +73,7 @@ public:
 		return readBytes(buf, max_len);
 	}
 
-	bool seek(int len) override
+	bool seek(int) override
 	{
 		return false;
 	}

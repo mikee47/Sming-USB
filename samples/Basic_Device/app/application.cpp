@@ -197,12 +197,12 @@ void init()
 
 #if CFG_TUD_CDC
 	// USB::cdc0.systemDebugOutput(true);
-	USB::cdc0.onDataReceived([](Stream& stream, char arrivedChar, unsigned short availableCharsCount) {
+	USB::cdc0.onDataReceived([](Stream& stream, char, unsigned short availableCharsCount) {
 		char buf[availableCharsCount];
 		auto n = stream.readBytes(buf, availableCharsCount);
 		Serial.write(buf, n);
 	});
-	Serial.onDataReceived([](Stream& stream, char arrivedChar, unsigned short availableCharsCount) {
+	Serial.onDataReceived([](Stream& stream, char, unsigned short availableCharsCount) {
 		char buf[availableCharsCount];
 		auto n = stream.readBytes(buf, availableCharsCount);
 		Serial.write(buf, n);
