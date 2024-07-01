@@ -151,13 +151,46 @@ index e66c5007f..000000000
 -
 -#endif
 diff --git a/src/class/vendor/vendor_host.h b/src/class/vendor/vendor_host.h
-index acfebe7a4..ba0c02181 100644
+deleted file mode 100644
+index acfebe7a4..000000000
 --- a/src/class/vendor/vendor_host.h
-+++ b/src/class/vendor/vendor_host.h
-@@ -33,31 +33,13 @@
-  extern "C" {
- #endif
- 
++++ /dev/null
+@@ -1,67 +0,0 @@
+-/*
+- * The MIT License (MIT)
+- *
+- * Copyright (c) 2019 Ha Thach (tinyusb.org)
+- *
+- * Permission is hereby granted, free of charge, to any person obtaining a copy
+- * of this software and associated documentation files (the "Software"), to deal
+- * in the Software without restriction, including without limitation the rights
+- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+- * copies of the Software, and to permit persons to whom the Software is
+- * furnished to do so, subject to the following conditions:
+- *
+- * The above copyright notice and this permission notice shall be included in
+- * all copies or substantial portions of the Software.
+- *
+- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+- * THE SOFTWARE.
+- *
+- * This file is part of the TinyUSB stack.
+- */
+-
+-#ifndef _TUSB_VENDOR_HOST_H_
+-#define _TUSB_VENDOR_HOST_H_
+-
+-#include "common/tusb_common.h"
+-
+-#ifdef __cplusplus
+- extern "C" {
+-#endif
+-
 -typedef struct {
 -  pipe_handle_t pipe_in;
 -  pipe_handle_t pipe_out;
@@ -177,54 +210,58 @@ index acfebe7a4..ba0c02181 100644
 -bool tusbh_custom_read(uint8_t dev_addr, uint16_t vendor_id, uint16_t product_id, void * p_buffer, uint16_t length);
 -bool tusbh_custom_write(uint8_t dev_addr, uint16_t vendor_id, uint16_t product_id, void const * p_data, uint16_t length);
 -
- //--------------------------------------------------------------------+
- // Internal Class Driver API
- //--------------------------------------------------------------------+
- void cush_init(void);
+-//--------------------------------------------------------------------+
+-// Internal Class Driver API
+-//--------------------------------------------------------------------+
+-void cush_init(void);
 -bool cush_open_subtask(uint8_t dev_addr, tusb_desc_interface_t const *p_interface_desc, uint16_t *p_length);
 -void cush_isr(pipe_handle_t pipe_hdl, xfer_result_t event);
-+bool cush_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const * itf_desc, uint16_t max_len);
-+bool cush_set_config(uint8_t dev_addr, uint8_t itf_num);
-+bool cush_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, uint32_t xferred_bytes);
- void cush_close(uint8_t dev_addr);
- 
- #ifdef __cplusplus
+-void cush_close(uint8_t dev_addr);
+-
+-#ifdef __cplusplus
+- }
+-#endif
+-
+-#endif /* _TUSB_VENDOR_HOST_H_ */
 diff --git a/src/host/usbh.c b/src/host/usbh.c
-index 625857683..c5195ca83 100644
+index a94c22c4c..aa7e4fa5d 100644
 --- a/src/host/usbh.c
 +++ b/src/host/usbh.c
-@@ -173,8 +173,9 @@ static usbh_class_driver_t const usbh_class_drivers[] = {
-     {
-       DRIVER_NAME("VENDOR")
-       .init       = cush_init,
--      .open       = cush_open_subtask,
--      .xfer_cb    = cush_isr,
-+      .open       = cush_open,
-+      .set_config = cush_set_config,
-+      .xfer_cb    = cush_xfer_cb,
-       .close      = cush_close
-     }
+@@ -184,18 +184,6 @@ static usbh_class_driver_t const usbh_class_drivers[] = {
+         .close      = hub_close
+     },
      #endif
-@@ -294,7 +295,7 @@ bool tuh_vid_pid_get(uint8_t dev_addr, uint16_t *vid, uint16_t *pid) {
-   *vid = dev->vid;
-   *pid = dev->pid;
+-
+-    #if CFG_TUH_VENDOR
+-    {
+-      .name       = DRIVER_NAME("VENDOR"),
+-      .init       = cush_init,
+-      .deinit     = cush_deinit,
+-      .open       = cush_open,
+-      .set_config = cush_set_config,
+-      .xfer_cb    = cush_isr,
+-      .close      = cush_close
+-    }
+-    #endif
+ };
  
--  return true;
-+  return dev->configured;
- }
- 
- tusb_speed_t tuh_speed_get(uint8_t dev_addr) {
+ enum { BUILTIN_DRIVER_COUNT = TU_ARRAY_SIZE(usbh_class_drivers) };
 diff --git a/src/portable/espressif/esp32sx/dcd_esp32sx.c b/src/portable/espressif/esp32sx/dcd_esp32sx.c
-index 1fcfb6241..0933bc10c 100644
+index f912bef89..8ce3c39e5 100644
 --- a/src/portable/espressif/esp32sx/dcd_esp32sx.c
 +++ b/src/portable/espressif/esp32sx/dcd_esp32sx.c
-@@ -31,7 +31,13 @@
+@@ -31,15 +31,22 @@
  #if (((CFG_TUSB_MCU == OPT_MCU_ESP32S2) ||  (CFG_TUSB_MCU == OPT_MCU_ESP32S3)) && CFG_TUD_ENABLED)
  
  // Espressif
--#include "freertos/xtensa_api.h"
+-#include "xtensa/xtensa_api.h"
+-
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wunused-parameter"
 +#include <freertos/FreeRTOS.h>
++#pragma GCC diagnostic pop
 +#include <freertos/task.h>
++#include <esp_idf_version.h>
 +#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
 +#include "xtensa_api.h"
 +#include "soc/usb_struct.h"
@@ -233,13 +270,25 @@ index 1fcfb6241..0933bc10c 100644
  #include "esp_intr_alloc.h"
  #include "esp_log.h"
  #include "soc/dport_reg.h"
-@@ -41,6 +47,9 @@
+ #include "soc/gpio_sig_map.h"
+ #include "soc/usb_periph.h"
+-#include "soc/usb_reg.h"
+-#include "soc/usb_struct.h"
+ #include "soc/periph_defs.h" // for interrupt source
  
  #include "device/dcd.h"
- 
-+#define USB_IN_EP_NUM 7
-+#define USB_OUT_EP_NUM 7
-+
- // Max number of bi-directional endpoints including EP0
- // Note: ESP32S2 specs say there are only up to 5 IN active endpoints include EP0
- // We should probably prohibit enabling Endpoint IN > 4 (not done yet)
+diff --git a/src/tusb.h b/src/tusb.h
+index 4f69a1414..1b58adef7 100644
+--- a/src/tusb.h
++++ b/src/tusb.h
+@@ -58,10 +58,6 @@
+   #if CFG_TUH_CDC
+     #include "class/cdc/cdc_host.h"
+   #endif
+-
+-  #if CFG_TUH_VENDOR
+-    #include "class/vendor/vendor_host.h"
+-  #endif
+ #else
+   #ifndef tuh_int_handler
+   #define tuh_int_handler(...)

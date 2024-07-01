@@ -103,7 +103,7 @@ MSC
     See :sample:`Basic_IFS` for a real-world example.
 
 VENDOR
-    Support access to custom devices. :cpp:class:`USB::MSC::HostDevice`.
+    Support access to custom devices. :cpp:class:`USB::VENDOR::HostDevice`.
     The sample contains a demonstration for connecting an original XBOX-360 joypad controller.
 
 

@@ -21,6 +21,8 @@
 
 #if CFG_TUH_ENABLED && CFG_TUH_VENDOR
 
+#include <host/usbh_pvt.h>
+
 namespace USB::VENDOR
 {
 MountCallback mountCallback;
@@ -74,14 +76,16 @@ bool HostDevice::openEndpoint(const tusb_desc_endpoint_t& ep_desc)
 	return true;
 }
 
-} // namespace USB::VENDOR
-
-using namespace USB::VENDOR;
-using namespace USB;
-
-void cush_init(void)
+bool cush_init(void)
 {
-	debug_i("%s()", __FUNCTION__);
+	debug_d("%s()", __FUNCTION__);
+	return true;
+}
+
+bool cush_deinit(void)
+{
+	debug_d("%s()", __FUNCTION__);
+	return true;
 }
 
 bool cush_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const* itf_desc, uint16_t max_len)
@@ -107,7 +111,7 @@ bool cush_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const* it
 
 	auto freeDevPtr = getFreeDevice();
 	if(!freeDevPtr) {
-		debug_e("[USB-VEND] No free instances");
+		debug_e("%s No free instances", __FUNCTION__);
 		return false;
 	}
 
@@ -147,6 +151,25 @@ void cush_close(uint8_t dev_addr)
 			dev = nullptr;
 		}
 	}
+}
+
+} // namespace USB::VENDOR
+
+usbh_class_driver_t const* usbh_app_driver_get_cb(uint8_t* driver_count)
+{
+	using namespace USB::VENDOR;
+	static const usbh_class_driver_t classInfo PROGMEM{
+		.name = "VENDOR",
+		.init = cush_init,
+		.deinit = cush_deinit,
+		.open = cush_open,
+		.set_config = cush_set_config,
+		.xfer_cb = cush_xfer_cb,
+		.close = cush_close,
+	};
+
+	*driver_count = 1;
+	return &classInfo;
 }
 
 #endif
