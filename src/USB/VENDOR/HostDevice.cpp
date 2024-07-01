@@ -79,9 +79,14 @@ bool HostDevice::openEndpoint(const tusb_desc_endpoint_t& ep_desc)
 using namespace USB::VENDOR;
 using namespace USB;
 
-void cush_init(void)
+bool cush_init(void)
 {
 	debug_i("%s()", __FUNCTION__);
+}
+
+bool cush_deinit(void)
+{
+	return true;
 }
 
 bool cush_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const* itf_desc, uint16_t max_len)
