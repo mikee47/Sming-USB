@@ -4,6 +4,6 @@ on: [push]
 
 jobs:
   build:
-    uses: SmingHub/Sming/.github/workflows/library.yml@develop
+    uses: mikee47/Sming/.github/workflows/library.yml@feature/library-ci-cache
     with:
       alias: USB
