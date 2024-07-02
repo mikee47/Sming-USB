@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    uses: mikee47/Sming/.github/workflows/library.yml@feature/library-ci-cache
+    uses: mikee47/Sming/.github/workflows/library.yml@dev/libcache
     with:
       sming_repo: ${{ inputs.sming_repo }}
       sming_branch: ${{ inputs.sming_branch }}
