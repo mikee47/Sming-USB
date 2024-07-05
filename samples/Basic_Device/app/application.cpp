@@ -49,7 +49,7 @@ void sendChar()
 	USB::hid0.sendReport(REPORT_ID_KEYBOARD, &report, sizeof(report), c ? sendChar : nullptr);
 }
 
-void sendText()
+[[maybe_unused]] void sendText()
 {
 	charIndex = 0;
 	lastChar = '\0';
@@ -232,7 +232,7 @@ void init()
 		debug_i("Alive");
 		// Un-comment this to demonstrated how to send keystrokes to the connected PC!
 #if CFG_TUD_HID
-		sendText();
+		// sendText();
 #endif
 	}));
 	timer.start();
