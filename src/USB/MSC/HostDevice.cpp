@@ -95,7 +95,7 @@ bool HostDevice::begin(const Instance& inst)
 {
 	HostInterface::begin(inst);
 	state = State::ready;
-	debug_i("[MSC] Device %u (%s) mounted, max_lun %u", inst.dev_addr, inst.name, tuh_msc_get_maxlun(inst.dev_addr));
+	debug_d("[MSC] Device %u (%s) mounted, max_lun %u", inst.dev_addr, inst.name, tuh_msc_get_maxlun(inst.dev_addr));
 	return true;
 }
 
@@ -240,7 +240,7 @@ using namespace USB::MSC;
 
 void tuh_msc_mount_cb(uint8_t dev_addr)
 {
-	debug_i("%s(%u)", __FUNCTION__, dev_addr);
+	debug_d("%s(%u)", __FUNCTION__, dev_addr);
 
 	unsigned idx = dev_addr - 1;
 	if(idx >= ARRAY_SIZE(host_devices)) {
@@ -254,7 +254,7 @@ void tuh_msc_mount_cb(uint8_t dev_addr)
 
 void tuh_msc_umount_cb(uint8_t dev_addr)
 {
-	debug_i("%s(%u)", __FUNCTION__, dev_addr);
+	debug_d("%s(%u)", __FUNCTION__, dev_addr);
 
 	auto dev = getDevice(dev_addr);
 	if(dev) {

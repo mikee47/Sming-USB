@@ -53,7 +53,7 @@ void Device::inquiry(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16], 
 	memcpy(product_id, devname.c_str(), std::min(devname.length(), size_t(16U)));
 	memcpy(product_rev, rev, strlen(rev));
 
-	debug_i("%s(%u, \"%s\", \"%s\", \"%s\")", __FUNCTION__, lun, vid, devname.c_str(), rev);
+	debug_d("%s(%u, \"%s\", \"%s\", \"%s\")", __FUNCTION__, lun, vid, devname.c_str(), rev);
 }
 
 } // namespace USB::MSC
@@ -90,7 +90,7 @@ uint8_t tud_msc_get_maxlun_cb(void)
 // - READ10 and WRITE10 has their own callbacks
 int32_t tud_msc_scsi_cb(uint8_t lun, uint8_t const scsi_cmd[16], void* buffer, uint16_t bufsize)
 {
-	debug_i("%s(%u, %u)", __FUNCTION__, lun, bufsize);
+	debug_d("%s(%u, %u)", __FUNCTION__, lun, bufsize);
 	return -1;
 }
 

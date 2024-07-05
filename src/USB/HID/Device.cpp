@@ -44,9 +44,11 @@ uint16_t Device::get_report(uint8_t report_id, hid_report_type_t report_type, ui
 
 void Device::set_report(uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize)
 {
+#if DEBUG_VERBOSE_LEVEL >= DBG
 	char buf[32];
 	m_snprintf(buf, sizeof(buf), "%s(%u, %u, %u)", __FUNCTION__, report_id, report_type, bufsize);
 	m_printHex(buf, buffer, bufsize);
+#endif
 }
 
 bool Device::sendReport(uint8_t report_id, void const* report, uint16_t len, ReportComplete callback)

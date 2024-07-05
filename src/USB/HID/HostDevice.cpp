@@ -434,7 +434,7 @@ unsigned Report::parse(tuh_hid_report_info_t report_info_arr[], unsigned arr_cou
 			case RI_GLOBAL_USAGE_PAGE: {
 				uint32_t page{0};
 				memcpy(&page, data, hdr.size);
-				debug_i("Usage page: %u (%s)", page, getHidUsagePageName(page));
+				debug_d("Usage page: %u (%s)", page, getHidUsagePageName(page));
 				// only take in account the "usage page" before REPORT ID
 				if(ri_collection_depth == 0) {
 					info.usage_page = page;
@@ -481,7 +481,7 @@ unsigned Report::parse(tuh_hid_report_info_t report_info_arr[], unsigned arr_cou
 			switch(hdr.tag) {
 			case RI_LOCAL_USAGE: {
 				auto usage = data[0];
-				debug_i("Usage %u (%s)", usage, getHidUsageName(info.usage_page, usage));
+				debug_d("Usage %u (%s)", usage, getHidUsageName(info.usage_page, usage));
 				// only take in account the "usage" before starting REPORT ID
 				if(ri_collection_depth == 0) {
 					info.usage = usage;
@@ -561,7 +561,7 @@ void tuh_hid_umount_cb(uint8_t dev_addr, uint8_t instance)
 // Note: if there is report ID (composite), it is 1st byte of report
 void tuh_hid_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* report, uint16_t len)
 {
-	debug_i("%s(%u/%u, len %u)", __FUNCTION__, dev_addr, instance, len);
+	debug_d("%s(%u/%u, len %u)", __FUNCTION__, dev_addr, instance, len);
 	auto dev = getDevice({dev_addr, instance});
 	if(dev) {
 		dev->reportReceived(Report{reinterpret_cast<const USB::Descriptor*>(report), len});
@@ -571,7 +571,7 @@ void tuh_hid_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t cons
 // Invoked when sent report to device successfully via interrupt endpoint
 void tuh_hid_report_sent_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* report, uint16_t len)
 {
-	debug_i("%s(%u/%u, len %u)", __FUNCTION__, dev_addr, instance, len);
+	debug_d("%s(%u/%u, len %u)", __FUNCTION__, dev_addr, instance, len);
 }
 
 // Invoked when Sent Report to device via either control endpoint
@@ -579,13 +579,13 @@ void tuh_hid_report_sent_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* r
 void tuh_hid_set_report_complete_cb(uint8_t dev_addr, uint8_t instance, uint8_t report_id, uint8_t report_type,
 									uint16_t len)
 {
-	debug_i("%s(%u/%u, id %u, type %u, len %u)", __FUNCTION__, dev_addr, instance, report_id, report_type, len);
+	debug_d("%s(%u/%u, id %u, type %u, len %u)", __FUNCTION__, dev_addr, instance, report_id, report_type, len);
 }
 
 // Invoked when Set Protocol request is complete
 void tuh_hid_set_protocol_complete_cb(uint8_t dev_addr, uint8_t instance, uint8_t protocol)
 {
-	debug_i("%s(%u/%u, protocol %u)", __FUNCTION__, dev_addr, instance, protocol);
+	debug_d("%s(%u/%u, protocol %u)", __FUNCTION__, dev_addr, instance, protocol);
 }
 
 #endif

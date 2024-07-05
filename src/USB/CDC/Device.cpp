@@ -74,7 +74,7 @@ void tud_cdc_rx_cb(uint8_t inst)
 // Invoked when received `wanted_char`
 // void tud_cdc_rx_wanted_cb(uint8_t inst, char wanted_char)
 // {
-// 	debug_i("%s(%u, %u)", __FUNCTION__, inst, wanted_char);
+// 	debug_d("%s(%u, %u)", __FUNCTION__, inst, wanted_char);
 // }
 
 // Invoked when a TX is complete and therefore space becomes available in TX buffer
@@ -89,13 +89,13 @@ void tud_cdc_tx_complete_cb(uint8_t inst)
 // Invoked when line state DTR & RTS are changed via SET_CONTROL_LINE_STATE
 void tud_cdc_line_state_cb(uint8_t inst, bool dtr, bool rts)
 {
-	debug_i("%s(%u, DTR %u, RTS %u)", __FUNCTION__, inst, dtr, rts);
+	debug_d("%s(%u, DTR %u, RTS %u)", __FUNCTION__, inst, dtr, rts);
 }
 
 // Invoked when line coding is change via SET_LINE_CODING
 void tud_cdc_line_coding_cb(uint8_t inst, cdc_line_coding_t const* p_line_coding)
 {
-	debug_i("%s(%u, %u, %u-%u-%u)", __FUNCTION__, inst, p_line_coding->bit_rate, p_line_coding->data_bits,
+	debug_d("%s(%u, %u, %u-%u-%u)", __FUNCTION__, inst, p_line_coding->bit_rate, p_line_coding->data_bits,
 			p_line_coding->parity, p_line_coding->stop_bits);
 }
 
