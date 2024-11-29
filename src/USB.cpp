@@ -21,9 +21,14 @@
 
 #include "USB.h"
 #include <Platform/System.h>
+#include <SimpleTimer.h>
+
+#define USB_POLL_INTERVAL_MS 20
 
 namespace
 {
+SimpleTimer pollTimer;
+
 void poll()
 {
 #if CFG_TUD_ENABLED
@@ -33,8 +38,6 @@ void poll()
 #if CFG_TUH_ENABLED
 	tuh_task_ext(0, false);
 #endif
-
-	System.queueCallback(poll);
 }
 
 } // namespace
@@ -63,7 +66,7 @@ bool begin()
 #endif
 
 	if(res) {
-		poll();
+		pollTimer.initializeMs<USB_POLL_INTERVAL_MS>(poll).start();
 	}
 
 	return res;
