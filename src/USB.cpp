@@ -39,6 +39,11 @@ void poll()
 
 } // namespace
 
+extern "C" void tusb_time_delay_ms_api(uint32_t ms)
+{
+	os_delay_us(ms * 1000U);
+}
+
 namespace USB
 {
 bool begin()

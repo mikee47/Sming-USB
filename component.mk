@@ -1,6 +1,6 @@
 COMPONENT_SOC := \
 	host \
-	rp2040 \
+	rp2* \
 	esp32s2 \
 	esp32s3
 
