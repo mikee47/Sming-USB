@@ -26,7 +26,11 @@
 #include <soc/periph_defs.h>
 #include <driver/periph_ctrl.h>
 
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 2)
+#include <soc/usb_periph.h>
+#include <soc/usb_reg.h>
+#include <hal/usb_wrap_ll.h>
+#elif ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
 #include <soc/usb_periph.h>
 #include <soc/usb_reg.h>
 #include <hal/usb_fsls_phy_hal.h>
@@ -66,7 +70,10 @@ void initHardware()
 {
 	periph_module_reset(PERIPH_USB_MODULE);
 	periph_module_enable(PERIPH_USB_MODULE);
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 2)
+	usb_wrap_ll_phy_enable_external(&USB_WRAP, false);
+	usb_wrap_ll_phy_enable_pad(&USB_WRAP, true);
+#elif ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
 	usb_fsls_phy_ll_usb_wrap_pad_enable(&USB_WRAP, true);
 	usb_fsls_phy_ll_int_otg_enable(&USB_WRAP);
 #else

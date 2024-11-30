@@ -16,10 +16,10 @@ ifeq ($(SMING_ARCH),Rp2040)
 TUSB_FAMILY_PATH := raspberrypi/rp2040
 CFG_TUSB_MCU := OPT_MCU_RP2040
 else ifeq ($(SMING_SOC),esp32s2)
-TUSB_FAMILY_PATH := espressif/esp32sx
+TUSB_FAMILY_PATH := synopsys/dwc2
 CFG_TUSB_MCU := OPT_MCU_ESP32S2
 else ifeq ($(SMING_SOC),esp32s3)
-TUSB_FAMILY_PATH := espressif/esp32sx
+TUSB_FAMILY_PATH := synopsys/dwc2
 CFG_TUSB_MCU := OPT_MCU_ESP32S3
 else
 TUSB_FAMILY_PATH := template
