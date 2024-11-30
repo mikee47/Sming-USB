@@ -202,6 +202,10 @@ void init()
 		auto n = stream.readBytes(buf, availableCharsCount);
 		Serial.write(buf, n);
 	});
+	USB::cdc1.onDataReceived([](Stream& stream, char, unsigned short availableCharsCount) {
+		char buf[availableCharsCount];
+		stream.readBytes(buf, availableCharsCount);
+	});
 	Serial.onDataReceived([](Stream& stream, char, unsigned short availableCharsCount) {
 		char buf[availableCharsCount];
 		auto n = stream.readBytes(buf, availableCharsCount);
