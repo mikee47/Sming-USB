@@ -21,16 +21,15 @@
 
 #include "USB.h"
 #include <Platform/System.h>
-#include <SimpleTimer.h>
-
-#define USB_POLL_INTERVAL_MS 20
 
 namespace
 {
-SimpleTimer pollTimer;
+volatile bool taskQueued;
 
 void poll()
 {
+	taskQueued = false;
+
 #if CFG_TUD_ENABLED
 	tud_task_ext(0, false);
 #endif
@@ -45,6 +44,14 @@ void poll()
 extern "C" void tusb_time_delay_ms_api(uint32_t ms)
 {
 	os_delay_us(ms * 1000U);
+}
+
+extern "C" void IRAM_ATTR tud_event_hook_cb(uint8_t, uint32_t, bool)
+{
+	if(!taskQueued) {
+		System.queueCallback(poll);
+		taskQueued = true;
+	}
 }
 
 namespace USB
@@ -64,10 +71,6 @@ bool begin()
 #if CFG_TUH_ENABLED
 	res &= tuh_init(BOARD_TUH_RHPORT);
 #endif
-
-	if(res) {
-		pollTimer.initializeMs<USB_POLL_INTERVAL_MS>(poll).start();
-	}
 
 	return res;
 }
