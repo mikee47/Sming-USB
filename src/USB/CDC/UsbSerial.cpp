@@ -34,13 +34,14 @@ void UsbSerial::handleEvent(Event event)
 	}
 
 	if(!eventMask) {
-		System.queueCallback(
+		eventTimer.initializeMs<10>(
 			[](void* param) {
 				auto self = static_cast<UsbSerial*>(param);
 				self->processEvents();
 			},
 			this);
 	}
+	eventTimer.startOnce();
 
 	eventMask += event;
 }

@@ -121,6 +121,7 @@ private:
 	void processEvents();
 
 	SimpleTimer flushTimer;
+	SimpleTimer eventTimer;
 	DataReceived receiveCallback;
 	TransmitComplete transmitCompleteCallback;
 	uint16_t status{0};
