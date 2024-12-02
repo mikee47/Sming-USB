@@ -18,6 +18,7 @@
  ****/
 
 #include <USB.h>
+#include <Platform/Timers.h>
 
 #if defined(ENABLE_USB_CLASSES) && CFG_TUD_CDC
 
@@ -35,22 +36,25 @@ Device::Device(uint8_t idx, const char* name) : DeviceInterface(idx, name), UsbS
 
 size_t Device::write(const uint8_t* buffer, size_t size)
 {
+	OneShotFastMs timeout;
+	timeout.reset<250>();
 	size_t written{0};
-	while(size != 0) {
+	while(size != 0 && tud_cdc_n_connected(inst) && !timeout.expired()) {
 		size_t n = tud_cdc_n_write_available(inst);
 		if(n == 0) {
-			tud_cdc_n_write_flush(inst);
+			flush();
 		} else {
 			n = std::min(n, size);
 			tud_cdc_n_write(inst, buffer, n);
 			written += n;
 			buffer += n;
 			size -= n;
+			timeout.start();
 		}
 		if(!bitRead(options, UART_OPT_TXWAIT)) {
 			break;
 		}
-		tud_task_ext(0, true);
+		tud_task_ext(0, false);
 	}
 
 	flush();
