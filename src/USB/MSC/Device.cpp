@@ -88,7 +88,8 @@ uint8_t tud_msc_get_maxlun_cb(void)
 // Callback invoked when received an SCSI command not in built-in list below
 // - READ_CAPACITY10, READ_FORMAT_CAPACITY, INQUIRY, MODE_SENSE6, REQUEST_SENSE
 // - READ10 and WRITE10 has their own callbacks
-int32_t tud_msc_scsi_cb(uint8_t lun, uint8_t const scsi_cmd[16], void* buffer, uint16_t bufsize)
+int32_t tud_msc_scsi_cb([[maybe_unused]] uint8_t lun, [[maybe_unused]] uint8_t const scsi_cmd[16],
+						[[maybe_unused]] void* buffer, [[maybe_unused]] uint16_t bufsize)
 {
 	debug_d("%s(%u, %u)", __FUNCTION__, lun, bufsize);
 	return -1;

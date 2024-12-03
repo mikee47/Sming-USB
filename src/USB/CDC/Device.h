@@ -32,12 +32,12 @@ class Device : public DeviceInterface, public UsbSerial
 public:
 	Device(uint8_t idx, const char* name);
 
-	size_t setRxBufferSize(size_t size) override
+	size_t setRxBufferSize(size_t) override
 	{
 		return CFG_TUD_CDC_RX_BUFSIZE;
 	}
 
-	virtual size_t setTxBufferSize(size_t size) override
+	virtual size_t setTxBufferSize(size_t) override
 	{
 		return CFG_TUD_CDC_TX_BUFSIZE;
 	}

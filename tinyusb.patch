@@ -299,6 +299,32 @@ index 1b6aae026..e807794a9 100644
  #include "soc/periph_defs.h" // for interrupt source
  
  #include "device/dcd.h"
+diff --git a/src/portable/synopsys/dwc2/dwc2_esp32.h b/src/portable/synopsys/dwc2/dwc2_esp32.h
+index ddbfd0d10..f6c4ee096 100644
+--- a/src/portable/synopsys/dwc2/dwc2_esp32.h
++++ b/src/portable/synopsys/dwc2/dwc2_esp32.h
+@@ -32,6 +32,9 @@
+  extern "C" {
+ #endif
+ 
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wunused-parameter"
++
+ #include "freertos/FreeRTOS.h"
+ #include "freertos/task.h"
+ 
+@@ -39,6 +42,11 @@
+ #include "soc/periph_defs.h"
+ #include "soc/usb_wrap_struct.h"
+ 
++#pragma GCC diagnostic pop
++
++void dcd_int_handler(uint8_t);
++void hcd_int_handler(uint8_t, bool);
++
+ #if TU_CHECK_MCU(OPT_MCU_ESP32S2, OPT_MCU_ESP32S3)
+ #define DWC2_FS_REG_BASE   0x60080000UL
+ #define DWC2_EP_MAX        7
 diff --git a/src/portable/template/dcd_template.c b/src/portable/template/dcd_template.c
 index 3738ac0cb..5d85b20b7 100644
 --- a/src/portable/template/dcd_template.c
