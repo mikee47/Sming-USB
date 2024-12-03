@@ -299,6 +299,51 @@ index 1b6aae026..e807794a9 100644
  #include "soc/periph_defs.h" // for interrupt source
  
  #include "device/dcd.h"
+diff --git a/src/portable/template/dcd_template.c b/src/portable/template/dcd_template.c
+index 3738ac0cb..5d85b20b7 100644
+--- a/src/portable/template/dcd_template.c
++++ b/src/portable/template/dcd_template.c
+@@ -112,6 +112,15 @@ void dcd_edpt_close_all (uint8_t rhport) {
+   (void) rhport;
+ }
+ 
++void dcd_edpt_close(uint8_t rhport, uint8_t ep_addr) {
++  (void) rhport;
++  (void) ep_addr;
++}
++
++void dcd_int_handler(uint8_t rhport) {
++  (void) rhport;
++}
++
+ // Submit a transfer, When complete dcd_event_xfer_complete() is invoked to notify the stack
+ bool dcd_edpt_xfer (uint8_t rhport, uint8_t ep_addr, uint8_t * buffer, uint16_t total_bytes) {
+   (void) rhport;
+diff --git a/src/tusb.c b/src/tusb.c
+index 85ab1d6ae..df4d9589c 100644
+--- a/src/tusb.c
++++ b/src/tusb.c
+@@ -41,20 +41,6 @@
+ 
+ tusb_role_t _tusb_rhport_role[TUP_USBIP_CONTROLLER_NUM] = { TUSB_ROLE_INVALID };
+ 
+-//--------------------------------------------------------------------
+-// Weak/Default API, can be overwritten by Application
+-//--------------------------------------------------------------------
+-
+-TU_ATTR_WEAK void tusb_time_delay_ms_api(uint32_t ms) {
+-#if CFG_TUSB_OS != OPT_OS_NONE
+-  osal_task_delay(ms);
+-#else
+-  // delay using millis() (if implemented) and/or frame number if possible
+-  const uint32_t time_ms = tusb_time_millis_api();
+-  while ((tusb_time_millis_api() - time_ms) < ms) {}
+-#endif
+-}
+-
+ //--------------------------------------------------------------------+
+ // Public API
+ //--------------------------------------------------------------------+
 diff --git a/src/tusb.h b/src/tusb.h
 index cb6021b33..8cf62be81 100644
 --- a/src/tusb.h
