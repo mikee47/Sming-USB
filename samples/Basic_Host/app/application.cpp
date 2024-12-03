@@ -59,7 +59,7 @@ void init()
 	Serial.systemDebugOutput(true);
 
 	delay(1000);
-	Serial << +_F("Sming Basic Device USB sample application") << endl;
+	Serial << +_F("Sming Basic Host USB sample application") << endl;
 
 	bool res = USB::begin();
 	debug_i("USB::begin(): %u", res);
