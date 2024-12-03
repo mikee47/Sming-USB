@@ -48,6 +48,30 @@ USB::GetDescriptorString descriptorStringCallback;
 	XX(SUPERSPEED_ENDPOINT_COMPANION, 0x30)                                                                            \
 	XX(SUPERSPEED_ISO_ENDPOINT_COMPANION, 0x31)
 
+#define CLASS_TYPE_MAP(XX)                                                                                             \
+	XX(UNSPECIFIED, 0)                                                                                                 \
+	XX(AUDIO, 1)                                                                                                       \
+	XX(CDC, 2)                                                                                                         \
+	XX(HID, 3)                                                                                                         \
+	XX(RESERVED_4, 4)                                                                                                  \
+	XX(PHYSICAL, 5)                                                                                                    \
+	XX(IMAGE, 6)                                                                                                       \
+	XX(PRINTER, 7)                                                                                                     \
+	XX(MSC, 8)                                                                                                         \
+	XX(HUB, 9)                                                                                                         \
+	XX(CDC_DATA, 10)                                                                                                   \
+	XX(SMART_CARD, 11)                                                                                                 \
+	XX(RESERVED_12, 12)                                                                                                \
+	XX(CONTENT_SECURITY, 13)                                                                                           \
+	XX(VIDEO, 14)                                                                                                      \
+	XX(PERSONAL_HEALTHCARE, 15)                                                                                        \
+	XX(AUDIO_VIDEO, 16)                                                                                                \
+	XX(DIAGNOSTIC, 0xDC)                                                                                               \
+	XX(WIRELESS_CONTROLLER, 0xE0)                                                                                      \
+	XX(MISC, 0xEF)                                                                                                     \
+	XX(APPLICATION_SPECIFIC, 0xFE)                                                                                     \
+	XX(VENDOR_SPECIFIC, 0xFF)
+
 const char* getDescTypeName(uint8_t type)
 {
 	switch(type) {
@@ -69,6 +93,18 @@ const char* getDescTypeName(uint8_t type)
 	default:
 		return "?";
 	}
+}
+
+const char* getClassTypeName(uint8_t type)
+{
+	switch(type) {
+#define XX(name, value)                                                                                                \
+	case value:                                                                                                        \
+		return #name;
+		CLASS_TYPE_MAP(XX)
+#undef XX
+	}
+	return "?";
 }
 
 const char* getXferTypeName(uint8_t type)
@@ -149,6 +185,8 @@ size_t Descriptor::printTo(Print& p) const
 		n += p.print(itf->bInterfaceNumber);
 		n += p.print(", class ");
 		n += p.print(itf->bInterfaceClass);
+		n += p.print(' ');
+		n += p.print(getClassTypeName(itf->bInterfaceClass));
 		n += p.print(", subclass ");
 		n += p.print(itf->bInterfaceSubClass);
 		n += p.print(", protocol ");
