@@ -1,7 +1,7 @@
 #include <SmingCore.h>
 #include <USB.h>
 #include <Storage/SpiFlash.h>
-#include "xbox.h"
+#include <USB/VENDOR/xbox.h>
 
 namespace
 {

@@ -7,6 +7,10 @@
  * This is not a full xpad implementation!
  */
 
+#include <USB.h>
+
+#if CFG_TUH_ENABLED && CFG_TUH_VENDOR
+
 #include "xbox.h"
 #include <host/usbh_pvt.h>
 
@@ -191,3 +195,5 @@ bool Xbox::rumble(uint8_t strong, uint8_t weak)
 }
 
 } // namespace USB::VENDOR
+
+#endif
