@@ -85,10 +85,6 @@ Host stack
 
 See :sample:`Basic_Host` for an example.
 
-.. note::
-    
-    At present, there is no host support for Esp32. Samples will build for Rp2040 only.
-
 HUB
     When connected to a hub (or multiple hubs) this must be defined in the configuration.
 
