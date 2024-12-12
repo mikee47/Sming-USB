@@ -268,39 +268,39 @@ index a2994cde7..8e045a39c 100644
  };
  
  enum { BUILTIN_DRIVER_COUNT = TU_ARRAY_SIZE(usbh_class_drivers) };
-diff --git a/src/portable/espressif/esp32sx/dcd_esp32sx.c b/src/portable/espressif/esp32sx/dcd_esp32sx.c
-index 1b6aae026..e807794a9 100644
---- a/src/portable/espressif/esp32sx/dcd_esp32sx.c
-+++ b/src/portable/espressif/esp32sx/dcd_esp32sx.c
-@@ -31,15 +31,22 @@
- #if (((CFG_TUSB_MCU == OPT_MCU_ESP32S2) ||  (CFG_TUSB_MCU == OPT_MCU_ESP32S3)) && CFG_TUD_ENABLED)
+diff --git a/src/portable/synopsys/dwc2/dcd_dwc2.c b/src/portable/synopsys/dwc2/dcd_dwc2.c
+index bde48ef57..5fed28b64 100644
+--- a/src/portable/synopsys/dwc2/dcd_dwc2.c
++++ b/src/portable/synopsys/dwc2/dcd_dwc2.c
+@@ -437,16 +437,24 @@ bool dcd_init(uint8_t rhport, const tusb_rhport_init_t* rh_init) {
+   gahbcfg |= GAHBCFG_GINT; // Enable global interrupt
+   dwc2->gahbcfg = gahbcfg;
  
- // Espressif
--#include "xtensa/xtensa_api.h"
--
-+#pragma GCC diagnostic push
-+#pragma GCC diagnostic ignored "-Wunused-parameter"
-+#include <freertos/FreeRTOS.h>
-+#pragma GCC diagnostic pop
-+#include <freertos/task.h>
-+#include <esp_idf_version.h>
-+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
-+#include "xtensa_api.h"
-+#include "soc/usb_struct.h"
-+#include "soc/usb_reg.h"
-+#endif
- #include "esp_intr_alloc.h"
- #include "esp_log.h"
- #include "soc/dport_reg.h"
- #include "soc/gpio_sig_map.h"
- #include "soc/usb_periph.h"
--#include "soc/usb_reg.h"
--#include "soc/usb_struct.h"
- #include "soc/periph_defs.h" // for interrupt source
++  dwc2_int_alloc(rhport, TUSB_ROLE_DEVICE);
++
+   dcd_connect(rhport);
+   return true;
+ }
  
- #include "device/dcd.h"
++bool dcd_deinit(uint8_t rhport)
++{
++  dwc2_int_free(rhport);
++  return true;
++}
++
+ void dcd_int_enable(uint8_t rhport) {
+-  dwc2_dcd_int_enable(rhport);
++  dwc2_int_set(rhport, TUSB_ROLE_DEVICE, true);
+ }
+ 
+ void dcd_int_disable(uint8_t rhport) {
+-  dwc2_dcd_int_disable(rhport);
++  dwc2_int_set(rhport, TUSB_ROLE_DEVICE, false);
+ }
+ 
+ void dcd_set_address(uint8_t rhport, uint8_t dev_addr) {
 diff --git a/src/portable/synopsys/dwc2/dwc2_esp32.h b/src/portable/synopsys/dwc2/dwc2_esp32.h
-index ddbfd0d10..f6c4ee096 100644
+index 3309760ff..e110f6350 100644
 --- a/src/portable/synopsys/dwc2/dwc2_esp32.h
 +++ b/src/portable/synopsys/dwc2/dwc2_esp32.h
 @@ -32,6 +32,9 @@
@@ -325,6 +325,61 @@ index ddbfd0d10..f6c4ee096 100644
  #if TU_CHECK_MCU(OPT_MCU_ESP32S2, OPT_MCU_ESP32S3)
  #define DWC2_FS_REG_BASE   0x60080000UL
  #define DWC2_EP_MAX        7
+@@ -80,17 +88,23 @@ static void dwc2_int_handler_wrap(void* arg) {
+ #endif
+ }
+ 
+-TU_ATTR_ALWAYS_INLINE static inline void dwc2_int_set(uint8_t rhport, tusb_role_t role, bool enabled) {
+-  if (enabled) {
++static inline void dwc2_int_alloc(uint8_t rhport, tusb_role_t role) {
+     esp_intr_alloc(_dwc2_controller[rhport].irqnum, ESP_INTR_FLAG_LOWMED,
+-                   dwc2_int_handler_wrap, (void*)(uintptr_t)tu_u16(role, rhport), &usb_ih[rhport]);
+-  } else {
++                    dwc2_int_handler_wrap, (void*)(uintptr_t)tu_u16(role, rhport), &usb_ih[rhport]);
++}
++
++static inline void dwc2_int_free(uint8_t rhport) {
+     esp_intr_free(usb_ih[rhport]);
+-  }
++    usb_ih[rhport] = NULL;
+ }
+ 
+-#define dwc2_dcd_int_enable(_rhport)  dwc2_int_set(_rhport, TUSB_ROLE_DEVICE, true)
+-#define dwc2_dcd_int_disable(_rhport) dwc2_int_set(_rhport, TUSB_ROLE_DEVICE, false)
++TU_ATTR_ALWAYS_INLINE static inline void dwc2_int_set(uint8_t rhport, tusb_role_t, bool enabled) {
++  if (enabled) {
++      esp_intr_enable(usb_ih[rhport]);
++  } else {
++      esp_intr_disable(usb_ih[rhport]);
++  }
++}
+ 
+ TU_ATTR_ALWAYS_INLINE static inline void dwc2_remote_wakeup_delay(void) {
+   vTaskDelay(pdMS_TO_TICKS(1));
+diff --git a/src/portable/synopsys/dwc2/hcd_dwc2.c b/src/portable/synopsys/dwc2/hcd_dwc2.c
+index ebbb6200a..55414e0fa 100644
+--- a/src/portable/synopsys/dwc2/hcd_dwc2.c
++++ b/src/portable/synopsys/dwc2/hcd_dwc2.c
+@@ -388,9 +388,19 @@ bool hcd_init(uint8_t rhport, const tusb_rhport_init_t* rh_init) {
+   gahbcfg |= GAHBCFG_GINT;   // Enable global interrupt
+   dwc2->gahbcfg = gahbcfg;
+ 
++  dwc2_int_alloc(rhport, TUSB_ROLE_HOST);
++
++  return true;
++}
++
++
++bool hcd_deinit(uint8_t rhport)
++{
++  dwc2_int_free(rhport);
+   return true;
+ }
+ 
++
+ // Enable USB interrupt
+ void hcd_int_enable (uint8_t rhport) {
+   dwc2_int_set(rhport, TUSB_ROLE_HOST, true);
 diff --git a/src/portable/template/dcd_template.c b/src/portable/template/dcd_template.c
 index 3738ac0cb..5d85b20b7 100644
 --- a/src/portable/template/dcd_template.c

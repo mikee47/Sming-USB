@@ -10,30 +10,30 @@
                     "description": "default", // optional
                     "power": 100,
                     "interfaces": {
-                        "hid0": {
-                            "description": "HID interface", // optional
-                            "template": "hid",
-                            "protocol": "none",
-                            "ep-bufsize": 16, // Don't require 64 bytes for EP
-                            "poll-interval": 5,
-                            "reports": [
-                                "keyboard",
-                                "mouse",
-                                "consumer",
-                                "gamepad"
-                            ]
-                        },
-                        "hid1": {
-                            "description": "HID interface #2",
-                            "template": "hid",
-                            "protocol": "none",
-                            "ep-bufsize": 16,
-                            "poll-interval": 5,
-                            "reports": [
-                                "keyboard",
-                                "system-control"
-                            ]
-                        },
+                        // "hid0": {
+                        //     "description": "HID interface", // optional
+                        //     "template": "hid",
+                        //     "protocol": "none",
+                        //     "ep-bufsize": 16, // Don't require 64 bytes for EP
+                        //     "poll-interval": 5,
+                        //     "reports": [
+                        //         "keyboard",
+                        //         "mouse",
+                        //         "consumer",
+                        //         "gamepad"
+                        //     ]
+                        // },
+                        // "hid1": {
+                        //     "description": "HID interface #2",
+                        //     "template": "hid",
+                        //     "protocol": "none",
+                        //     "ep-bufsize": 16,
+                        //     "poll-interval": 5,
+                        //     "reports": [
+                        //         "keyboard",
+                        //         "system-control"
+                        //     ]
+                        // },
                         "cdc0": {
                             "description": "CDC0",
                             "template": "cdc"
