@@ -61,7 +61,7 @@ void init()
 	delay(1000);
 	Serial << +_F("Sming Basic Host USB sample application") << endl;
 
-	bool res = USB::begin();
+	bool res = USB::begin(true);
 	debug_i("USB::begin(): %u", res);
 
 #if CFG_TUH_HID

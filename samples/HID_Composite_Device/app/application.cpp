@@ -302,7 +302,7 @@ void init()
 	delay(1000);
 	Serial << _F("USB sample started") << endl;
 
-	USB::begin();
+	USB::begin(false);
 	taskTimer.initializeMs<10>(hidTask).start();
 	ledTimer.initializeMs<BLINK_NOT_MOUNTED>(toggleLed).start();
 }

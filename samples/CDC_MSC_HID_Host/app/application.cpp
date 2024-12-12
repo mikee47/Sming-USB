@@ -50,7 +50,7 @@ void init()
 	delay(1000);
 	Serial << +_F("TinyUSB Host CDC MSC HID Example") << endl;
 
-	bool res = USB::begin();
+	bool res = USB::begin(true);
 	debug_i("USB::begin(): %u", res);
 
 	timer.initializeMs<3000>(InterruptCallback([]() { debug_i("Alive"); }));

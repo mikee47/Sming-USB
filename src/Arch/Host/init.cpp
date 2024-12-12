@@ -23,8 +23,9 @@
 
 namespace USB
 {
-void initHardware()
+bool initHardware(bool)
 {
+	return false;
 }
 
 } // namespace USB

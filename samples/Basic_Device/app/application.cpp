@@ -176,7 +176,7 @@ void init()
 	delay(1000);
 	Serial << +_F("Sming Basic Device USB sample application") << endl;
 
-	bool res = USB::begin();
+	bool res = USB::begin(false);
 	debug_i("USB::begin(): %u", res);
 
 	/* Return unique serial number for this SoC */

@@ -41,38 +41,88 @@ void poll()
 
 } // namespace
 
-extern "C" void tusb_time_delay_ms_api(uint32_t ms)
+void tusb_time_delay_ms_api(uint32_t ms)
 {
 	os_delay_us(ms * 1000U);
 }
 
-extern "C" void IRAM_ATTR tud_event_hook_cb(uint8_t, uint32_t, bool)
+#if CFG_TUD_ENABLED
+void IRAM_ATTR tud_event_hook_cb(uint8_t, uint32_t, bool)
 {
 	if(!taskQueued) {
 		System.queueCallback(poll);
 		taskQueued = true;
 	}
 }
-
-namespace USB
-{
-bool begin()
-{
-	extern void initHardware();
-
-	initHardware();
-
-	bool res{true};
-
-#if CFG_TUD_ENABLED
-	res &= tud_init(BOARD_TUD_RHPORT);
 #endif
 
 #if CFG_TUH_ENABLED
-	res &= tuh_init(BOARD_TUH_RHPORT);
+void IRAM_ATTR tuh_event_hook_cb(uint8_t, uint32_t, bool)
+{
+	if(!taskQueued) {
+		System.queueCallback(poll);
+		taskQueued = true;
+	}
+}
 #endif
 
-	return res;
+namespace USB
+{
+extern bool initHardware(bool host);
+
+bool begin(bool host)
+{
+#if CFG_TUH_ENABLED
+	if(host && tuh_inited()) {
+		return true;
+	}
+#endif
+
+#if CFG_TUD_ENABLED
+	if(!host && tud_inited()) {
+		return true;
+	}
+#endif
+
+	end();
+
+	if(!initHardware(host)) {
+		return false;
+	}
+
+	const tusb_rhport_init_t rh_init = {
+		.role = host ? TUSB_ROLE_HOST : TUSB_ROLE_DEVICE,
+		.speed = TUSB_SPEED_AUTO,
+	};
+#if CFG_TUH_ENABLED
+	if(host) {
+		return tuh_rhport_init(BOARD_TUH_RHPORT, &rh_init);
+	}
+#endif
+
+#if CFG_TUD_ENABLED
+	if(!host) {
+		return tud_rhport_init(BOARD_TUD_RHPORT, &rh_init);
+	}
+#endif
+
+	debug_e("[USB] CFG_TU%c_ENABLED not defined", host ? 'H' : 'D');
+	return false;
+}
+
+void end()
+{
+#if CFG_TUH_ENABLED
+	if(tuh_inited()) {
+		tuh_deinit(BOARD_TUH_RHPORT);
+	}
+#endif
+
+#if CFG_TUD_ENABLED
+	if(tud_inited()) {
+		tud_deinit(BOARD_TUD_RHPORT);
+	}
+#endif
 }
 
 } // namespace USB

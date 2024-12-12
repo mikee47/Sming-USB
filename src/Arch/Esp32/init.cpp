@@ -25,22 +25,24 @@
 
 namespace USB
 {
-void initHardware()
+usb_phy_handle_t phy_handle;
+
+bool initHardware(bool host)
 {
+	if(phy_handle) {
+		usb_del_phy(phy_handle);
+		phy_handle = nullptr;
+	}
+
 	usb_phy_config_t phy_conf = {
 		.controller = USB_PHY_CTRL_OTG,
 		.target = USB_PHY_TARGET_INT,
-#if CFG_TUD_ENABLED
-		.otg_mode = USB_OTG_MODE_DEVICE,
-		.otg_speed = BOARD_TUD_RHPORT ? USB_PHY_SPEED_HIGH : USB_PHY_SPEED_FULL,
-#elif CFG_TUH_ENABLED
-		.otg_mode = USB_OTG_MODE_HOST,
-		.otg_speed = BOARD_TUH_RHPORT ? USB_PHY_SPEED_HIGH : USB_PHY_SPEED_FULL,
-#endif
+		.otg_mode = host ? USB_OTG_MODE_HOST : USB_OTG_MODE_DEVICE,
+		.otg_speed = host ? USB_PHY_SPEED_UNDEFINED : USB_PHY_SPEED_FULL,
 	};
 
-	usb_phy_handle_t phy_hdl;
-	usb_new_phy(&phy_conf, &phy_hdl);
+	auto err = usb_new_phy(&phy_conf, &phy_handle);
+	return err == ESP_OK;
 }
 
 } // namespace USB

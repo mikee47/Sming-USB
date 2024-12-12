@@ -29,5 +29,18 @@
 
 namespace USB
 {
-bool begin();
+/**
+ * @brief Initialise the USB stack
+ * @param host Pass true to initialise for host mode, false for device mode
+ *
+ * OTG devices support operating as A (host) or B (device).
+ * This function can be called to switch between the two.
+ */
+bool begin(bool host);
+
+/**
+ * @brief Stop USB operation
+ */
+void end();
+
 } // namespace USB
