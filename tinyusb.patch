@@ -269,7 +269,7 @@ index a2994cde7..8e045a39c 100644
  
  enum { BUILTIN_DRIVER_COUNT = TU_ARRAY_SIZE(usbh_class_drivers) };
 diff --git a/src/portable/synopsys/dwc2/dcd_dwc2.c b/src/portable/synopsys/dwc2/dcd_dwc2.c
-index bde48ef57..5fed28b64 100644
+index c461d9a79..afc1de421 100644
 --- a/src/portable/synopsys/dwc2/dcd_dwc2.c
 +++ b/src/portable/synopsys/dwc2/dcd_dwc2.c
 @@ -437,16 +437,24 @@ bool dcd_init(uint8_t rhport, const tusb_rhport_init_t* rh_init) {
@@ -357,7 +357,7 @@ index 3309760ff..e110f6350 100644
  TU_ATTR_ALWAYS_INLINE static inline void dwc2_remote_wakeup_delay(void) {
    vTaskDelay(pdMS_TO_TICKS(1));
 diff --git a/src/portable/synopsys/dwc2/hcd_dwc2.c b/src/portable/synopsys/dwc2/hcd_dwc2.c
-index ebbb6200a..55414e0fa 100644
+index ebbb6200a..19a3367e8 100644
 --- a/src/portable/synopsys/dwc2/hcd_dwc2.c
 +++ b/src/portable/synopsys/dwc2/hcd_dwc2.c
 @@ -388,9 +388,19 @@ bool hcd_init(uint8_t rhport, const tusb_rhport_init_t* rh_init) {
@@ -380,6 +380,30 @@ index ebbb6200a..55414e0fa 100644
  // Enable USB interrupt
  void hcd_int_enable (uint8_t rhport) {
    dwc2_int_set(rhport, TUSB_ROLE_HOST, true);
+@@ -1260,8 +1270,11 @@ static void handle_hprt_irq(uint8_t rhport, bool in_isr) {
+ 
+     if (hprt_bm.conn_status) {
+       hcd_event_device_attach(rhport, in_isr);
++      dwc2->gintsts = GINTSTS_DISCINT;
++      dwc2->gintmsk |= GINTSTS_DISCINT;
+     } else {
+       hcd_event_device_remove(rhport, in_isr);
++      dwc2->gintmsk &= ~GINTSTS_DISCINT;
+     }
+   }
+ 
+@@ -1312,6 +1325,11 @@ void hcd_int_handler(uint8_t rhport, bool in_isr) {
+     }
+   }
+ 
++  if (gintsts & GINTSTS_DISCINT) {
++      hcd_event_device_remove(rhport, in_isr);
++      dwc2->gintmsk &= ~GINTSTS_DISCINT;
++  }
++
+   if (gintsts & GINTSTS_HPRTINT) {
+     // Host port interrupt: source is cleared in HPRT register
+     // TU_LOG1_HEX(dwc2->hprt);
 diff --git a/src/portable/template/dcd_template.c b/src/portable/template/dcd_template.c
 index 3738ac0cb..5d85b20b7 100644
 --- a/src/portable/template/dcd_template.c
